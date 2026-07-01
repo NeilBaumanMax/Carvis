@@ -60,6 +60,72 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-01 / Phase 2 / 接力记录
+
+### 当前状态
+
+- Phase 2 messagebus 事件协议已实现。
+- `src/messagebus` 现在有 README、类型、内存总线、入口和 smoke test。
+- mock Electron 可通过 messagebus 向 mock agentruntime 发送 `command.submitted`。
+- mock agentruntime 可通过 messagebus 向 mock Electron 广播 `runtime.heartbeat`。
+
+### 本轮完成
+
+- messagebus 支持 `publish`、`subscribe` 和 envelope 自动补齐。
+- 订阅过滤支持 `type`、`source`、`target`。
+- 共享事件类型补充 command、heartbeat、agent output、output ready payload。
+- 新增 `messagebus:smoke`。
+
+### 未完成
+
+- 真实 IPC/WebSocket 传输尚未实现，当前是内存协议版本。
+- 断连错误事件尚未实现，目前无订阅时返回 `delivered: 0`。
+- agentruntime 侧 messagebus client 尚未实现。
+- Electron 真实入口和 UI 尚未实现。
+
+### 下次优先任务
+
+1. Phase 3：实现 Electron 可视化外壳的最小可运行版本。
+2. 为 `src/electron` 补 README。
+3. 建立 `electron:smoke`，验证输入框回车或等价 mock 能发布 `command.submitted`。
+4. 让 Electron mock 订阅 `runtime.heartbeat` 并展示运行时状态。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+- `dos/carvis/docs/progress/layers/02-messagebus.md`
+
+### 关键文件
+
+- `src/messagebus/bus.ts`
+- `src/messagebus/types.ts`
+- `src/messagebus/smoke.ts`
+- `src/shared/types/events.ts`
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前备份分支：`backup/pre-phase2-messagebus-20260701-2145`
+- 本轮主体提交：待提交
+- 最终记录提交：待提交
+- 当前 push 状态：待 push
+
+### 风险提醒
+
+- 当前 messagebus 是内存实现，不是跨进程传输；Phase 3 可以先用 mock/内存事件验证 UI 协议，后续再替换传输层。
+- 不要让 Electron 绕过 messagebus 直接调用 agentruntime。
+
 ## 2026-07-01 / Phase 0 / 接力记录
 
 ### 当前状态

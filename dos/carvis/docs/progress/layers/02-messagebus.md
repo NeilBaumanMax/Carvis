@@ -19,6 +19,32 @@
 - envelope 自动补齐 `eventId`、`timestamp`、`source`，并保留 `requestId` 或 `runId`。
 - messagebus 不执行任务、不读写 workplace。
 
+### 本次完成
+
+- 新增 `src/messagebus/README.md`
+- 新增 `src/messagebus/types.ts`
+- 新增 `src/messagebus/bus.ts`
+- 新增 `src/messagebus/index.ts`
+- 新增 `src/messagebus/smoke.ts`
+- 新增共享 payload 类型：`CommandSubmittedPayload`、`RuntimeHeartbeatPayload`、`AgentOutputPayload`、`OutputReadyPayload`
+- 新增 `npm run messagebus:smoke`
+
+### 当前状态
+
+- 已完成：Phase 2 内存事件协议和 smoke test
+- 进行中：无
+- 未完成：真实 IPC/WebSocket 传输、断连错误事件、agentruntime 侧 messagebus client
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### 下一步
+
+- Phase 3 先做 Electron 最小外壳，通过 messagebus 发布 `command.submitted` 并订阅 `runtime.heartbeat`。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标

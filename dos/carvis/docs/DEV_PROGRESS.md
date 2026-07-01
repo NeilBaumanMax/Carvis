@@ -100,6 +100,12 @@
 
 ### 已完成
 
+- Phase 2 messagebus 事件协议代码完成
+- 新增 `src/messagebus` README、类型、总线实现、入口和 smoke 脚本
+- `command.submitted` 可从 mock Electron 转发给 mock agentruntime
+- `runtime.heartbeat` 可从 mock agentruntime 广播给 mock Electron
+- envelope 可自动补齐 `eventId` 和 `timestamp`
+- `npm run messagebus:smoke` 通过
 - 读取根目录 `对参考施工文档重构的要求 .txt`
 - 读取 `dos/catnip` 的主施工文档、架构文档、施工计划、进度日志、施工日志格式
 - 确认 `参考施工文档` 目录当前为空
@@ -137,11 +143,9 @@
 ### 未开始
 
 - 根目录 `src/*/README.md`
-- `src/messagebus/README.md`
 - `src/agentruntime/README.md`
 - `src/electron/README.md`
 - Claude Code CLI 子进程真实启动
-- messagebus 事件协议代码
 - agentruntime 调度代码
 - Electron UI
 - Claude Code CLI PID 封装
@@ -150,10 +154,10 @@
 
 ### 下一步
 
-1. Phase 2：实现 messagebus 事件协议。
-2. 为 `src/messagebus` 补 README。
-3. 建立 `messagebus:smoke`，验证命令事件和 heartbeat 广播。
-4. 再推进 agentruntime 侧 messagebus client。
+1. Phase 3：实现 Electron 可视化外壳的最小可运行版本。
+2. 为 `src/electron` 补 README。
+3. 建立 `electron:smoke`，验证输入命令发布 `command.submitted`。
+4. 让 Electron mock 能订阅 `runtime.heartbeat` 并展示状态。
 
 ### 备注
 

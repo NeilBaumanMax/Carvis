@@ -1,5 +1,100 @@
 # Carvis Construction Log
 
+## 2026-07-01 / Phase 2 / messagebus 事件协议
+
+### 本轮计划回放
+
+- 完成 `src/messagebus` 本地事件协议第一版。
+- 建立 mock Electron 到 mock agentruntime 的 `command.submitted` 转发验证。
+- 建立 mock agentruntime 到 mock Electron 的 `runtime.heartbeat` 广播验证。
+- 保持 messagebus 只负责 envelope、订阅、发布和转发，不执行任务、不读写 workplace。
+
+### 开工检查
+
+- 已读取 `CODEX_MASTER_REQUIREMENTS.md`
+- 已读取 `docs/DEV_PROGRESS.md`
+- 已读取 `docs/LOG.md`
+- 已读取 `docs/GITHUB_ROLLBACK.md`
+- 已读取 `docs/TEST_METRICS.md`
+- 已读取 `docs/WORKFLOW.md`
+- 已读取 `docs/CONSTRUCTION_PLAN.md`
+- 已读取 `docs/progress/layers/02-messagebus.md`
+- 已读取根目录 `对参考施工文档重构的要求 .txt`
+- 当前分支：`main`
+- 开发前计划提交：`edd6e14`
+- 开发前备份分支：`backup/pre-phase2-messagebus-20260701-2145`
+- 远端备份状态：已 push
+
+### 本次修改
+
+- 新增 messagebus README，固定职责和禁止事项。
+- 新增内存版 messagebus，支持订阅、发布、按 `type/source/target` 过滤投递。
+- 新增 envelope 自动补齐能力，生成 `eventId` 和 `timestamp`。
+- 新增 command、heartbeat、agent output、output ready 的共享 payload 类型。
+- 新增 `messagebus:smoke`，验证命令转发、heartbeat 广播和无订阅投递计数。
+- `package.json` 新增 `messagebus:smoke` 脚本。
+
+### 修改文件
+
+- `package.json`
+- `src/shared/types/events.ts`
+- `src/messagebus/README.md`
+- `src/messagebus/types.ts`
+- `src/messagebus/bus.ts`
+- `src/messagebus/index.ts`
+- `src/messagebus/smoke.ts`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/02-messagebus.md`
+
+### 验证结果
+
+- `npm run typecheck`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### 测试日志
+
+- 第 1 次：`npm run typecheck`，通过
+- 第 1 次：`npm run messagebus:smoke`，通过，输出 `[messagebus:smoke] ok`
+- 第 1 次：`npm run setup:smoke`，通过，输出 `[setup:smoke] ok`
+- 失败修复：无，测试未失败
+
+### 测试指标判断
+
+- 本轮涉及层：`02-messagebus`、`shared types`
+- 应执行测试：`npm run typecheck`、`npm run messagebus:smoke`
+- 实际执行测试：`npm run typecheck`、`npm run messagebus:smoke`、`npm run setup:smoke`
+- 未执行项及原因：`npm test` 尚未建立，当前 Phase 2 只要求 messagebus smoke
+
+### 文档漂移检查
+
+- `CONSTRUCTION_PLAN.md` 的 Phase 2 目标与实际实现一致。
+- `TEST_METRICS.md` 的 Phase 2 指标与实际测试一致。
+- `CODEX_MASTER_REQUIREMENTS.md` 的 messagebus 边界未被突破。
+- 无需修改架构边界文档。
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前备份分支：`backup/pre-phase2-messagebus-20260701-2145`
+- 本轮主体提交：待提交
+- 最终记录提交：待提交
+- push 状态：待 push
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需回滚，优先使用 `git revert <phase2-commit>`
+- 回滚后复测：`npm run typecheck`、`npm run messagebus:smoke`
+
+### 下一步
+
+- Phase 3：实现 Electron 可视化外壳的最小可运行版本。
+- 在 Electron 输入框回车时发布 `command.submitted`。
+- Electron 订阅 `runtime.heartbeat` 并显示运行时状态。
+
 ## 2026-07-01 / Phase 1 / setup 启动协议
 
 ### 本轮计划回放
