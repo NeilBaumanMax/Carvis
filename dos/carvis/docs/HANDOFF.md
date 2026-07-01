@@ -626,7 +626,10 @@
 - `setup:systemd-install` 已支持 dry-run、install、uninstall、status。
 - 本地 `npm test` 通过。
 - 文件扫描未发现测试 API Key 写入仓库文件。
-- 准备推送 GitHub 备份分支，不推送 `main`。
+- GitHub 备份分支已推送：`backup/mvp-nixos-20260702-020835`
+- 主体备份提交：`6e68339`
+- 最新备份提交：以 `origin/backup/mvp-nixos-20260702-020835` 的 HEAD 为准
+- 未推送 `main`。
 
 ### 下次优先任务
 

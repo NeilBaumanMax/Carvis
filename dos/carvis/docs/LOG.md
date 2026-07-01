@@ -838,3 +838,7 @@
 
 - 本轮准备创建 GitHub 备份分支。
 - 备份分支只用于保存当前本地 MVP 工作区，不直接推送 `main`。
+- GitHub 备份分支：`backup/mvp-nixos-20260702-020835`
+- GitHub 主体备份提交：`6e68339`
+- GitHub 最新备份提交：以 `origin/backup/mvp-nixos-20260702-020835` 的 HEAD 为准
+- push 状态：已推送到 `origin/backup/mvp-nixos-20260702-020835`
