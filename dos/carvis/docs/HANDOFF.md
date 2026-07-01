@@ -120,3 +120,65 @@
 
 - 当前本地环境显示为 Kali，不是 NixOS。
 - 用户提供了 NixOS 用户名和密码，但还没有提供目标主机地址。
+
+## 2026-07-01 / Phase 1 / 接力记录
+
+### 当前状态
+
+- Phase 1 setup 启动协议已实现。
+- `src/setup` 现在有类型、配置、supervisor、smoke test 和 README。
+- 默认 `npm start` 使用 `plan` 模式，只模拟启动顺序，不真实拉起 Electron 或 Agent。
+
+### 本轮完成
+
+- setup 按顺序模拟启动 `messagebus -> agentruntime -> electron`。
+- required 组件启动失败时，setup 会短路并返回 `setup.failed`。
+- `setup:smoke` 覆盖成功顺序和失败短路。
+- `npm run typecheck`、`npm run setup:smoke`、`npm start` 均通过。
+
+### 未完成
+
+- messagebus 真实事件协议尚未实现。
+- Electron 真实入口尚未实现。
+- agentruntime 真实入口尚未实现。
+- setup 的 `spawn` 模式还没有接入真实长跑进程监督。
+
+### 下次优先任务
+
+1. Phase 2：实现 `src/messagebus` 事件协议。
+2. 新增 `messagebus:smoke`。
+3. 让 mock Electron 命令能通过 messagebus 到达 mock agentruntime。
+4. 让 mock agentruntime heartbeat 能广播给 mock Electron。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/02-messagebus.md`
+
+### 关键文件
+
+- `src/setup/supervisor.ts`
+- `src/setup/config.ts`
+- `src/setup/types.ts`
+- `src/setup/smoke.ts`
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run setup:smoke`：通过
+- `npm start`：通过
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前备份分支：`backup/pre-phase1-setup-20260701-203615`
+- 当前施工提交：待提交并 push
+
+### 风险提醒
+
+- `spawn` 模式尚未做长期进程监督。
+- Phase 2 前不要让 Electron 或 agentruntime 绕过 messagebus 直接通信。

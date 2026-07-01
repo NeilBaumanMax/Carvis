@@ -68,12 +68,20 @@
 - 初始化本地 Git 仓库
 - 绑定 GitHub remote：`git@github.com:howtion0/carvis.git`
 - 推送开发前备份分支：`backup/pre-carvis-bootstrap-20260701-203039`
+- 推送 Phase 1 开发前备份分支：`backup/pre-phase1-setup-20260701-203615`
+- 已连接 NixOS 主机：`howtion@192.168.137.59`
 - 创建 TypeScript 工程骨架：`package.json`、`tsconfig.json`、`src/main.ts`、`src/bootstrap.ts`
 - 创建共享类型：Agent、Run、MessageBus event envelope
 - 创建 `src/agentruntime/claudecode/deepseekClaudeCodeEnv.ts`
 - 根据 DeepSeek 官方文档固定 Claude Code CLI 的 Anthropic 兼容环境变量
 - `npm install` 通过
 - `npm run typecheck` 通过
+- Phase 1 setup 启动协议代码完成
+- 创建 `src/setup` 类型、配置、supervisor、README、smoke 脚本
+- `bootstrap` 接入 setup plan 模式
+- `package.json` 新增 `setup:smoke`
+- `npm run setup:smoke` 通过
+- `npm start` 通过，默认 plan 模式输出启动顺序 `messagebus -> agentruntime -> electron`
 - 固定 `setup / electron / messagebus / agentruntime` 四大顶层职责
 - 固定 `agentruntime/claudecode / mcp / messagebus / workplaces` 子层职责
 - 固定总管、文书、美术、调研、技术 Agent 的协作顺序
@@ -83,23 +91,23 @@
 ### 未开始
 
 - 根目录 `src/*/README.md`
+- `src/messagebus/README.md`
+- `src/agentruntime/README.md`
+- `src/electron/README.md`
 - Claude Code CLI 子进程真实启动
-- setup 启动脚本
 - messagebus 事件协议代码
 - agentruntime 调度代码
 - Electron UI
 - Claude Code CLI PID 封装
 - DeepSeek 环境变量接入
 - smoke test
-- 连接外部 NixOS 主机，当前缺少目标 IP 或 hostname
 
 ### 下一步
 
-1. 获取 NixOS 目标机器 IP 或 hostname，验证 SSH 登录。
-2. 为 `src/setup`、`src/messagebus`、`src/agentruntime`、`src/electron` 补 README。
-3. 定义 messagebus 事件 envelope 类型。
-4. 定义 AgentRole、AgentStatus、RunStatus、WorkplaceState 类型。
-5. 写最小 messagebus smoke test。
+1. Phase 2：实现 messagebus 事件协议。
+2. 为 `src/messagebus` 补 README。
+3. 建立 `messagebus:smoke`，验证命令事件和 heartbeat 广播。
+4. 再推进 agentruntime 侧 messagebus client。
 
 ### 备注
 

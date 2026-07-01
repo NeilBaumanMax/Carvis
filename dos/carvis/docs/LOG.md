@@ -1,5 +1,98 @@
 # Carvis Construction Log
 
+## 2026-07-01 / Phase 1 / setup 启动协议
+
+### 本轮计划回放
+
+- 完成 `src/setup` 第一版 TypeScript 启动协议。
+- setup 按顺序模拟拉起 `messagebus`、`agentruntime`、`electron`。
+- 建立 `setup:smoke`，验证启动顺序和失败短路。
+- 保持 setup 只负责启动协议，不触碰 Agent 业务、workplace 或 Claude Code CLI。
+
+### 开工检查
+
+- 已读取 `CODEX_MASTER_REQUIREMENTS.md`
+- 已读取 `docs/DEV_PROGRESS.md`
+- 已读取 `docs/LOG.md`
+- 已读取 `docs/GITHUB_ROLLBACK.md`
+- 已读取 `docs/TEST_METRICS.md`
+- 已读取 `docs/WORKFLOW.md`
+- 已读取 `docs/progress/layers/00-setup.md`
+- 当前分支：`main`
+- 开发前计划提交：`bf86ab8`
+- 开发前备份分支：`backup/pre-phase1-setup-20260701-203615`
+- 远端备份状态：已 push
+
+### 本次修改
+
+- 新增 setup 类型定义。
+- 新增 setup 配置加载。
+- 新增 setup supervisor，支持 `plan` 和 `spawn` 两种模式。
+- 新增可注入的 `ComponentStarter`，让启动协议和测试解耦。
+- 新增 `setup:smoke`，断言成功启动顺序和 required 组件失败短路。
+- `bootstrap` 接入 setup plan 模式，默认只模拟启动顺序，不真实拉起 Electron 或 Agent。
+- `package.json` 新增 `setup:smoke` 脚本。
+
+### 修改文件
+
+- `package.json`
+- `src/bootstrap.ts`
+- `src/setup/README.md`
+- `src/setup/config.ts`
+- `src/setup/index.ts`
+- `src/setup/smoke.ts`
+- `src/setup/supervisor.ts`
+- `src/setup/types.ts`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+
+### 验证结果
+
+- `npm run typecheck`：通过
+- `npm run setup:smoke`：通过
+- `npm start`：通过
+
+### 测试日志
+
+- 第 1 次：`npm run typecheck`，通过
+- 第 1 次：`npm run setup:smoke`，通过，输出 `[setup:smoke] ok`
+- 第 1 次：`npm start`，通过，输出启动顺序 `messagebus -> agentruntime -> electron`
+- 失败修复：无，测试未失败
+
+### 测试指标判断
+
+- 本轮涉及层：`00-setup`
+- 应执行测试：`npm run typecheck`、`npm run setup:smoke`
+- 实际执行测试：`npm run typecheck`、`npm run setup:smoke`、`npm start`
+- 未执行项及原因：`npm test` 尚未建立，当前 Phase 1 只要求 setup smoke
+
+### 文档漂移检查
+
+- `CONSTRUCTION_PLAN.md` 的 Phase 1 目标与实际实现一致。
+- `TEST_METRICS.md` 的 Phase 1 指标与实际测试一致。
+- `CODEX_MASTER_REQUIREMENTS.md` 的 setup 边界未被突破。
+- 无需修改架构边界文档。
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前备份分支：`backup/pre-phase1-setup-20260701-203615`
+- 本轮提交：待提交
+- push 状态：待 push
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需回滚，优先使用 `git revert <phase1-commit>`
+- 回滚后复测：`npm run typecheck`、`npm run setup:smoke`
+
+### 下一步
+
+- Phase 2：实现 messagebus 事件协议和 `messagebus:smoke`
+- 保持 Electron 和 agentruntime 通过 messagebus 解耦
+
 ## 2026-07-01 / Phase 0 / 迁移施工文档脚手架
 
 ### 目标
