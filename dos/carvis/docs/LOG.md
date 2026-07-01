@@ -34,6 +34,12 @@
 - Output 入口已通过主进程 IPC 打开路径。
 - Electron 仍通过 messagebus 间接提交命令，未破坏层边界。
 
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 本轮功能提交：`759b000 backup: make electron renderer live`
+- push 状态：已 push 到 `origin/backup/mvp-nixos-20260702-020835`
+
 ## 2026-07-02 / Claude Agent SDK warm runner + NixOS 复验
 
 ### 目标
