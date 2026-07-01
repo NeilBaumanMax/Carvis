@@ -1,4 +1,8 @@
 export { InMemoryMessageBus, createEnvelope, createMessageBus } from "./bus.js";
+export {
+  createRemoteMessageBus,
+  startTcpMessageBusServer,
+} from "./ipc.js";
 export type {
   MessageBus,
   MessageBusEventHandler,

@@ -1,4 +1,5 @@
 import type {
+  AgentLifecyclePayload,
   AgentOutputPayload,
   CommandSubmittedPayload,
   OutputReadyPayload,
@@ -119,6 +120,31 @@ export class ElectronShell {
         },
       ),
     );
+
+    for (const type of ["agent.starting", "agent.ready", "agent.done", "agent.retained", "agent.shutdown"] as const) {
+      this.subscriptions.push(
+        this.bus.subscribe<AgentLifecyclePayload>(
+          {
+            type,
+            target: "electron",
+          },
+          (event) => {
+            const panel = this.findPanelByAgentId(event.agentId);
+
+            if (panel === undefined) {
+              this.rememberEvent(`${type}:unmatched`);
+              return;
+            }
+
+            panel.status = event.payload.status;
+            panel.pid = event.payload.pid;
+            panel.workplacePath = event.payload.workplacePath;
+            panel.lastHeartbeatAt = event.timestamp;
+            this.rememberEvent(`${type}:${panel.role}`);
+          },
+        ),
+      );
+    }
   }
 
   private findPanelByAgentId(agentId: string | undefined): ElectronWorkplacePanel | undefined {

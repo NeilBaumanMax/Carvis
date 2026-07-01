@@ -1,6 +1,7 @@
 export interface DeepSeekClaudeCodeEnv {
   ANTHROPIC_BASE_URL: string;
   ANTHROPIC_AUTH_TOKEN?: string;
+  ANTHROPIC_API_KEY?: string;
   ANTHROPIC_MODEL: string;
   ANTHROPIC_DEFAULT_OPUS_MODEL: string;
   ANTHROPIC_DEFAULT_SONNET_MODEL: string;
@@ -12,9 +13,13 @@ export interface DeepSeekClaudeCodeEnv {
 export function createDeepSeekClaudeCodeEnv(
   env: NodeJS.ProcessEnv,
 ): DeepSeekClaudeCodeEnv {
+  const authToken = env.ANTHROPIC_AUTH_TOKEN ?? env.DEEPSEEK_API_KEY;
+  const apiKey = env.ANTHROPIC_API_KEY ?? authToken;
+
   return {
     ANTHROPIC_BASE_URL: env.ANTHROPIC_BASE_URL ?? "https://api.deepseek.com/anthropic",
-    ANTHROPIC_AUTH_TOKEN: env.ANTHROPIC_AUTH_TOKEN,
+    ANTHROPIC_AUTH_TOKEN: authToken,
+    ANTHROPIC_API_KEY: apiKey,
     ANTHROPIC_MODEL: env.ANTHROPIC_MODEL ?? "deepseek-v4-pro[1m]",
     ANTHROPIC_DEFAULT_OPUS_MODEL:
       env.ANTHROPIC_DEFAULT_OPUS_MODEL ?? "deepseek-v4-pro[1m]",
@@ -35,4 +40,8 @@ export function mergeClaudeCodeEnv(
     ...env,
     ...createDeepSeekClaudeCodeEnv(env),
   };
+}
+
+export function hasDeepSeekClaudeCodeToken(env: NodeJS.ProcessEnv): boolean {
+  return Boolean(env.ANTHROPIC_AUTH_TOKEN ?? env.DEEPSEEK_API_KEY);
 }

@@ -14,6 +14,7 @@ export async function runSetupSupervisor(
 ): Promise<SetupRunResult> {
   const events: SetupEvent[] = [];
   const started: SetupRunResult["started"] = [];
+  const processes: SetupRunResult["processes"] = [];
 
   record(events, {
     type: "setup.started",
@@ -30,6 +31,7 @@ export async function runSetupSupervisor(
     try {
       const result = await starter(component, config);
       started.push(component.name);
+      processes.push(result);
       record(events, {
         type: "component.started",
         component: component.name,
@@ -53,6 +55,7 @@ export async function runSetupSupervisor(
           ok: false,
           events,
           started,
+          processes,
           failed: component.name,
         };
       }
@@ -68,6 +71,7 @@ export async function runSetupSupervisor(
     ok: true,
     events,
     started,
+    processes,
   };
 }
 

@@ -1,5 +1,73 @@
 # Carvis Development Progress
 
+## 2026-07-02
+
+## 2026-07-02 / Local MVP smoke / 本地施工记录
+
+### 本轮目标
+
+- 按用户要求继续向 NixOS MVP 跑通推进。
+- 本轮只写本地文件，不提交、不 push。
+- 建立 agentruntime 最小调度核心、workplaces/output 文件产物和 e2e smoke。
+- 在 NixOS 远端 `~/carvis-remote-smoke` 做干净安装和 smoke 验证。
+
+### 本次完成
+
+- 新增 `src/agentruntime` runtime、类型、README 和 `agentruntime:smoke`。
+- AgentRuntime 可订阅 `command.submitted`，创建 run，按 manager -> writer/artist/researcher -> engineer 编排角色。
+- AgentRuntime 会广播 `run.phase.changed`、Agent 生命周期、`runtime.heartbeat` 和 `output.ready`。
+- Electron shell 已能消费 Agent 生命周期事件，更新面板 status、PID、latest output。
+- 新增 `src/agentruntime/workplaces`，生成每个角色的 `input.md`、`plan.md`、`log.md`、`result.md`。
+- 新增 `src/output`，生成 `final-report.md` 和 `manifest.json`。
+- 新增 `e2e:smoke`，验证 Electron -> messagebus -> agentruntime -> workplaces -> output -> Electron 状态闭环。
+- 新增 `claudecode:smoke`，NixOS 上通过 `steam-run` 真实调用 DeepSeek Claude Code 成功。
+- 新增 `mvp:real-smoke`，可显式开启五角色真实 Claude Code + DeepSeek 调用，写入 workplaces 并生成 output。
+- `mvp:real-smoke` 的 Claude Code 调用已改为 `--bare` + 固定 system prompt，并把 `DEEPSEEK_API_KEY` 同步给 `ANTHROPIC_API_KEY`，避免本地 CLAUDE 记忆污染输出。
+- 新增 `scripts/run-nixos-mvp-smoke.sh`，用于 NixOS SSH 恢复后一键同步、干净安装、dry smoke 和 real MVP smoke。
+- 新增 `src/agentruntime/claudecode/roleRunner.ts`，把真实 Claude Code 角色执行逻辑从 smoke 脚本抽成 Runtime 可复用 role runner。
+- 新增 setup spawn 所需的 `messagebus/main.ts`、`agentruntime/main.ts`、`electron/main.ts` 和 `setup:spawn-smoke`。
+- NixOS 远端完整 dry smoke 已通过到 `e2e:smoke`。
+- 发现 NixOS `steam-run` + Claude Code `--bare` 会挂起，已新增 `CARVIS_CLAUDE_CODE_BARE=0` 开关，并让远端一键脚本默认关闭 bare。
+
+### 当前验证
+
+- 本地 `npm run typecheck`：通过
+- 本地 `npm run setup:smoke`：通过
+- 本地 `npm run messagebus:smoke`：通过
+- 本地 `npm run electron:smoke`：通过
+- 本地 `npm run agentruntime:smoke`：通过
+- 本地 `npm run workplaces:smoke`：通过
+- 本地 `npm run output:smoke`：通过
+- 本地 `npm run claudecode:smoke`：通过 dry
+- 本地 `npm run e2e:smoke`：通过
+- 本地 `npm run mvp:real-smoke`：通过 skip 路径，未设置 `CARVIS_REAL_MVP_SMOKE=1` 时不会误调用 API
+- 本地 `CARVIS_REAL_MVP_SMOKE=1 DEEPSEEK_API_KEY=... npm run mvp:real-smoke`：通过 real，五角色均调用 Claude Code + DeepSeek
+- 远端 NixOS 干净 `npm ci` 后同一组 dry smoke：通过
+- 远端 NixOS `CARVIS_CLAUDECODE_REAL_SMOKE=1 ... npm run claudecode:smoke`：通过 real
+- 本地 `bash -n scripts/run-nixos-mvp-smoke.sh`：通过
+- 本地抽取 `createClaudeCodeRoleRunner` 后再次执行 `CARVIS_REAL_MVP_SMOKE=1 DEEPSEEK_API_KEY=... npm run mvp:real-smoke`：通过 real
+- 本地 `npm run setup:spawn-smoke`：通过
+- 远端 NixOS `scripts/run-nixos-mvp-smoke.sh 192.168.137.59`：dry 阶段通过，real 阶段在 `--bare` 下超时
+
+### 当前未完成
+
+- 真实 Electron 窗口和 renderer UI 尚未实现。
+- 当前 AgentRuntime 的 PID 池是模拟 PID，不是真实长驻 Claude Code PID。
+- Claude Code 真实调用已通过 smoke，但尚未接入每个角色的运行流程。
+- 五角色真实 Claude Code MVP smoke 脚本已建立，但本轮远端网络切换后 NixOS SSH 入口暂不可用，尚未完成远端 real run。
+- 本机已切到 `kyle`，当前地址 `192.168.135.73`；扫描 `192.168.135.0/24` 后只发现网关、本机和一个 Android 设备 `192.168.135.223`，未发现 NixOS SSH。
+- 当前网络对 `192.168.137.0/24` 的扫描返回整段 22 端口开放，结果不可信；SSH kex 阶段仍被关闭，不能作为 NixOS 可用入口。
+- NixOS 入口曾短暂恢复并跑完 dry smoke，但随后 SSH 又进入 kex 阶段关闭/超时状态，尚未复测 `CARVIS_CLAUDE_CODE_BARE=0` 后的远端 real MVP。
+- 真实 IPC/WebSocket 跨进程 messagebus 尚未实现，当前仍是内存总线。
+- setup 尚未真实 spawn 长跑进程。
+
+### 下一步
+
+1. 恢复 NixOS SSH 后运行：`DEEPSEEK_API_KEY=... scripts/run-nixos-mvp-smoke.sh <nixos-host>`。
+2. Phase 5：把 `claudecode` 封装升级为可启动、保活、关闭的 PID Agent。
+3. 把 AgentRuntime 的模拟 role runner 替换为可选 Claude Code role runner。
+4. 建立真实 Electron 窗口或本地 Web/Electron renderer，展示当前 shell state。
+
 ## 2026-07-01
 
 ## 2026-07-01 / Phase 3 / 开工计划
@@ -236,3 +304,53 @@
 ### 备注
 
 本文件作为实时开发进度日志持续追加，不覆盖旧记录。
+
+## 2026-07-02 / NixOS MVP Smoke / 最新进度
+
+### 已完成
+
+- 已连接 NixOS 主机：`howtion@192.168.137.59`
+- 已禁用 NixOS 自动关机/休眠：
+  - `logind` 电源键、重启键、休眠键、合盖动作均为 `ignore`
+  - `systemd.sleep` 已设置 `AllowSuspend=no`、`AllowHibernation=no`、`AllowSuspendThenHibernate=no`、`AllowHybridSleep=no`
+  - KDE PowerDevil AC/Battery/LowBattery 的 idle suspend、DPMS、按键动作已关闭
+- 已执行 `sudo nixos-rebuild switch`，配置切换成功
+- 已确认远端 `kyle` WiFi 已连接，NixOS 直连 DeepSeek 出口不稳定，需临时通过本机代理访问
+- 新增 `scripts/run-nixos-mvp-smoke.sh` 可选代理透传：
+  - `CARVIS_REMOTE_HTTPS_PROXY`
+  - `CARVIS_REMOTE_HTTP_PROXY`
+- NixOS 完整 smoke 已通过：
+  - `typecheck`
+  - `setup:smoke`
+  - `messagebus:smoke`
+  - `electron:smoke`
+  - `agentruntime:smoke`
+  - `workplaces:smoke`
+  - `output:smoke`
+  - `claudecode:smoke` dry
+  - `e2e:smoke`
+  - `mvp:real-smoke` real DeepSeek/Claude Code
+
+### 本次关键命令
+
+- 本机临时 HTTP CONNECT 代理：`0.0.0.0:18080`
+- NixOS smoke：
+  - `CARVIS_REMOTE_HTTPS_PROXY=http://192.168.137.2:18080 CARVIS_REMOTE_HTTP_PROXY=http://192.168.137.2:18080 ./scripts/run-nixos-mvp-smoke.sh 192.168.137.59`
+
+### 当前状态
+
+- MVP smoke 已在 NixOS 上跑通。
+- 本地文件已修改，未提交，未 push。
+- 不记录 API key 到文档。
+
+### 2026-07-02 复验补充
+
+- `package.json` 已新增 `npm test` 汇总验收命令。
+- 本地 `npm test`：通过。
+- NixOS `npm test`：通过。
+- NixOS `mvp:real-smoke`：通过。
+- `scripts/run-nixos-mvp-smoke.sh` 已改为远端先执行 `npm test`，再执行真实 MVP smoke。
+- NixOS 屏幕自动熄屏/锁屏已关闭：
+  - `~/.config/kscreenlockerrc`：`Autolock=false`、`Timeout=0`
+  - `~/.config/powerdevilrc`：AC/Battery/LowBattery 的 `DimDisplay`、`DPMSControl`、`SuspendSession` 均为 0
+  - 当前 X11 会话：`xset q` 显示 `DPMS is Disabled`，Screen Saver `timeout: 0`

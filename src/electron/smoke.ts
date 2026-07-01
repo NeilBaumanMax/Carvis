@@ -1,5 +1,6 @@
 import { createMessageBus } from "../messagebus/index.js";
 import type {
+  AgentLifecyclePayload,
   CommandSubmittedPayload,
   OutputReadyPayload,
   RuntimeHeartbeatPayload,
@@ -59,7 +60,22 @@ await bus.publish<OutputReadyPayload>({
   },
 });
 
+await bus.publish<AgentLifecyclePayload>({
+  type: "agent.ready",
+  source: "agentruntime",
+  target: "electron",
+  runId: "run-electron-smoke-1",
+  agentId: "manager",
+  payload: {
+    role: "manager",
+    status: "ready",
+    pid: 41001,
+    workplacePath: "workplaces/manager",
+  },
+});
+
 const updatedState = shell.getState();
+const managerPanel = updatedState.panels.find((panel) => panel.role === "manager");
 assert(updatedState.submittedCommands[0] === "build a launch report", "shell should remember command");
 assert(updatedState.runtime.activePidCount === 2, "heartbeat active PID count should update");
 assert(updatedState.runtime.idlePidCount === 1, "heartbeat idle PID count should update");
@@ -72,6 +88,8 @@ assert(
   updatedState.outputs[0]?.manifestPath === "output/manifest.json",
   "manifest path should be displayed",
 );
+assert(managerPanel?.status === "ready", "manager panel status should update");
+assert(managerPanel?.pid === 41001, "manager panel PID should update");
 
 shell.dispose();
 

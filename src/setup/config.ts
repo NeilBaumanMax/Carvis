@@ -15,8 +15,8 @@ const defaultComponents: readonly SetupComponentConfig[] = [
   },
   {
     name: "electron",
-    command: "npm",
-    args: ["run", "electron:start"],
+    command: "node",
+    args: ["dist/electron/main.js"],
     required: true,
   },
 ];

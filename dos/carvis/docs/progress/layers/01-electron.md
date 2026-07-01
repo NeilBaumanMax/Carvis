@@ -72,3 +72,59 @@
 
 - 补 `src/electron/README.md`
 - 定义 workplace 面板状态字段
+
+## 2026-07-02 / NixOS MVP 验收 / 补充
+
+### 本次完成
+
+- Electron shell 在 `e2e:smoke` 中展示五角色 panel、PID、状态、最近输出和 output ready 入口。
+- `mvp:real-smoke` 验证真实 Claude Code 五角色输出完成后 Electron shell 状态进入 shutdown，并能看到产物入口。
+
+### 测试基线
+
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke`：通过。
+
+### 剩余风险
+
+- 当前仍是 TypeScript shell/mock 状态模型，不是真实 Electron renderer 窗口。
+- 尚未完成响应式 UI 截图验收和真实文件打开动作。
+
+## 2026-07-02 / 跨进程 IPC / 本次完成
+
+### 本次完成
+
+- `electron/main.ts` 连接 TCP messagebus。
+- 新增 `CARVIS_ELECTRON_SUBMIT_ON_START`，方便真实入口 smoke 提交一条启动命令。
+- `ipc:smoke` 使用 Electron shell 作为 TCP client，验证五角色状态和 `output.ready` 可跨进程回传。
+
+### 测试基线
+
+- 本地 `npm run ipc:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+
+### 剩余风险
+
+- 真实 Electron renderer UI 仍未实现。
+
+## 2026-07-02 / Renderer Snapshot / 本次完成
+
+### 本次完成
+
+- 新增 `src/electron/renderer.ts`，可把 shell state 渲染为真实 HTML/CSS 工作台。
+- 新增 `electron:ui-smoke`，验证五角色面板、命令输入、output 入口和窄屏 CSS。
+- `electron/main.ts` 支持 `CARVIS_ELECTRON_RENDERER_DIR` 写出 renderer snapshot。
+
+### 测试基线
+
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke`：通过。
+
+### 剩余风险
+
+- HTML renderer 尚未挂载到真实 Electron `BrowserWindow`。
+- 尚未做截图级视觉验收。

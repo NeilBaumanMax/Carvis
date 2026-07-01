@@ -7,6 +7,7 @@ export interface SetupComponentConfig {
   command: string;
   args: readonly string[];
   required: boolean;
+  environment?: Readonly<Record<string, string>>;
 }
 
 export interface SetupConfig {
@@ -43,5 +44,17 @@ export interface SetupRunResult {
   ok: boolean;
   events: SetupEvent[];
   started: SetupComponentName[];
+  processes: ComponentStartResult[];
   failed?: SetupComponentName;
+}
+
+export interface SystemdUnitFile {
+  filename: string;
+  content: string;
+}
+
+export interface SystemdUnitOptions {
+  workingDirectory: string;
+  nodePath?: string;
+  messagebusPort?: number;
 }

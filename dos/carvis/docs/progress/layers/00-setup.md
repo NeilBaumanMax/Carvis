@@ -86,3 +86,105 @@
 
 - 补 `src/setup/README.md`
 - 设计本地 smoke 启动命令
+
+## 2026-07-02 / NixOS MVP 验收 / 补充
+
+### 本次完成
+
+- 新增 `setup:spawn-smoke`，验证 setup 以 spawn 模式拉起 `messagebus -> agentruntime -> electron` 三个入口。
+- `npm test` 已包含 `setup:smoke` 和 `setup:spawn-smoke`。
+- NixOS 上完整执行 `npm test` 通过。
+
+### 测试基线
+
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+
+### 剩余风险
+
+- 尚未建立 NixOS systemd/user service 自启动单元。
+- spawn smoke 只验证进程可启动和清理，不验证长期重启策略。
+
+## 2026-07-02 / systemd unit 生成 / 本次完成
+
+### 本次完成
+
+- 新增 `src/setup/systemd.ts`。
+- 新增 `setup:systemd-smoke`，验证 user-level systemd units 内容。
+- 生成以下 unit：
+  - `carvis-messagebus.service`
+  - `carvis-agentruntime.service`
+  - `carvis-electron.service`
+  - `carvis.target`
+- unit 中固定 messagebus -> agentruntime -> electron 依赖顺序。
+
+### 测试基线
+
+- 本地 `npm run setup:systemd-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke`：通过。
+
+### 剩余风险
+
+- 尚未把 unit 安装到 NixOS 用户 systemd 并 enable。
+- 真实 Electron runtime 尚未接入。
+
+## 2026-07-02 / systemd unit 安装器 / 本次完成
+
+### 本次完成
+
+- `src/setup/systemd.ts` 新增 `installSystemdUserUnits()`。
+- 新增 `setup:systemd-install-smoke`，使用临时目录验证 unit 文件实际落盘。
+- `npm test` 已包含 systemd unit 生成和安装 smoke。
+
+### 测试基线
+
+- 本地 `npm run setup:systemd-install-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke`：通过。
+
+### 剩余风险
+
+- 尚未在真实用户 systemd 目录 enable/start。
+- 后续需要增加安装脚本的真实模式和卸载/回滚命令。
+
+## 2026-07-02 / systemd 安装 CLI / 本次完成
+
+### 本次完成
+
+- 新增 `src/setup/systemdInstall.ts`。
+- 新增 `setup:systemd-install` CLI。
+- CLI 支持：
+  - 默认 `dry-run`
+  - `CARVIS_SYSTEMD_INSTALL_MODE=install`
+  - `CARVIS_SYSTEMD_INSTALL_MODE=uninstall`
+- `setup:systemd-install-smoke` 已验证 dry-run 和 uninstall。
+
+### 测试基线
+
+- 本地 `npm run setup:systemd-install-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke`：通过。
+
+### 剩余风险
+
+- 真实 `systemctl --user enable --now carvis.target` 尚未执行。
+
+## 2026-07-02 / systemd status CLI / 本次完成
+
+### 本次完成
+
+- `setup:systemd-install` 新增 `CARVIS_SYSTEMD_INSTALL_MODE=status`。
+- status 模式检查 `carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`、`carvis.target` 是否已安装。
+- `setup:systemd-install-smoke` 已覆盖 dry-run/status/uninstall/status 失败路径。
+
+### 测试基线
+
+- 本地 `npm test`：通过。
+
+### 剩余风险
+
+- status 当前检查 unit 文件安装状态，不检查 systemctl active/enabled 状态。

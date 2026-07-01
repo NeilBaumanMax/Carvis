@@ -1,4 +1,5 @@
 export { ElectronShell, createElectronShell } from "./shell.js";
+export { renderElectronHtml, writeElectronRendererSnapshot } from "./renderer.js";
 export type {
   ElectronOutputEntry,
   ElectronPanelRole,

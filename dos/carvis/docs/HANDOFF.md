@@ -60,6 +60,119 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / Local MVP smoke / 接力记录
+
+### 当前状态
+
+- 本轮按用户要求只写本地文件，未提交、未 push。
+- AgentRuntime 最小调度核心已实现，当前使用模拟 PID 池。
+- Electron mock shell、messagebus、agentruntime、workplaces、output 已形成本地 e2e smoke 闭环。
+- NixOS 远端 `~/carvis-remote-smoke` 已通过干净 `npm ci` 和全套 dry smoke。
+- NixOS 远端真实 DeepSeek Claude Code smoke 已通过，运行方式为 `steam-run <claude binary>`。
+
+### 本轮完成
+
+- 新增 `agentruntime:smoke`
+- 新增 `workplaces:smoke`
+- 新增 `output:smoke`
+- 新增 `e2e:smoke`
+- 新增 `claudecode:smoke`
+- 新增 `mvp:real-smoke`
+- 新增 `src/agentruntime/runtime.ts`
+- 新增 `src/agentruntime/workplaces`
+- 新增 `src/output`
+- Electron 面板可接收 Agent 生命周期并更新 status、PID、latest output。
+- `mvp:real-smoke` 可显式启用五角色真实 Claude Code + DeepSeek 调用，生成 workplaces 和 output。
+- 已修复真实 smoke 的上下文污染问题：Claude Code 使用 `--bare`、固定 system prompt、临时 cwd。
+- 已修复真实 smoke 预算过低问题：默认 `CARVIS_REAL_MVP_MAX_BUDGET_USD` 为 `0.20`。
+- 已新增 `scripts/run-nixos-mvp-smoke.sh`，远端恢复后可一键同步并运行全套 dry smoke + real MVP smoke。
+- 已新增 `src/agentruntime/claudecode/roleRunner.ts`，真实 Claude Code 角色执行可被 AgentRuntime 复用。
+- 已新增 setup spawn 入口和 `setup:spawn-smoke`，默认 spawn 目标现在都有对应 main 文件。
+- NixOS 远端完整 dry smoke 已通过到 `e2e:smoke`。
+- NixOS 远端 real MVP 在 `steam-run + --bare` 下超时；已改为远端脚本默认 `CARVIS_CLAUDE_CODE_BARE=0`，待 SSH 恢复复测。
+
+### 未完成
+
+- 真实 Electron 窗口和 renderer UI 尚未实现。
+- 当前 Runtime 的 PID 是模拟 PID，不是真实长驻 Claude Code 子进程。
+- Claude Code 已可真实调用 DeepSeek，但还没有作为五个角色 Agent 接入 Runtime。
+- 五角色真实 Claude Code smoke 已在本机跑通；但本轮远端 SSH 因本机网络切换暂不可用，尚未在 NixOS 完成 real run。
+- 本机已切到 `kyle`，地址为 `192.168.135.73`；`192.168.135.0/24` 未发现 NixOS SSH，`192.168.135.223` 是 Android 设备。
+- `192.168.137.0/24` 当前扫描结果不可信，整段 22 端口表现为开放但 SSH kex 均被关闭。
+- setup 尚未真实拉起长跑 messagebus/agentruntime/electron 进程。
+- messagebus 仍是内存实现，不是跨进程 IPC/WebSocket。
+
+### 下次优先任务
+
+1. 恢复到能访问 NixOS 的网络后，先运行远端五角色真实 smoke：`DEEPSEEK_API_KEY=... scripts/run-nixos-mvp-smoke.sh <nixos-host>`。
+2. Phase 5：实现 Claude Code PID Agent 的启动、输入、输出捕获、保活和 shutdown 接口。
+3. 把 AgentRuntime 的 `roleRunner` 接到 Claude Code PID Agent，先跑单角色，再扩展到五角色。
+4. 建立真实 Electron 窗口或 renderer，展示现有 `ElectronShellState`。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+- `dos/carvis/docs/progress/layers/06-workplaces.md`
+- `dos/carvis/docs/progress/layers/07-output.md`
+
+### 关键文件
+
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/types.ts`
+- `src/agentruntime/claudecode/command.ts`
+- `src/agentruntime/claudecode/roleRunner.ts`
+- `src/messagebus/main.ts`
+- `src/agentruntime/main.ts`
+- `src/electron/main.ts`
+- `src/setup/spawnSmoke.ts`
+- `src/agentruntime/workplaces/index.ts`
+- `src/output/index.ts`
+- `src/electron/shell.ts`
+- `src/smoke/e2e.ts`
+- `src/smoke/realMvp.ts`
+- `scripts/run-nixos-mvp-smoke.sh`
+- `package.json`
+
+### 测试基线
+
+- 本地 `npm run typecheck`：通过
+- 本地 `npm run setup:smoke`：通过
+- 本地 `npm run messagebus:smoke`：通过
+- 本地 `npm run electron:smoke`：通过
+- 本地 `npm run agentruntime:smoke`：通过
+- 本地 `npm run workplaces:smoke`：通过
+- 本地 `npm run output:smoke`：通过
+- 本地 `npm run claudecode:smoke`：通过 dry
+- 本地 `npm run e2e:smoke`：通过
+- 本地 `npm run mvp:real-smoke`：通过 skip 路径
+- 本地 `CARVIS_REAL_MVP_SMOKE=1 DEEPSEEK_API_KEY=... npm run mvp:real-smoke`：通过 real
+- 本地 `bash -n scripts/run-nixos-mvp-smoke.sh`：通过
+- 本地 `createClaudeCodeRoleRunner` 抽取后 real MVP smoke：通过 real
+- 本地 `npm run setup:spawn-smoke`：通过
+- 远端 NixOS dry smoke：通过到 `e2e:smoke`
+- 远端 NixOS real MVP：`--bare` 模式超时，已修复配置但待复测
+- 远端 NixOS 同一组 dry smoke：通过
+- 远端 NixOS `claudecode:smoke` real：通过
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 本轮提交：无，用户要求只写本地文件不上传 Git
+- 当前 push 状态：未 push，按用户要求不上传
+
+### 风险提醒
+
+- 不要把测试 API key 写入文件。
+- NixOS 运行 Claude Code npm 二进制需要 `steam-run`。
+- 当前 e2e 证明的是本地 MVP smoke，不等于真实多 Claude PID 长驻协作已完成。
+- 当前本机网络为 `10.200.226.0/24`，之前的 NixOS 地址 `192.168.137.59` / `192.168.135.250` 暂不可用。
+- 后续如果切回 `14B-2652` 或重启 NixOS，需重新确认 NixOS IP。
+- NixOS 上 Claude Code 经 `steam-run` 不要默认加 `--bare`；使用脚本默认的 `CARVIS_CLAUDE_CODE_BARE=0`。
+
 ## 2026-07-01 / Phase 3 / 接力记录
 
 ### 当前状态
@@ -325,3 +438,198 @@
 
 - `spawn` 模式尚未做长期进程监督。
 - Phase 2 前不要让 Electron 或 agentruntime 绕过 messagebus 直接通信。
+
+## 2026-07-02 / MVP NixOS 验收 / 接力记录
+
+### 当前状态
+
+- MVP 已按当前施工文档最小口径在 NixOS 上跑通。
+- 本地 `npm test` 通过。
+- 远端 NixOS `npm test` 通过。
+- 远端 NixOS 真实 `mvp:real-smoke` 通过，使用 DeepSeek Anthropic 兼容接口和 Claude Code CLI。
+- 用户要求本地写文件、不上传 git；当前没有提交、没有 push。
+
+### 远端环境
+
+- NixOS 主机：`howtion@192.168.137.59`
+- SSH 密码：用户已提供，日志不重复记录。
+- Claude Code Linux binary 通过 `steam-run` 运行。
+- NixOS 直连 DeepSeek 出口/DNS 不稳定；通过本机临时 HTTP CONNECT 代理 `192.168.137.2:18080` 可稳定完成真实 smoke。
+- 完整远端命令形态：
+  - `CARVIS_REMOTE_HTTPS_PROXY=http://192.168.137.2:18080 CARVIS_REMOTE_HTTP_PROXY=http://192.168.137.2:18080 ./scripts/run-nixos-mvp-smoke.sh 192.168.137.59`
+
+### 已完成
+
+- `npm test` 汇总本地验收命令。
+- `setup:spawn-smoke` 验证 setup 可真实拉起 messagebus、agentruntime、electron 三个长跑进程入口并清理 PID。
+- `e2e:smoke` 验证一条用户命令走完整链路、五角色面板可见、output manifest/final report 可见、retained PID 统一 shutdown。
+- `mvp:real-smoke` 验证五角色真实 Claude Code/DeepSeek 输出被写入 workplace 并汇总进 output。
+- NixOS 自动关机、系统休眠、屏幕熄屏、自动锁屏已关闭并 `nixos-rebuild switch` 生效。
+
+### 剩余风险
+
+- 当前 Electron 是 TypeScript shell/mock，不是真实窗口 UI。
+- 当前 runtime 的 PID 池是模拟 PID；真实 Claude Code 调用在 `mvp:real-smoke` 中按角色短进程执行，尚未实现长驻 PID 和多轮输入复用。
+- NixOS 到 DeepSeek 的直连网络仍不稳定；真实 smoke 依赖本机临时代理。
+
+### 下次优先任务
+
+1. 做真实 Electron 窗口 UI，并接入现有 shell 状态模型。
+2. 把 Claude Code runner 从 print 短进程升级为长驻 PID Agent。
+3. 给 NixOS 配置稳定代理或修复直连出口，去掉 smoke 对临时代理的依赖。
+
+## 2026-07-02 / 跨进程 IPC 推进 / 接力记录
+
+### 当前状态
+
+- 已新增 TCP JSONL messagebus，messagebus 和 agentruntime 可作为独立 Node 进程通信。
+- `ipc:smoke` 已加入 `npm test`。
+- 本地 `npm test` 通过。
+- NixOS 完整脚本通过：
+  - `npm test`
+  - `mvp:real-smoke`
+
+### 关键文件
+
+- `src/messagebus/ipc.ts`
+- `src/messagebus/main.ts`
+- `src/agentruntime/main.ts`
+- `src/electron/main.ts`
+- `src/smoke/ipc.ts`
+- `src/shared/componentMain.ts`
+- `package.json`
+
+### 下次优先任务
+
+1. 把 `src/electron/main.ts` 从 shell 状态模型升级为真实 Electron 窗口入口。
+2. 给 TCP messagebus 增加断连错误事件、重连和更严格的协议校验。
+3. 实现 Claude Code 长驻 PID Agent 和多轮输入。
+
+## 2026-07-02 / Electron Renderer Snapshot / 接力记录
+
+### 当前状态
+
+- Electron 层已有 shell state 和 HTML renderer snapshot。
+- `electron:ui-smoke` 已加入 `npm test`。
+- 本地 `npm test` 通过。
+- NixOS `npm test` 和真实 `mvp:real-smoke` 通过。
+
+### 关键文件
+
+- `src/electron/renderer.ts`
+- `src/electron/uiSmoke.ts`
+- `src/electron/main.ts`
+- `src/electron/README.md`
+
+### 下次优先任务
+
+1. 引入真实 `electron` runtime，把 `renderer.ts` 输出挂到 `BrowserWindow`。
+2. 增加截图或 DOM 级 UI 验收。
+3. 把 renderer 与跨进程 messagebus 的实时状态更新合并成真实桌面交互。
+
+## 2026-07-02 / 长驻 PID Agent 池 / 接力记录
+
+### 当前状态
+
+- 已新增通用长驻 PID Agent 池。
+- `pidagent:smoke` 已加入 `npm test`。
+- 本地 `npm test` 通过。
+- NixOS `npm test` 和真实 `mvp:real-smoke` 通过。
+
+### 关键文件
+
+- `src/agentruntime/pidagent/index.ts`
+- `src/agentruntime/pidagent/mockWorker.ts`
+- `src/agentruntime/pidagent/smoke.ts`
+- `package.json`
+
+### 下次优先任务
+
+1. 验证 Claude Code 交互/后台模式能否挂到 `PersistentPidAgentPool`。
+2. 将 runtime 的模拟 PID 字段替换为真实 PID Agent pool 的 PID。
+3. 保持真实 `mvp:real-smoke` 继续通过。
+
+## 2026-07-02 / systemd unit 生成 / 接力记录
+
+### 当前状态
+
+- setup 层已能生成 user-level systemd units。
+- `setup:systemd-smoke` 已加入 `npm test`。
+- 本地 `npm test` 通过。
+- NixOS `npm test` 和真实 `mvp:real-smoke` 通过。
+- 真实 MVP smoke 使用 Claude Code CLI + DeepSeek API：
+  - `CARVIS_CLAUDE_CODE_RUNNER=steam-run`
+  - `DEEPSEEK_API_KEY` 映射到 Anthropic 兼容环境变量
+  - `ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic`
+
+### 关键文件
+
+- `src/setup/systemd.ts`
+- `src/setup/systemdSmoke.ts`
+- `src/setup/types.ts`
+- `package.json`
+
+### 下次优先任务
+
+1. 提供安装脚本，把生成的 unit 写入 `~/.config/systemd/user`。
+2. 在 NixOS 上真实执行 `systemctl --user enable --now carvis.target` 验收。
+3. 修复 NixOS 直连 DeepSeek 出口，减少对临时代理的依赖。
+
+## 2026-07-02 / systemd unit 安装器 / 接力记录
+
+### 当前状态
+
+- setup 层已支持把 user systemd units 写入指定目录。
+- `setup:systemd-install-smoke` 已加入 `npm test`。
+- 本地 `npm test` 通过。
+- NixOS `npm test` 和真实 `mvp:real-smoke` 通过。
+
+### 关键文件
+
+- `src/setup/systemd.ts`
+- `src/setup/systemdInstallSmoke.ts`
+- `package.json`
+
+### 下次优先任务
+
+1. 增加真实安装 CLI，目标为 `~/.config/systemd/user`。
+2. 增加 uninstall/rollback 命令。
+3. 在 NixOS 上人工确认后执行 `systemctl --user daemon-reload && systemctl --user enable --now carvis.target`。
+
+## 2026-07-02 / systemd 安装 CLI / 接力记录
+
+### 当前状态
+
+- 已新增 `setup:systemd-install` CLI。
+- 默认 dry-run；显式 `CARVIS_SYSTEMD_INSTALL_MODE=install` 才写真实 unit 目录。
+- 支持 `CARVIS_SYSTEMD_INSTALL_MODE=uninstall` 删除 Carvis units。
+- 本地 `npm test` 通过。
+- NixOS `npm test` 和真实 `mvp:real-smoke` 通过。
+
+### 关键文件
+
+- `src/setup/systemdInstall.ts`
+- `src/setup/systemd.ts`
+- `src/setup/systemdInstallSmoke.ts`
+- `package.json`
+
+### 下次优先任务
+
+1. 用户确认后，在 NixOS 上执行真实 install + enable/start。
+2. 给真实 user service 增加状态检查 smoke。
+3. 继续移除临时代理依赖。
+
+## 2026-07-02 / GitHub 备份前状态
+
+### 当前状态
+
+- `setup:systemd-install` 已支持 dry-run、install、uninstall、status。
+- 本地 `npm test` 通过。
+- 文件扫描未发现测试 API Key 写入仓库文件。
+- 准备推送 GitHub 备份分支，不推送 `main`。
+
+### 下次优先任务
+
+1. 如需正式自启动，在 NixOS 上执行真实 install + enable/start。
+2. 增加 systemctl active/enabled 状态 smoke。
+3. 修复 NixOS 直连 DeepSeek 网络，减少临时代理依赖。

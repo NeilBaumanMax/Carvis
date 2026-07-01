@@ -1,0 +1,45 @@
+import { loadSetupConfig, runSetupSupervisor } from "./index.js";
+
+const config = loadSetupConfig({
+  CARVIS_SETUP_MODE: "spawn",
+});
+
+const result = await runSetupSupervisor({
+  ...config,
+  startupTimeoutMs: 5_000,
+});
+
+try {
+  assert(result.ok, "spawn setup should succeed");
+  assertSequence(result.started, ["messagebus", "agentruntime", "electron"]);
+  assert(result.processes.every((process) => process.pid !== undefined), "all components should have pids");
+} finally {
+  for (const process of result.processes) {
+    if (process.pid !== undefined) {
+      try {
+        globalThis.process.kill(process.pid, "SIGTERM");
+      } catch {
+        // Process may already have exited after the spawn event.
+      }
+    }
+  }
+}
+
+console.log("[setup:spawn-smoke] ok");
+
+function assert(condition: boolean, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+function assertSequence<T>(actual: readonly T[], expected: readonly T[]): void {
+  assert(actual.length === expected.length, `expected ${expected.length} values, got ${actual.length}`);
+
+  for (const [index, expectedValue] of expected.entries()) {
+    assert(
+      actual[index] === expectedValue,
+      `expected value ${index} to be ${String(expectedValue)}, got ${String(actual[index])}`,
+    );
+  }
+}

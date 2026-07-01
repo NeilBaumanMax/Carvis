@@ -1,3 +1,6 @@
+import type { AgentRole, AgentStatus } from "./agent.js";
+import type { RunPhase } from "./run.js";
+
 export type CarvisEventSource = "setup" | "electron" | "messagebus" | "agentruntime" | "claudecode";
 
 export type CarvisEventType =
@@ -37,6 +40,22 @@ export interface RuntimeHeartbeatPayload {
   queueDepth: number;
 }
 
+export interface RunCreatedPayload {
+  commandText: string;
+  phase: RunPhase;
+}
+
+export interface RunPhaseChangedPayload {
+  phase: RunPhase;
+}
+
+export interface AgentLifecyclePayload {
+  role: AgentRole;
+  status: AgentStatus;
+  pid?: number;
+  workplacePath: string;
+}
+
 export interface AgentOutputPayload {
   text: string;
   stream: "stdout" | "stderr" | "system";
@@ -49,15 +68,15 @@ export interface OutputReadyPayload {
 
 export type CarvisEventPayloadByType = {
   "command.submitted": CommandSubmittedPayload;
-  "run.created": unknown;
-  "run.phase.changed": unknown;
-  "agent.starting": unknown;
-  "agent.ready": unknown;
+  "run.created": RunCreatedPayload;
+  "run.phase.changed": RunPhaseChangedPayload;
+  "agent.starting": AgentLifecyclePayload;
+  "agent.ready": AgentLifecyclePayload;
   "agent.output": AgentOutputPayload;
-  "agent.error": unknown;
-  "agent.done": unknown;
-  "agent.retained": unknown;
-  "agent.shutdown": unknown;
+  "agent.error": AgentLifecyclePayload;
+  "agent.done": AgentLifecyclePayload;
+  "agent.retained": AgentLifecyclePayload;
+  "agent.shutdown": AgentLifecyclePayload;
   "runtime.heartbeat": RuntimeHeartbeatPayload;
   "output.ready": OutputReadyPayload;
 };

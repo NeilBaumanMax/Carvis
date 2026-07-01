@@ -67,3 +67,42 @@
 
 - 补 `src/messagebus/README.md`
 - 定义 command/run/agent/heartbeat/output 事件类型
+
+## 2026-07-02 / NixOS MVP 验收 / 补充
+
+### 本次完成
+
+- `e2e:smoke` 验证 `command.submitted` 从 Electron shell 经 messagebus 到 agentruntime。
+- `e2e:smoke` 验证 `runtime.heartbeat`、Agent lifecycle、`agent.output`、`output.ready` 从 agentruntime 经 messagebus 回到 Electron shell。
+- NixOS `npm test` 已覆盖 messagebus smoke 和完整 e2e 链路。
+
+### 测试基线
+
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke`：通过。
+
+### 剩余风险
+
+- 当前 messagebus 是进程内实现，真实 IPC/WebSocket 传输尚未实现。
+- setup spawn 已有三个进程入口，但它们之间尚未接入真实跨进程总线。
+
+## 2026-07-02 / 跨进程 IPC / 本次完成
+
+### 本次完成
+
+- 新增 TCP JSONL messagebus server/client。
+- `messagebus/main.ts` 现在启动真实 TCP server。
+- remote client 保持 `MessageBus` 接口，支持 publish/subscribe/unsubscribe。
+- 修复远程订阅初次连接时重复注册的问题。
+- 新增 `ipc:smoke`，验证真实 messagebus 子进程可转发 Electron shell 与 agentruntime 子进程之间的事件。
+
+### 测试基线
+
+- 本地 `npm run ipc:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+
+### 剩余风险
+
+- 还没有断线重连、协议版本、认证和背压处理。
