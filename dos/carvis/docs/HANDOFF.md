@@ -650,3 +650,21 @@
 
 - 后续远端真实 smoke 可优先不设置 `CARVIS_REMOTE_HTTPS_PROXY`。
 - 如果 WiFi 出口再次不稳定，再临时回退到本机代理。
+
+## 2026-07-02 / NixOS 永久长亮状态
+
+### 当前状态
+
+- NixOS 已关闭熄屏并设置永久长亮。
+- 当前 X11 会话验证：`DPMS is Disabled`，Screen Saver `timeout: 0`。
+- 重启/重新登录后会通过以下配置再次应用：
+  - `services.xserver.serverFlagsSection`
+  - `/home/howtion/.config/autostart/carvis-no-screen-sleep.desktop`
+  - `/home/howtion/.local/bin/carvis-no-screen-sleep`
+
+### 回滚参考
+
+- 可用远端备份恢复：
+  - `/etc/nixos/configuration.nix.bak.codex-permanent-screen-on`
+  - `/etc/nixos/configuration.nix.bak.codex-permanent-screen-on-fix`
+- 恢复后执行：`sudo nixos-rebuild switch`

@@ -833,6 +833,54 @@
 - NixOS 当前可通过 WiFi 直连 DeepSeek。
 - 真实 MVP smoke 已确认使用 Claude Code CLI + DeepSeek API，并在 WiFi 路由下通过。
 
+## 2026-07-02 / NixOS 永久长亮配置
+
+### 目标
+
+按用户要求关闭 NixOS 熄屏，设置永久长亮。
+
+### 实际修改
+
+- 远端备份 `/etc/nixos/configuration.nix`：
+  - `/etc/nixos/configuration.nix.bak.codex-permanent-screen-on`
+  - `/etc/nixos/configuration.nix.bak.codex-permanent-screen-on-fix`
+- 在 NixOS 配置中增加 `services.xserver.serverFlagsSection`：
+  - `BlankTime=0`
+  - `StandbyTime=0`
+  - `SuspendTime=0`
+  - `OffTime=0`
+- 增加 activation script：`system.activationScripts.carvisNoScreenSleep`
+- 生成登录自启动脚本：`/home/howtion/.local/bin/carvis-no-screen-sleep`
+- 生成 KDE autostart：`/home/howtion/.config/autostart/carvis-no-screen-sleep.desktop`
+- 脚本每次登录执行：
+  - `xset -dpms`
+  - `xset s off`
+  - `xset s noblank`
+  - 关闭 KDE 自动锁屏
+  - 关闭 PowerDevil 的 DimDisplay、DPMSControl、SuspendSession
+
+### 验证结果
+
+- `sudo nixos-rebuild switch`：通过。
+- 当前 X11 会话：
+  - Screen Saver `timeout: 0`
+  - DPMS Standby/Suspend/Off 均为 `0`
+  - `DPMS is Disabled`
+- `kscreenlockerrc`：
+  - `Autolock=false`
+  - `LockOnResume=false`
+  - `Timeout=0`
+- `powerdevilrc`：
+  - AC/Battery/LowBattery 的 `DimDisplay idleTime=0`
+  - AC/Battery/LowBattery 的 `DPMSControl idleTime=0`
+  - AC/Battery/LowBattery 的 `SuspendSession idleTime=0`
+
+### 结论
+
+- NixOS 已设置为永久长亮。
+- 当前会话已立即生效。
+- 重启或重新登录后会通过 X server flags 和 KDE autostart 再次应用。
+
 ## 2026-07-02 / systemd status CLI / GitHub 备份前收尾
 
 ### 目标
