@@ -2,6 +2,38 @@
 
 ## 2026-07-02
 
+## 2026-07-02 / NixOS MVP systemd + 长亮配置
+
+### 本次完成
+
+- remote messagebus client 增加断线重连和订阅恢复。
+- 新增 `ipc:reconnect-smoke`，并纳入 `npm test`。
+- setup spawn 支持组件环境变量，`setup:spawn-smoke` 改用随机 messagebus 端口，避免与真实 user systemd 服务冲突。
+- NixOS 远端 WiFi `kyle` 无代理出网可直连 DeepSeek。
+- NixOS 远端完成无代理 `npm test` 和真实 Claude Code + DeepSeek `mvp:real-smoke`。
+- NixOS user systemd 已真实安装并启用 `carvis.target`、`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`。
+- 通过真实 systemd messagebus 执行 live command smoke，返回 `output/final-report.md`，五个 role panel 均完成。
+- NixOS 自动关机、睡眠、屏幕休眠和熄屏已关闭；`/etc/nixos/configuration.nix` 写入 X server 永不 blank/off 和 KDE autostart `xset s off -dpms` 配置。
+- 用户反馈仍会熄屏后，补强启用 `carvis-keep-awake-inhibit.service` 和 `carvis-xset-keep-awake.service`；当前 X11 会话 `DPMS is Disabled`。
+
+### 当前验证
+
+- 本地 `npm run setup:spawn-smoke`：通过
+- 本地 `npm run ipc:reconnect-smoke`：通过
+- 本地 `npm test`：通过
+- 远端 NixOS `npm test`：通过
+- 远端 NixOS 无代理 `mvp:real-smoke`：通过
+- 远端 NixOS user systemd live command smoke：通过
+- 远端 NixOS `nixos-rebuild switch`：通过
+- 远端 NixOS `carvis-keep-awake-inhibit.service`：active
+- 远端 NixOS `carvis-xset-keep-awake.service`：active
+
+### 当前未完成
+
+- 真实 Electron BrowserWindow 尚未建立。
+- 真实长驻 Claude Code PID Agent 尚未接入 Runtime。
+- systemd status CLI 尚未封装 active/enabled 检查。
+
 ## 2026-07-02 / Local MVP smoke / 本地施工记录
 
 ### 本轮目标

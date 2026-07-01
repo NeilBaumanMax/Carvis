@@ -60,6 +60,79 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / NixOS MVP systemd / 接力记录
+
+### 当前状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`。
+- NixOS 主机可通过 `howtion@192.168.137.59` SSH；远端 WiFi 已连接 `kyle`，默认出网走 WiFi。
+- 远端 `~/carvis-remote-smoke` 已跑通无代理 DeepSeek real MVP smoke。
+- user systemd 已安装并启用 `carvis.target`，`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service` 均 active。
+- NixOS 自动关机、睡眠、屏幕休眠和熄屏已关闭；永久长亮配置已写入 `/etc/nixos/configuration.nix` 并完成 `nixos-rebuild switch`。
+- 熄屏补强服务已启用：`carvis-keep-awake-inhibit.service` block `sleep:idle`，`carvis-xset-keep-awake.service` 每 30 秒重置 X11 DPMS。
+
+### 本轮完成
+
+- remote messagebus client 增加断线重连和订阅恢复。
+- 新增 `ipc:reconnect-smoke` 并加入 `npm test`。
+- `setup:spawn-smoke` 使用随机端口，避免与真实 systemd messagebus 冲突。
+- setup spawn 会把组件 `environment` 传给子进程。
+- 远端真实 systemd 服务已安装、enable、start，并通过 live command smoke。
+- 远端当前 X11 会话 `xset q` 显示 `DPMS is Disabled`，Standby/Suspend/Off 均为 0。
+
+### 未完成
+
+- 真实 Electron BrowserWindow 尚未建立；当前 `electron` 仍是 Node 入口和 renderer snapshot 能力。
+- 当前 Runtime role PID 仍是模拟 PID，不是真实长驻 Claude Code PID Agent。
+- systemd status CLI 只检查 unit 文件安装状态，尚未封装 `systemctl --user is-active/is-enabled`。
+
+### 下次优先任务
+
+1. 实现真实 Claude Code PID Agent 的长驻进程、输入、输出捕获、保活和 shutdown。
+2. 把 AgentRuntime role runner 从 smoke 路径接到真实 PID Agent。
+3. 建立真实 Electron BrowserWindow，并接入现有 shell state。
+
+### 必读文档
+
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+- `dos/carvis/docs/progress/layers/02-messagebus.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+- `dos/carvis/docs/progress/layers/05-pidagent.md`
+
+### 关键文件
+
+- `src/messagebus/ipc.ts`
+- `src/smoke/ipcReconnect.ts`
+- `src/setup/supervisor.ts`
+- `src/setup/spawnSmoke.ts`
+- `src/setup/systemdInstall.ts`
+- `scripts/run-nixos-mvp-smoke.sh`
+- `package.json`
+
+### 测试基线
+
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS 无代理 `mvp:real-smoke`：通过。
+- 远端 NixOS user systemd live command smoke：通过。
+- 远端 NixOS `carvis-keep-awake-inhibit.service`：active。
+- 远端 NixOS `carvis-xset-keep-awake.service`：active。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：本轮收尾后查看 `git log -1 --oneline`
+- 已 push：本轮收尾后 push 到备份分支
+- 备份分支：`backup/mvp-nixos-20260702-020835`
+
+### 风险提醒
+
+- 不要把 DeepSeek API key 写入任何文件或提交。
+- 远端 systemd messagebus 默认占用 `45931`，测试脚本需要继续使用随机端口或先停服务。
+- NixOS 上 Claude Code npm 二进制需要 `steam-run`。
+
 ## 2026-07-02 / Local MVP smoke / 接力记录
 
 ### 当前状态

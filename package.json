@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run typecheck && npm run setup:smoke && npm run setup:spawn-smoke && npm run setup:systemd-smoke && npm run setup:systemd-install-smoke && npm run messagebus:smoke && npm run electron:smoke && npm run electron:ui-smoke && npm run agentruntime:smoke && npm run pidagent:smoke && npm run workplaces:smoke && npm run output:smoke && npm run claudecode:smoke && npm run e2e:smoke && npm run ipc:smoke",
+    "test": "npm run typecheck && npm run setup:smoke && npm run setup:spawn-smoke && npm run setup:systemd-smoke && npm run setup:systemd-install-smoke && npm run messagebus:smoke && npm run electron:smoke && npm run electron:ui-smoke && npm run agentruntime:smoke && npm run pidagent:smoke && npm run workplaces:smoke && npm run output:smoke && npm run claudecode:smoke && npm run e2e:smoke && npm run ipc:smoke && npm run ipc:reconnect-smoke",
     "start": "node dist/main.js",
     "setup:smoke": "npm run build && node dist/setup/smoke.js",
     "setup:spawn-smoke": "npm run build && node dist/setup/spawnSmoke.js",
@@ -26,6 +26,7 @@
     "output:smoke": "npm run build && node dist/output/smoke.js",
     "e2e:smoke": "npm run build && node dist/smoke/e2e.js",
     "ipc:smoke": "npm run build && node dist/smoke/ipc.js",
+    "ipc:reconnect-smoke": "npm run build && node dist/smoke/ipcReconnect.js",
     "mvp:real-smoke": "npm run build && node dist/smoke/realMvp.js"
   },
   "devDependencies": {

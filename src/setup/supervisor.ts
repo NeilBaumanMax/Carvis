@@ -85,6 +85,10 @@ export async function startComponent(
 
   const child = spawn(component.command, [...component.args], {
     detached: false,
+    env: {
+      ...process.env,
+      ...component.environment,
+    },
     stdio: "ignore",
   });
 

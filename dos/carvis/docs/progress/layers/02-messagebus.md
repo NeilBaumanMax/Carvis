@@ -1,5 +1,25 @@
 # 02 MessageBus Progress
 
+## 2026-07-02 / IPC 重连 / 本次完成
+
+### 本次完成
+
+- remote messagebus client 增加断线重连。
+- 连接关闭后会 reject pending request，清空 socket buffer，并在仍有订阅时自动重连。
+- 重连成功后重新注册已有订阅。
+- 新增 `ipc:reconnect-smoke`，覆盖 agentruntime 先启动、messagebus 后启动的启动顺序。
+- `npm test` 已包含 `ipc:reconnect-smoke`。
+
+### 测试基线
+
+- 本地 `npm run ipc:reconnect-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+
+### 剩余风险
+
+- 尚未实现协议认证、版本协商、背压和持久化队列。
+
 ## 2026-07-01 / Phase 2 / 开工计划
 
 ### 当前目标

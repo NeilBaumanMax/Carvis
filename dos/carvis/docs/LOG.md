@@ -1,5 +1,40 @@
 # Carvis Construction Log
 
+## 2026-07-02 / NixOS systemd + permanent display / 本地施工
+
+### 本次修改
+
+- 修复 remote messagebus client 断线后不自动恢复的问题，订阅存在时会重连并重新注册订阅。
+- 新增 `ipc:reconnect-smoke`，验证 agentruntime 先启动、messagebus 后启动时可自动接通。
+- `setup:spawn-smoke` 改用随机 `CARVIS_MESSAGEBUS_PORT`，避免和已启用的用户 systemd messagebus 撞端口。
+- setup spawn 现在会把组件级 `environment` 传给子进程。
+- 在 NixOS 上安装并启用真实 user systemd units：`carvis.target`、`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`。
+- 按用户要求关闭 NixOS 自动熄屏/屏幕休眠：NixOS 配置写入 X server blank/standby/suspend/off 全 0，并安装 KDE autostart 脚本执行 `xset s off -dpms` 和 PowerDevil/锁屏禁用配置。
+- 用户反馈仍会熄屏后，补强为两个 user systemd 常驻服务：
+  - `carvis-keep-awake-inhibit.service`：使用 `systemd-inhibit` block `sleep:idle`。
+  - `carvis-xset-keep-awake.service`：每 30 秒对当前 X11 会话执行 `xset -dpms`、`xset s off`、`xset s noblank`。
+
+### 验证结果
+
+- 本地 `npm run setup:spawn-smoke`：通过。
+- 本地 `npm run ipc:reconnect-smoke`：通过。
+- 本地 `npm test`：通过，包含 `ipc:reconnect-smoke`。
+- 远端 NixOS 走 WiFi `kyle` 出网，无代理执行 `scripts/run-nixos-mvp-smoke.sh 192.168.137.59`：通过。
+- 远端 NixOS 无代理直接访问 DeepSeek API：通过连接性检查。
+- 远端 NixOS `mvp:real-smoke` 使用 Claude Code + DeepSeek API：通过。
+- 远端 NixOS user systemd units `enable --now carvis.target` 后，四个 unit 均为 `active`。
+- 远端 NixOS 连接 systemd messagebus 后提交 live command：通过，返回 `output/final-report.md`，五个 role panel 均完成 shutdown。
+- 远端 NixOS `nixos-rebuild switch`：通过。
+- 远端 NixOS `/etc/nixos/configuration.nix` 已包含 `BlankTime/StandbyTime/SuspendTime/OffTime = 0` 和 `carvisNoScreenSleep` activation script。
+- 远端 NixOS `carvis-keep-awake-inhibit.service` 和 `carvis-xset-keep-awake.service` 均为 `active`。
+- 远端 NixOS 当前 X11 会话 `xset q` 显示 `DPMS is Disabled`，Standby/Suspend/Off 均为 0。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 本轮代码和文档准备提交到备份分支。
+- 禁止写入 API key；提交前再次扫描。
+
 ## 2026-07-02 / Local MVP smoke / 本地施工
 
 ### 本轮计划回放

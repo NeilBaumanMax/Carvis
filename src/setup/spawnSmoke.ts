@@ -1,8 +1,19 @@
 import { loadSetupConfig, runSetupSupervisor } from "./index.js";
 
-const config = loadSetupConfig({
+const smokePort = String(48_000 + Math.floor(Math.random() * 1_000));
+const baseConfig = loadSetupConfig({
   CARVIS_SETUP_MODE: "spawn",
 });
+const config = {
+  ...baseConfig,
+  components: baseConfig.components.map((component) => ({
+    ...component,
+    environment: {
+      ...component.environment,
+      CARVIS_MESSAGEBUS_PORT: smokePort,
+    },
+  })),
+};
 
 const result = await runSetupSupervisor({
   ...config,

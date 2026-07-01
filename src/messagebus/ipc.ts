@@ -119,6 +119,8 @@ class RemoteMessageBus implements MessageBus {
   private buffer = "";
   private nextId = 1;
   private connectPromise: Promise<void> | undefined;
+  private reconnectTimer: NodeJS.Timeout | undefined;
+  private closed = false;
   private readonly subscriptions = new Map<
     string,
     {
@@ -176,7 +178,7 @@ class RemoteMessageBus implements MessageBus {
         options,
       });
     } else {
-      void this.connect();
+      this.ensureConnected();
     }
 
     return {
@@ -194,11 +196,26 @@ class RemoteMessageBus implements MessageBus {
   }
 
   close(): void {
+    this.closed = true;
+    if (this.reconnectTimer !== undefined) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
     this.socket?.destroy();
     this.socket = undefined;
   }
 
+  private ensureConnected(): void {
+    void this.connect().catch(() => {
+      this.scheduleReconnect();
+    });
+  }
+
   private async connect(): Promise<void> {
+    if (this.closed) {
+      throw new Error("remote messagebus is closed");
+    }
+
     if (this.socket !== undefined) {
       return;
     }
@@ -209,11 +226,20 @@ class RemoteMessageBus implements MessageBus {
 
     this.connectPromise = new Promise<void>((resolve, reject) => {
       const socket = new Socket();
+      const fail = (error: Error) => {
+        this.connectPromise = undefined;
+        reject(error);
+      };
 
       socket.setEncoding("utf8");
-      socket.once("error", reject);
+      socket.once("error", fail);
       socket.connect(this.port, this.host, () => {
-        socket.off("error", reject);
+        socket.off("error", fail);
+        this.connectPromise = undefined;
+        if (this.reconnectTimer !== undefined) {
+          clearTimeout(this.reconnectTimer);
+          this.reconnectTimer = undefined;
+        }
         socket.on("error", (error) => {
           this.rejectPending(error);
         });
@@ -223,6 +249,11 @@ class RemoteMessageBus implements MessageBus {
         socket.on("close", () => {
           this.socket = undefined;
           this.connectPromise = undefined;
+          this.buffer = "";
+          this.rejectPending(new Error("remote messagebus connection closed"));
+          if (this.subscriptions.size > 0) {
+            this.scheduleReconnect();
+          }
         });
 
         this.socket = socket;
@@ -240,6 +271,17 @@ class RemoteMessageBus implements MessageBus {
     });
 
     return this.connectPromise;
+  }
+
+  private scheduleReconnect(): void {
+    if (this.closed || this.socket !== undefined || this.reconnectTimer !== undefined) {
+      return;
+    }
+
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
+      this.ensureConnected();
+    }, 250);
   }
 
   private send(message: ClientMessage): void {

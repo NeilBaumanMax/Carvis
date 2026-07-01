@@ -1,5 +1,32 @@
 # 00 Setup Progress
 
+## 2026-07-02 / 真实 user systemd 启用 / 本次完成
+
+### 本次完成
+
+- 在 NixOS 用户目录安装真实 unit 文件到 `~/.config/systemd/user`。
+- 执行 `systemctl --user enable --now carvis.target`。
+- 验证以下 unit 均为 active：
+  - `carvis.target`
+  - `carvis-messagebus.service`
+  - `carvis-agentruntime.service`
+  - `carvis-electron.service`
+- 通过真实 systemd messagebus 提交 live command，Electron shell 收到五角色完成状态和 `output/final-report.md`。
+- `setup:spawn-smoke` 改为随机端口，避免和真实 user systemd 服务端口冲突。
+- `startComponent()` 已支持把组件 `environment` 传给子进程。
+
+### 测试基线
+
+- 本地 `npm run setup:spawn-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS user systemd live command smoke：通过。
+
+### 剩余风险
+
+- systemd status CLI 当前仍偏安装状态检查，尚未封装 active/enabled 验证。
+- 真实 Electron BrowserWindow 尚未接入。
+
 ## 2026-07-01 / Phase 1 / 完成 setup 启动协议
 
 ### 当前目标
