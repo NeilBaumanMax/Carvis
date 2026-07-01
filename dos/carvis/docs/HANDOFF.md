@@ -177,7 +177,9 @@
 - 当前分支：`main`
 - 开发前备份分支：`backup/pre-phase1-setup-20260701-203615`
 - 当前施工主体提交：`2e9e925`
-- 当前 push 状态：待最终日志回填提交后一并 push
+- 最终记录提交：`0bc9da5`
+- 当前 push 状态：已 push 到 `main`
+- 最新远端 HEAD 以 GitHub `main` 为准
 
 ### 风险提醒
 
