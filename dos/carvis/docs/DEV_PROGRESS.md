@@ -2,6 +2,52 @@
 
 ## 2026-07-01
 
+## 2026-07-01 / Phase 2 / 开工计划
+
+### 本轮目标
+
+- 完成 Phase 2：`src/messagebus` 本地事件协议第一版。
+- 建立 mock Electron 到 mock agentruntime 的 `command.submitted` 转发验证。
+- 建立 mock agentruntime 到 mock Electron 的 `runtime.heartbeat` 广播验证。
+- 保持 messagebus 只负责 envelope、订阅、发布和转发，不执行任务、不读写 workplace。
+
+### 涉及层
+
+- `02-messagebus`
+- `shared types`
+- `docs`
+
+### 计划修改
+
+- `src/messagebus/README.md`
+- `src/messagebus/types.ts`
+- `src/messagebus/bus.ts`
+- `src/messagebus/index.ts`
+- `src/messagebus/smoke.ts`
+- `src/shared/types/events.ts`
+- `package.json`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/02-messagebus.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run messagebus:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 当前基线提交：`fabbd3f`
+- 计划备份分支：`backup/pre-phase2-messagebus-20260701-2145`
+- 远端状态：待 push 备份分支
+
+### 回滚预案
+
+- 优先使用 `git revert <phase2-commit>` 回滚本轮代码和文档提交。
+- 如仅需回滚未提交文件，删除本轮新增的 `src/messagebus/*`，并还原 `package.json`、`src/shared/types/events.ts` 和本轮文档追加。
+
 ## 2026-07-01 / Phase 1 / 开工计划
 
 ### 本轮目标
