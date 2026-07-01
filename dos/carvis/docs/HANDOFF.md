@@ -60,6 +60,53 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / Electron BrowserWindow adapter / 接力记录
+
+### 当前状态
+
+- Electron 层已有 `createElectronBrowserWindow()`，可把 renderer HTML snapshot 加载进真实 Electron `BrowserWindow`。
+- `browserMain.ts` 是真实 Electron runtime 入口；当前 systemd 仍运行 Node shell 入口 `electron/main.ts`。
+- 本地和远端 NixOS `npm test` 均通过，远端真实 `mvp:real-smoke` 也通过。
+
+### 本轮完成
+
+- 新增 `src/electron/browserWindow.ts`。
+- 新增 `src/electron/browserMain.ts`。
+- 新增 `src/electron/browserSmoke.ts`。
+- `npm test` 纳入 `electron:browser-smoke`。
+
+### 未完成
+
+- 尚未把 Electron npm runtime 加入依赖。
+- 尚未在真实 X11 窗口里做截图级视觉验收。
+- Claude Code CLI 本体尚未证明可长期交互 PID 复用。
+
+### 下次优先任务
+
+1. 决定 Electron runtime 来源：npm `electron` 依赖，或 NixOS system package。
+2. 在 NixOS X11 会话中启动 `browserMain.ts` 并做截图/窗口存在性验收。
+3. 继续验证 Claude Code CLI 长驻交互能力。
+
+### 关键文件
+
+- `src/electron/browserWindow.ts`
+- `src/electron/browserMain.ts`
+- `src/electron/browserSmoke.ts`
+- `src/electron/renderer.ts`
+- `package.json`
+
+### 测试基线
+
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS 真实 `mvp:real-smoke`：通过。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：本轮收尾后查看 `git log -1 --oneline`
+- 已 push：本轮收尾后 push 到备份分支
+
 ## 2026-07-02 / Runtime PID Agent integration / 接力记录
 
 ### 当前状态

@@ -1,5 +1,26 @@
 # 01 Electron Progress
 
+## 2026-07-02 / BrowserWindow 适配 / 本次完成
+
+### 本次完成
+
+- 新增 `src/electron/browserWindow.ts`，把 renderer HTML snapshot 加载进 Electron `BrowserWindow`。
+- 新增 `src/electron/browserMain.ts`，供真实 Electron runtime 启动窗口。
+- 新增 `electron:browser-smoke`，验证 BrowserWindow 参数、sandbox webPreferences、`loadFile()` 和 `ready-to-show` 显示路径。
+- `npm test` 已包含 `electron:browser-smoke`。
+
+### 测试基线
+
+- 本地 `npm run electron:browser-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke`：通过。
+
+### 剩余风险
+
+- 项目尚未引入 Electron runtime 依赖；真实窗口入口需要外部 Electron runtime 执行。
+- 尚未完成截图级视觉验收。
+
 ## 2026-07-01 / Phase 3 / 开工计划
 
 ### 当前目标

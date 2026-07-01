@@ -1,5 +1,47 @@
 # Carvis Construction Log
 
+## 2026-07-02 / Electron BrowserWindow adapter / 本地施工
+
+### 本轮计划回放
+
+- 继续按施工文档补齐 MVP 缺口。
+- 当前 Electron 层已有 shell state 和 HTML renderer，但尚未挂到真实 `BrowserWindow`。
+- 本轮实现可选 Electron `BrowserWindow` 适配，不强制新增 Electron npm 依赖，避免破坏 NixOS dry test。
+
+### 本次修改
+
+- 新增 `src/electron/browserWindow.ts`。
+- 新增 `src/electron/browserMain.ts`，用于真实 Electron runtime 创建窗口。
+- 新增 `src/electron/browserSmoke.ts`。
+- `src/electron/index.ts` 导出 BrowserWindow 适配 API。
+- `package.json` 新增 `electron:browser-smoke`，并纳入 `npm test`。
+
+### 验证结果
+
+- 本地 `npm run typecheck`：通过。
+- 本地 `npm run electron:smoke`：通过。
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm run electron:browser-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS 真实 `mvp:real-smoke`：通过。
+
+### 测试指标判断
+
+- Phase 3 Electron 验收新增覆盖：真实 `BrowserWindow` 构造参数、sandbox webPreferences、加载 renderer HTML。
+- 仍未完成真实 Electron 二进制启动截图验收，因为项目尚未引入 Electron runtime 依赖。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 本轮提交：待收尾提交。
+- push 状态：待 push。
+
+### 下一步
+
+- 决定是否把 `electron` npm 包纳入项目依赖，或继续由 NixOS 系统层提供 Electron runtime。
+- 做真实窗口截图验收。
+
 ## 2026-07-02 / Runtime PID Agent integration / 本地施工
 
 ### 本轮计划回放
