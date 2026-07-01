@@ -34,6 +34,12 @@
 - Claude Code 可通过 Agent SDK 预热子进程，任务到达时直接提交 prompt。
 - SDK warm handle 不是无限多轮复用接口；每次 query 后需要重新 warm 下一轮。
 
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 本轮功能提交：`f6e8365 backup: add claude sdk warm runner`
+- push 状态：已 push 到 `origin/backup/mvp-nixos-20260702-020835`
+
 ## 2026-07-02 / Electron BrowserWindow adapter / 本地施工
 
 ### 本轮计划回放

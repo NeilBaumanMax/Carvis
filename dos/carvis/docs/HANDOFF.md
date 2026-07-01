@@ -119,8 +119,8 @@
 ### GitHub 状态
 
 - 当前分支：`backup/mvp-nixos-20260702-020835`
-- 最新提交：本轮收尾后查看 `git log -1 --oneline`
-- 已 push：本轮收尾后 push 到备份分支
+- 本轮功能提交：`f6e8365 backup: add claude sdk warm runner`
+- 已 push：是，`origin/backup/mvp-nixos-20260702-020835`
 - 备份分支：`backup/mvp-nixos-20260702-020835`
 
 ### 风险提醒
