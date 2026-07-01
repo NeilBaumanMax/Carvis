@@ -22,6 +22,7 @@
 - 开发前基线提交：`868b31da3dd59f40f895cf19b98b0158b9b65ba8`
 - 开发前备份分支：`backup/pre-carvis-bootstrap-20260701-203039`
 - 远端备份状态：已 push
+- 本轮施工主体提交：`eb657c7`
 
 ### 本次修改
 
@@ -52,6 +53,23 @@
 - 已新增 TypeScript 工程骨架
 - `npm install`：通过
 - `npm run typecheck`：通过
+- GitHub SSH：通过，账号 `howtion0`
+- GitHub 开发前备份分支 push：通过
+
+### 测试日志
+
+- 第 1 次：`npm run typecheck`，通过
+- 第 2 次：`npm run typecheck`，通过
+- 失败修复：无，测试未失败
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 远端仓库：`git@github.com:howtion0/carvis.git`
+- 开发前基线提交：`868b31da3dd59f40f895cf19b98b0158b9b65ba8`
+- 开发前备份分支：`backup/pre-carvis-bootstrap-20260701-203039`
+- 本轮施工主体提交：`eb657c7`
+- push 状态：待最终日志回填提交后一并 push
 
 ### 测试指标判断
 
