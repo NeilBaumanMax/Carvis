@@ -69,7 +69,8 @@
 - 开发前基线提交：`868b31da3dd59f40f895cf19b98b0158b9b65ba8`
 - 开发前备份分支：`backup/pre-carvis-bootstrap-20260701-203039`
 - 本轮施工主体提交：`eb657c7`
-- push 状态：待最终日志回填提交后一并 push
+- push 状态：已 push 到 `main`
+- 最新远端 HEAD 以 GitHub `main` 为准
 
 ### 测试指标判断
 

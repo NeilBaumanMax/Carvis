@@ -113,7 +113,8 @@
 - 已 push 备份分支：是
 - 备份分支：`backup/pre-carvis-bootstrap-20260701-203039`
 - 当前施工主体提交：`eb657c7`
-- 当前 push 状态：待最终日志回填提交后一并 push
+- 当前 push 状态：已 push 到 `main`
+- 最新远端 HEAD 以 GitHub `main` 为准
 
 ### 风险提醒
 

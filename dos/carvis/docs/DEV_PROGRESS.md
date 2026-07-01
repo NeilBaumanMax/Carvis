@@ -2,6 +2,51 @@
 
 ## 2026-07-01
 
+## 2026-07-01 / Phase 1 / 开工计划
+
+### 本轮目标
+
+- 完成 Phase 1：`setup` 启动协议的第一版可运行代码。
+- 保持代码解耦、可读、简洁，按 `setup -> messagebus / agentruntime / electron` 边界开发。
+- 建立 `setup:smoke`，验证本地模拟启动顺序和失败处理。
+
+### 涉及层
+
+- `00-setup`
+- `shared config/types`
+- `docs`
+
+### 计划修改
+
+- `src/setup/README.md`
+- `src/setup/types.ts`
+- `src/setup/config.ts`
+- `src/setup/supervisor.ts`
+- `src/setup/index.ts`
+- `src/bootstrap.ts`
+- `package.json`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run setup:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 当前基线提交：`20c1666`
+- 计划提交本轮开工计划后创建备份分支：`backup/pre-phase1-setup-<timestamp>`
+- 远端状态：待 push 备份分支
+
+### 回滚预案
+
+- 优先使用 `git revert <phase1-commit>` 回滚本轮代码提交。
+- 如果仅需回滚未提交文件，删除或还原本轮新增的 `src/setup/*` 和 `package.json` 脚本改动。
+
 ### 进行中
 
 - 建立面向 `carvis` 的施工文档脚手架
