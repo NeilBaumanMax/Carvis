@@ -21,6 +21,34 @@
 - 收到 `output.ready` 后 Electron 状态展示产物入口。
 - Electron 不直接管理 PID、不绕过 messagebus、不读写 workplace。
 
+### 本次完成
+
+- 新增 `src/electron/README.md`
+- 新增 `src/electron/types.ts`
+- 新增 `src/electron/shell.ts`
+- 新增 `src/electron/index.ts`
+- 新增 `src/electron/smoke.ts`
+- 新增 `npm run electron:smoke`
+- Electron mock shell 可提交命令、展示 heartbeat、展示 output ready 入口。
+
+### 当前状态
+
+- 已完成：Phase 3 最小 TypeScript mock shell 和 smoke test
+- 进行中：无
+- 未完成：真实 Electron 窗口、renderer UI、响应式视觉验收、真实 output 打开能力
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run electron:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### 下一步
+
+- 拿到 SSH 凭据后在 NixOS 目标机复测。
+- Phase 4 开始实现 agentruntime 调度核心和 heartbeat 发布。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标

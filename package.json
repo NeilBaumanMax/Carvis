@@ -8,7 +8,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/main.js",
     "setup:smoke": "npm run build && node dist/setup/smoke.js",
-    "messagebus:smoke": "npm run build && node dist/messagebus/smoke.js"
+    "messagebus:smoke": "npm run build && node dist/messagebus/smoke.js",
+    "electron:smoke": "npm run build && node dist/electron/smoke.js"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",

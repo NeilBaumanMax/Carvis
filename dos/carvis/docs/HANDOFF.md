@@ -60,6 +60,79 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-01 / Phase 3 / 接力记录
+
+### 当前状态
+
+- Phase 3 Electron mock shell 已实现。
+- `src/electron` 现在有 README、状态类型、shell、入口和 smoke test。
+- Electron mock shell 默认展示 manager、writer、artist、researcher、engineer 五个 workplace 面板。
+- Electron mock shell 可通过 messagebus 发布 `command.submitted`，并订阅 `runtime.heartbeat` 和 `output.ready` 更新展示状态。
+
+### 本轮完成
+
+- 新增 `electron:smoke`。
+- 输入命令会 trim 后发送到 `agentruntime`。
+- heartbeat 可更新 active/idle/retained PID 数量和 queueDepth。
+- output ready 可生成可展示的 output entry。
+- 已用密码 SSH 连接 `howtion@192.168.137.59`，确认远端是 NixOS，Node `v22.22.2`、npm `10.9.7`、git `2.51.2` 可用。
+
+### 未完成
+
+- 真实 Electron 窗口和 renderer UI 尚未实现。
+- 桌面与窄窗口下的视觉重叠和文字溢出检查尚未建立。
+- output 真实打开能力尚未实现。
+- 远端 NixOS smoke test 尚未执行，同步 `~/carvis-remote-smoke` 时目标机网络/SSH 会话中断。
+- agentruntime 侧 messagebus client 尚未实现。
+
+### 下次优先任务
+
+1. 先确认 `howtion@192.168.137.59` 在线、IP 未变化、SSH 服务稳定。
+2. 连接 NixOS 后同步当前仓库到 `~/carvis-remote-smoke`，并运行 `npm run typecheck`、`npm run electron:smoke`。
+3. Phase 4：实现 agentruntime 调度核心最小状态机。
+4. 让 agentruntime 发布真实 `runtime.heartbeat` 到 messagebus。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+
+### 关键文件
+
+- `src/electron/shell.ts`
+- `src/electron/types.ts`
+- `src/electron/smoke.ts`
+- `src/messagebus/bus.ts`
+- `src/shared/types/events.ts`
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run electron:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`a0f5a06aa78e286fab13de0047ccdea8ebc37b4f`
+- 开发前计划提交：`ecd880e`
+- 开发前备份分支：`backup/pre-phase3-electron-20260701-2343`
+- 本轮主体提交：待提交
+- 最终记录提交：待提交
+- 当前 push 状态：待 push
+
+### 风险提醒
+
+- 当前 Electron 是 TypeScript mock shell，不是真实窗口。
+- 不要让 Electron 绕过 messagebus 直接调用 agentruntime。
+- 远程调试当前阻塞在目标机网络/SSH 会话稳定性，不是本地代码测试失败。
+
 ## 2026-07-01 / Phase 2 / 接力记录
 
 ### 当前状态

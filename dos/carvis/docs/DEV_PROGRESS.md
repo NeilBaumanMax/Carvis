@@ -51,6 +51,30 @@
 - 优先使用 `git revert <phase3-commit>` 回滚本轮代码和文档提交。
 - 如仅需回滚未提交文件，删除本轮新增的 `src/electron/*`，并还原 `package.json`、`src/shared/types/events.ts` 和本轮文档追加。
 
+### 本次完成
+
+- Phase 3 Electron mock shell 已完成。
+- 新增 `src/electron` README、状态类型、shell、入口和 smoke 脚本。
+- 默认状态包含 manager、writer、artist、researcher、engineer 五个隔间。
+- 输入命令会发布 `command.submitted` 到 `agentruntime`。
+- `runtime.heartbeat` 会更新 Electron runtime 展示状态。
+- `output.ready` 会创建 output 展示入口。
+- `npm run typecheck`、`npm run electron:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke` 均通过。
+- 远程 SSH 调试已连接 `howtion@192.168.137.59`，确认 NixOS、Node、npm、git 可用；后续同步远端 smoke 时连接中断。
+
+### 当前未完成
+
+- 真实 Electron 窗口和 renderer UI 尚未实现。
+- 桌面与窄窗口视觉验收尚未建立。
+- output 打开真实文件的能力尚未实现。
+- 远端 NixOS smoke test 尚未执行，原因是同步时目标机网络/SSH 会话中断。
+
+### 下一步
+
+1. 等 `howtion@192.168.137.59` SSH 恢复稳定后，继续同步 `~/carvis-remote-smoke` 并执行 smoke test。
+2. Phase 4：实现 agentruntime 调度核心的最小状态机。
+3. 让 agentruntime 通过 messagebus 发布 `runtime.heartbeat`。
+
 ## 2026-07-01 / Phase 2 / 开工计划
 
 ### 本轮目标

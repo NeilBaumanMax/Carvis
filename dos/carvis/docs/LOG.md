@@ -1,5 +1,105 @@
 # Carvis Construction Log
 
+## 2026-07-01 / Phase 3 / Electron 可视化外壳
+
+### 本轮计划回放
+
+- 完成 `src/electron` 可视化外壳的最小可运行版本。
+- 建立五个 workplace 面板状态模型：manager、writer、artist、researcher、engineer。
+- Electron mock shell 通过 messagebus 发布 `command.submitted`，订阅 `runtime.heartbeat` 和 `output.ready`。
+- 建立 `electron:smoke`。
+
+### 开工检查
+
+- 已读取 `CODEX_MASTER_REQUIREMENTS.md`
+- 已读取 `docs/DEV_PROGRESS.md`
+- 已读取 `docs/LOG.md`
+- 已读取 `docs/GITHUB_ROLLBACK.md`
+- 已读取 `docs/TEST_METRICS.md`
+- 已读取 `docs/WORKFLOW.md`
+- 已读取 `docs/CONSTRUCTION_PLAN.md`
+- 已读取 `docs/progress/layers/01-electron.md`
+- 已读取 `docs/progress/layers/02-messagebus.md`
+- 已读取根目录 `对参考施工文档重构的要求 .txt`
+- 当前分支：`main`
+- 开发前基线提交：`a0f5a06aa78e286fab13de0047ccdea8ebc37b4f`
+- 开发前计划提交：`ecd880e`
+- 开发前备份分支：`backup/pre-phase3-electron-20260701-2343`
+- 远端备份状态：已 push
+
+### 本次修改
+
+- 新增 Electron README，固定当前职责、边界和 smoke 覆盖范围。
+- 新增 Electron shell 状态模型，包含五个 workplace 面板、runtime 心跳展示、output 入口、最近事件和已提交命令。
+- 新增 Electron mock shell，订阅 `runtime.heartbeat`、`output.ready`、`agent.output`，提交命令时发布 `command.submitted`。
+- 新增 `electron:smoke`，验证五个隔间、命令提交、心跳展示和 output 展示。
+- `package.json` 新增 `electron:smoke` 脚本。
+
+### 修改文件
+
+- `package.json`
+- `src/electron/README.md`
+- `src/electron/types.ts`
+- `src/electron/shell.ts`
+- `src/electron/index.ts`
+- `src/electron/smoke.ts`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+
+### 验证结果
+
+- `npm run typecheck`：通过
+- `npm run electron:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+- `sshpass ... ssh howtion@192.168.137.59 'hostname; uname -a; node --version; npm --version; git --version'`：通过，远端为 NixOS，Node `v22.22.2`，npm `10.9.7`，git `2.51.2`
+- `rsync` 同步到 `~/carvis-remote-smoke` 并执行远端 smoke：失败，后续连接返回 `No route to host` / `Connection closed by 192.168.137.59 port 22`
+
+### 测试日志
+
+- 第 1 次：`npm run typecheck`，通过
+- 第 1 次：`npm run electron:smoke`，通过，输出 `[electron:smoke] ok`
+- 第 1 次：`npm run messagebus:smoke`，通过，输出 `[messagebus:smoke] ok`
+- 第 1 次：`npm run setup:smoke`，通过，输出 `[setup:smoke] ok`
+- 第 1 次远程 SSH 调试：免密认证失败，用户提供密码后连接成功，确认远端 NixOS、Node、npm、git 可用
+- 第 1 次远端同步 smoke：失败，网络或 SSH 会话中断，未完成 `rsync` 和远端 smoke
+- 失败修复：本轮无法在本地修复目标机网络/SSH 会话中断，需要确认 NixOS 主机在线、IP 未变化、SSH 服务稳定
+
+### 测试指标判断
+
+- 本轮涉及层：`01-electron`、`02-messagebus`
+- 应执行测试：`npm run typecheck`、`npm run electron:smoke`
+- 实际执行测试：`npm run typecheck`、`npm run electron:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke`
+- 未执行项及原因：`npm test` 尚未建立；真实 Electron 窗口尚未建立，当前 Phase 3 使用 TypeScript mock shell 验证协议和状态
+
+### 文档漂移检查
+
+- `CONSTRUCTION_PLAN.md` 的 Phase 3 目标与当前 mock shell 实现一致，真实窗口、响应式 UI 和 output 打开能力仍属于后续增量。
+- `TEST_METRICS.md` 的 Phase 3 最低测试已满足：`npm run typecheck` 和 `npm run electron:smoke`。
+- `CODEX_MASTER_REQUIREMENTS.md` 的 Electron 边界未被突破。
+- 无需修改架构边界文档。
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前备份分支：`backup/pre-phase3-electron-20260701-2343`
+- 本轮主体提交：待提交
+- 最终记录提交：待提交
+- push 状态：待 push
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需回滚，优先使用 `git revert <phase3-commit>`
+- 回滚后复测：`npm run typecheck`、`npm run electron:smoke`、`npm run messagebus:smoke`
+
+### 下一步
+
+- NixOS 目标机恢复稳定 SSH 后，同步 `~/carvis-remote-smoke` 并执行远端 smoke test。
+- Phase 4：实现 agentruntime 调度核心的最小状态机和 heartbeat 发布。
+
 ## 2026-07-01 / Phase 2 / messagebus 事件协议
 
 ### 本轮计划回放
