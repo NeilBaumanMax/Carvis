@@ -1,0 +1,25 @@
+我要在nixos上写一个多进程调配多agent claudecode的系统  你按照我src的层次写我的文件
+首先nixos自启动以后会启动一个setuo脚本，这个setup脚本会拉起来1  elecron软件显示 2 message消息总线 3 agentruntime多agent管理运行时    我也有这三个文件夹你往这三个文件夹里面写，
+然后重构的施工脚手架你放在dos里面
+ electron 从消息总线读取和发送给agentruntime 然后在前端显示多个工作隔间，然后新开启一个pidagent进程在一个工作格间里面工作显示，下班后离开，然后输入命令用类似gptweb端的输入逻辑，我把命令用回车的形式输入输入框
+ 
+ 
+ 
+ 
+ 
+ 
+ agentruntime是一个调配多个agent claudecode进程的东西，他会打开一个pid来执行对应角色要求的任务并且给这个阿根廷 pid载入角色设定和一些角色功能skills
+ 
+ 
+ 然后pid结束后不关闭继续挂着进程直到全部任务结束后再统一u关闭pid进程
+ 
+ 
+ 然后agentruntime需要有多进程调配线程池是，需要有心跳计时器打印监督
+ 
+ 
+ agent用claudecodecli 加 deepseekpai
+ 
+ 多pid的角色结构为  总管agent先启动然后拆解任务分给 文书pidagent 美术pidagent 调研pidagent 他们在各自的workplace  所有的workplace在workplaces这个文件夹下面
+ 
+ 然后他们全部工作完后 技术pidagent启动读取他们各种的然后一块生产生成最终产品在output文件夹下  然后electron可以预览和打开生产物体
+ 
