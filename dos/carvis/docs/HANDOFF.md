@@ -118,8 +118,8 @@
 - 当前分支：`main`
 - 开发前备份分支：`backup/pre-phase2-messagebus-20260701-2145`
 - 本轮主体提交：`8b8b0c0`
-- 最终记录提交：待提交
-- 当前 push 状态：待 push
+- 最终记录提交：`e4debfb`
+- 当前 push 状态：已 push 到 `main`
 
 ### 风险提醒
 
