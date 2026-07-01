@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run typecheck && npm run setup:smoke && npm run setup:spawn-smoke && npm run setup:systemd-smoke && npm run setup:systemd-install-smoke && npm run messagebus:smoke && npm run electron:smoke && npm run electron:ui-smoke && npm run agentruntime:smoke && npm run pidagent:smoke && npm run workplaces:smoke && npm run output:smoke && npm run claudecode:smoke && npm run e2e:smoke && npm run ipc:smoke && npm run ipc:reconnect-smoke",
+    "test": "npm run typecheck && npm run setup:smoke && npm run setup:spawn-smoke && npm run setup:systemd-smoke && npm run setup:systemd-install-smoke && npm run messagebus:smoke && npm run electron:smoke && npm run electron:ui-smoke && npm run agentruntime:smoke && npm run pidagent:smoke && npm run runtime-pidagent:smoke && npm run workplaces:smoke && npm run output:smoke && npm run claudecode:smoke && npm run e2e:smoke && npm run ipc:smoke && npm run ipc:reconnect-smoke",
     "start": "node dist/main.js",
     "setup:smoke": "npm run build && node dist/setup/smoke.js",
     "setup:spawn-smoke": "npm run build && node dist/setup/spawnSmoke.js",
@@ -21,6 +21,7 @@
     "electron:ui-smoke": "npm run build && node dist/electron/uiSmoke.js",
     "agentruntime:smoke": "npm run build && node dist/agentruntime/smoke.js",
     "pidagent:smoke": "npm run build && node dist/agentruntime/pidagent/smoke.js",
+    "runtime-pidagent:smoke": "npm run build && node dist/smoke/runtimePidAgent.js",
     "claudecode:smoke": "npm run build && node dist/agentruntime/claudecode/smoke.js",
     "workplaces:smoke": "npm run build && node dist/agentruntime/workplaces/smoke.js",
     "output:smoke": "npm run build && node dist/output/smoke.js",

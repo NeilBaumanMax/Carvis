@@ -2,6 +2,29 @@
 
 ## 2026-07-02
 
+## 2026-07-02 / Runtime 接入长驻 PID Agent 池
+
+### 本次完成
+
+- AgentRuntime 新增可选 `pidAgentPool`，角色运行时可使用真实子进程 PID，而不是固定模拟 PID。
+- Runtime 会把 PID Agent 输出广播为 `agent.output`，Electron shell 可看到来自 PID Agent 的最新输出。
+- Runtime 收尾阶段会调用 `pidAgentPool.shutdown()`，统一关闭 retained PID Agent。
+- 新增 `runtime-pidagent:smoke`，验证一条命令走 Runtime 五角色流程时会拉起真实子进程 PID、输出回传到 Electron、最终统一 shutdown。
+- `npm test` 已包含 `runtime-pidagent:smoke`。
+
+### 当前验证
+
+- 本地 `npm run typecheck`：通过
+- 本地 `npm run pidagent:smoke`：通过
+- 本地 `npm run runtime-pidagent:smoke`：通过
+- 本地 `npm test`：通过
+- 远端 NixOS `npm test`：通过，包含 `runtime-pidagent:smoke`
+
+### 当前未完成
+
+- Claude Code 本体仍使用短进程 `--print` real smoke；尚未验证 Claude Code 交互模式可作为长期 stdin/stdout PID Agent 复用。
+- 真实 Electron BrowserWindow 尚未建立。
+
 ## 2026-07-02 / NixOS MVP systemd + 长亮配置
 
 ### 本次完成

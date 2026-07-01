@@ -1,5 +1,24 @@
 # 04 ClaudeCode Progress
 
+## 2026-07-02 / Runtime PID Agent 集成基础 / 补充
+
+### 本次完成
+
+- AgentRuntime 已可接入通用 `PersistentPidAgentPool`，不再只能使用模拟 PID 字段。
+- 新增 `runtime-pidagent:smoke`，验证 Runtime 五角色流程可使用真实长驻子进程 PID 并统一 shutdown。
+- 这为后续 Claude Code 长驻 PID 接入提供 Runtime 侧接口。
+
+### 测试基线
+
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+
+### 剩余风险
+
+- Claude Code CLI 仍通过 `runClaudeCodePrint()` 短进程执行真实 DeepSeek smoke。
+- 尚未证明 Claude Code CLI 支持本项目需要的长期 stdin/stdout 多任务协议。
+
 ## 2026-07-02 / Local MVP smoke / 本次完成
 
 ### 当前目标

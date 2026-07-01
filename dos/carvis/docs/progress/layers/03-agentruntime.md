@@ -1,5 +1,26 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-02 / Runtime 接入长驻 PID Agent 池 / 本次完成
+
+### 本次完成
+
+- `AgentRuntimeOptions` 新增 `pidAgentPool` 和 `pidTaskTimeoutMs`。
+- Runtime role flow 可从 `PersistentPidAgentPool` 获取真实子进程 PID，并把 PID 写入 Agent lifecycle。
+- PID Agent 的 task 输出会作为 `agent.output` 广播给 Electron shell。
+- Runtime 收尾阶段统一调用 `pidAgentPool.shutdown()`，关闭 retained PID。
+- 新增 `runtime-pidagent:smoke`，验证五角色流程使用真实子进程 PID、输出回传、最终 shutdown。
+
+### 测试基线
+
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+
+### 剩余风险
+
+- 当前 Runtime 接入的是通用 line-protocol PID Agent 池。
+- Claude Code CLI 本体尚未作为长驻交互 PID Agent 接入。
+
 ## 2026-07-02 / Local MVP smoke / 本次完成
 
 ### 当前目标

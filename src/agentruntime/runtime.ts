@@ -69,6 +69,7 @@ export class AgentRuntime {
       }
     }
 
+    await this.options.pidAgentPool?.shutdown();
     await this.publishHeartbeat();
     this.dispose();
   }
@@ -131,11 +132,11 @@ export class AgentRuntime {
 
     await this.publishHeartbeat();
     await this.changePhase("manager_planning");
-    await this.runRole(MANAGER_ROLE);
+    await this.runRole(MANAGER_ROLE, command.commandText);
     await this.changePhase("parallel_roles_working");
-    await Promise.all(PARALLEL_ROLES.map((role) => this.runRole(role)));
+    await Promise.all(PARALLEL_ROLES.map((role) => this.runRole(role, command.commandText)));
     await this.changePhase("engineer_building");
-    await this.runRole(ENGINEER_ROLE);
+    await this.runRole(ENGINEER_ROLE, command.commandText);
     await this.changePhase("output_ready");
     await this.publishOutputReady();
     await this.changePhase("retaining_agents");
@@ -145,15 +146,30 @@ export class AgentRuntime {
     await this.publishHeartbeat();
   }
 
-  private async runRole(role: AgentRole): Promise<void> {
+  private async runRole(role: AgentRole, commandText: string): Promise<void> {
     const agent = this.ensureAgent(role);
+    const pidAgent = this.options.pidAgentPool?.getAgent(role);
+
+    if (pidAgent !== undefined) {
+      agent.pid = pidAgent.pid;
+    }
 
     await this.setAgentStatus(agent, "starting", "agent.starting");
     await this.setAgentStatus(agent, "ready", "agent.ready");
     await this.setAgentStatus(agent, "working", "agent.output", `${role} working`);
+    if (pidAgent !== undefined) {
+      const result = await pidAgent.runTask({
+        input: `${role}: ${commandText}`,
+        timeoutMs: this.options.pidTaskTimeoutMs,
+      });
+
+      agent.pid = result.pid;
+      await this.setAgentStatus(agent, "working", "agent.output", result.output);
+    }
     await this.options.roleRunner?.({
       run: this.mustCurrentRun(),
       agent,
+      commandText,
     });
     await this.setAgentStatus(agent, "done", "agent.done");
     agent.retained = true;
@@ -224,6 +240,7 @@ export class AgentRuntime {
       await this.publishAgentLifecycle("agent.shutdown", agent);
     }
 
+    await this.options.pidAgentPool?.shutdown();
     await this.publishHeartbeat();
   }
 

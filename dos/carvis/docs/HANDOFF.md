@@ -60,6 +60,69 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / Runtime PID Agent integration / 接力记录
+
+### 当前状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`。
+- AgentRuntime 已可选接入 `PersistentPidAgentPool`，使用真实子进程 PID 执行五角色 task。
+- `runtime-pidagent:smoke` 已在本地和远端 NixOS 通过。
+- NixOS user systemd Carvis 服务仍 active；长亮服务 `carvis-keep-awake-inhibit.service` 和 `carvis-xset-keep-awake.service` 仍 active。
+
+### 本轮完成
+
+- `AgentRuntimeOptions` 增加 `pidAgentPool` / `pidTaskTimeoutMs`。
+- Runtime role flow 会把 PID Agent 输出广播给 Electron shell。
+- Runtime 收尾会统一 shutdown PID Agent pool。
+- 新增 `src/smoke/runtimePidAgent.ts`。
+- `npm test` 纳入 `runtime-pidagent:smoke`。
+
+### 未完成
+
+- Claude Code CLI 本体尚未作为长驻 stdin/stdout PID Agent 复用。
+- 真实 Electron BrowserWindow 尚未建立。
+- systemd status CLI 尚未封装 active/enabled 检查。
+
+### 下次优先任务
+
+1. 验证 Claude Code CLI 是否有稳定交互模式可长期保持 PID 并接收多轮输入。
+2. 若 Claude Code 不适合长期 stdin/stdout，明确记录限制，并把 Runtime 的 `pidAgentPool` 用于可交互 worker，Claude Code 保持短进程 runner。
+3. 建立真实 Electron BrowserWindow，挂载现有 renderer HTML/CSS。
+
+### 必读文档
+
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+
+### 关键文件
+
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/types.ts`
+- `src/agentruntime/pidagent/index.ts`
+- `src/smoke/runtimePidAgent.ts`
+- `package.json`
+
+### 测试基线
+
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 远端 NixOS `runtime-pidagent:smoke`：通过，包含在 `npm test`。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：本轮收尾后查看 `git log -1 --oneline`
+- 已 push：本轮收尾后 push 到备份分支
+- 备份分支：`backup/mvp-nixos-20260702-020835`
+
+### 风险提醒
+
+- 不要把 DeepSeek API key 写入仓库。
+- 当前新增的是 Runtime 与通用长驻 PID 池集成，不等于 Claude Code CLI 已可长期交互复用。
+
 ## 2026-07-02 / NixOS MVP systemd / 接力记录
 
 ### 当前状态

@@ -1,12 +1,14 @@
 import type { AgentRole, AgentRuntimeState } from "../shared/types/agent.js";
 import type { OutputReadyPayload } from "../shared/types/events.js";
 import type { RunState } from "../shared/types/run.js";
+import type { PersistentPidAgentPool } from "./pidagent/index.js";
 
 export type RuntimeRoleRunner = (context: RuntimeRoleContext) => void | Promise<void>;
 
 export interface RuntimeRoleContext {
   run: RunState;
   agent: AgentRuntimeState;
+  commandText: string;
 }
 
 export type RuntimeOutputWriter = (context: RuntimeOutputContext) => OutputReadyPayload | Promise<OutputReadyPayload>;
@@ -18,6 +20,8 @@ export interface RuntimeOutputContext {
 
 export interface AgentRuntimeOptions {
   roleRunner?: RuntimeRoleRunner;
+  pidAgentPool?: PersistentPidAgentPool;
+  pidTaskTimeoutMs?: number;
   outputWriter?: RuntimeOutputWriter;
   outputPath?: string;
   manifestPath?: string;

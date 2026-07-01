@@ -1,5 +1,49 @@
 # Carvis Construction Log
 
+## 2026-07-02 / Runtime PID Agent integration / 本地施工
+
+### 本轮计划回放
+
+- 继续按 NixOS MVP 目标审计施工文档。
+- 当前最大缺口是 Phase 5 长驻 PID Agent 未接入 Runtime。
+- 本轮推进 AgentRuntime 与通用长驻 PID Agent 池的集成，不改动 API key 或真实 Claude Code 交互模式。
+
+### 本次修改
+
+- `AgentRuntimeOptions` 新增 `pidAgentPool` 和 `pidTaskTimeoutMs`。
+- AgentRuntime 角色运行时可从 `PersistentPidAgentPool` 获取真实子进程 PID。
+- PID Agent task 输出会作为 `agent.output` 经 messagebus 广播到 Electron shell。
+- Runtime 正常收尾和手动 shutdown 都会统一关闭 PID Agent pool。
+- 新增 `src/smoke/runtimePidAgent.ts`。
+- `package.json` 新增 `runtime-pidagent:smoke`，并纳入 `npm test`。
+
+### 验证结果
+
+- 本地 `npm run typecheck`：通过。
+- 本地 `npm run pidagent:smoke`：通过。
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过，确认新 smoke 在 NixOS 上可运行。
+- 远端 NixOS systemd 服务和长亮服务仍为 active，默认出网路由走 WiFi `kyle`。
+
+### 测试指标判断
+
+- 涉及层：`03-agentruntime`、`04-claudecode`、`05-pidagent` 生命周期基础。
+- Phase 4 的角色顺序、retained、统一 shutdown 继续由 `agentruntime:smoke` 覆盖。
+- Phase 5 的真实 PID 生命周期由 `pidagent:smoke` 和 `runtime-pidagent:smoke` 覆盖。
+- 未完成项：Claude Code CLI 本体仍未作为长驻交互进程复用。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 本轮提交：待收尾提交。
+- push 状态：待 push。
+
+### 下一步
+
+- 验证 Claude Code CLI 是否支持适合本项目的长期交互模式；若不适合，保留短进程 runner 并把 PID Agent 抽象用于可交互 worker。
+- 建立真实 Electron BrowserWindow。
+
 ## 2026-07-02 / NixOS systemd + permanent display / 本地施工
 
 ### 本次修改
