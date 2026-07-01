@@ -37,3 +37,35 @@ npm run claudecode:smoke
 ```
 
 真实 smoke 会使用 `--print` 非交互模式、禁用工具，并限制 `--max-budget-usd`。
+
+## Claude Agent SDK warm runner
+
+`claudecode:sdk-smoke` 使用 `@anthropic-ai/claude-agent-sdk` 的 `startup()` 预热 Claude Code 子进程。SDK 的 `WarmQuery.query()` 每个 warm handle 只能调用一次，所以当前策略是：
+
+1. 任务到达前预热一个 Claude Code 子进程；
+2. 任务分配时直接向 warm handle 提交 prompt；
+3. 本轮 query 结束后重新预热下一轮。
+
+在 NixOS 上同样使用：
+
+```text
+CARVIS_CLAUDE_CODE_RUNNER=steam-run
+CARVIS_CLAUDE_CODE_BIN=/home/howtion/.npm/_npx/<cache>/node_modules/@anthropic-ai/claude-code-linux-x64/claude
+```
+
+真实 SDK smoke：
+
+```text
+CARVIS_CLAUDECODE_SDK_REAL_SMOKE=1
+DEEPSEEK_API_KEY=<your DeepSeek API Key>
+npm run claudecode:sdk-smoke
+```
+
+真实 MVP smoke 可显式切换到 SDK warm runner：
+
+```text
+CARVIS_REAL_MVP_SMOKE=1
+CARVIS_REAL_MVP_USE_SDK=1
+DEEPSEEK_API_KEY=<your DeepSeek API Key>
+npm run mvp:real-smoke
+```

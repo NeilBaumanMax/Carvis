@@ -60,6 +60,74 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / Claude Agent SDK warm runner + fullscreen Electron / 接力记录
+
+### 当前状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`。
+- 远端 NixOS：`howtion@192.168.137.59`，WiFi `kyle` 出网正常。
+- Electron systemd 已运行真实 BrowserWindow runner，复核窗口为 `1280x720+0+0`。
+- NixOS 屏幕休眠已关闭，`xset q` 显示 screen saver timeout `0` 且 DPMS disabled。
+- Claude Code `--print` real runner 仍可用。
+- 新增 Claude Agent SDK warm runner，NixOS + DeepSeek real smoke 已通过。
+- `mvp:real-smoke` 可用 `CARVIS_REAL_MVP_USE_SDK=1` 切换到 SDK warm runner。
+
+### 本轮完成
+
+- 新增 `src/agentruntime/claudecode/warmSdk.ts`。
+- 新增 `src/agentruntime/claudecode/warmSdkSmoke.ts`。
+- 新增 `src/agentruntime/claudecode/warmSdkRoleRunner.ts`。
+- 新增 npm script：`claudecode:sdk-smoke`。
+- 新增依赖：`@anthropic-ai/claude-agent-sdk`。
+- 更新 claudecode README、DEV_PROGRESS、LOG 和分层进度文档。
+
+### 未完成
+
+- SDK `WarmQuery` 每个 handle 只能 query 一次；当前策略是任务后重新预热下一轮，不是同一 PID 无限多轮复用。
+- Electron renderer 仍是 snapshot 文件，未实现实时 DOM 更新和真实输入提交。
+
+### 下次优先任务
+
+1. 把 Electron BrowserWindow renderer 改成实时订阅 messagebus 状态，而不是只加载静态 snapshot。
+2. 给 NixOS systemd 增加一条可重复执行的健康检查脚本，统一检查服务 active、窗口全屏、DPMS disabled。
+3. 若需要更强 Claude Code 保活，继续评估 SDK remote/control/background agent 能否暴露更长生命周期会话。
+
+### 必读文档
+
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+- `src/agentruntime/claudecode/README.md`
+
+### 关键文件
+
+- `src/agentruntime/claudecode/warmSdk.ts`
+- `src/agentruntime/claudecode/warmSdkRoleRunner.ts`
+- `src/smoke/realMvp.ts`
+- `src/electron/browserWindow.ts`
+- `src/electron/runBrowserMain.ts`
+
+### 测试基线
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run claudecode:sdk-smoke`：通过 dry。
+- 本地 `npm test`：通过。
+- 远端 NixOS `CARVIS_CLAUDECODE_SDK_REAL_SMOKE=1 ... npm run claudecode:sdk-smoke`：通过 real。
+- 远端 NixOS `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=1 ... npm run mvp:real-smoke`：通过 real。
+- 远端 NixOS Electron 全屏复核：通过。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：本轮收尾后查看 `git log -1 --oneline`
+- 已 push：本轮收尾后 push 到备份分支
+- 备份分支：`backup/mvp-nixos-20260702-020835`
+
+### 风险提醒
+
+- 不要把 DeepSeek API key 写入仓库。
+- 远端 `~/carvis-remote-smoke` 是普通测试目录，不是 git 工作树；以本地仓库和 GitHub 备份分支为准。
+
 ## 2026-07-02 / Electron BrowserWindow adapter / 接力记录
 
 ### 当前状态

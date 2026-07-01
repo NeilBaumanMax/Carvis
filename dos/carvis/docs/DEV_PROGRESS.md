@@ -2,6 +2,32 @@
 
 ## 2026-07-02
 
+## 2026-07-02 / Claude Agent SDK warm runner + NixOS fullscreen 复验
+
+### 本次完成
+
+- 新增 `@anthropic-ai/claude-agent-sdk` 依赖。
+- 新增 `src/agentruntime/claudecode/warmSdk.ts`，通过 SDK `startup()` 预热 Claude Code 子进程，并用自定义 spawn 适配 NixOS `steam-run`。
+- 新增 `src/agentruntime/claudecode/warmSdkSmoke.ts` 和 `claudecode:sdk-smoke`。
+- 新增 `src/agentruntime/claudecode/warmSdkRoleRunner.ts`，让 `mvp:real-smoke` 可用 `CARVIS_REAL_MVP_USE_SDK=1` 切到 SDK 预热路径。
+- 明确 Claude Code CLI `--print --input-format=stream-json` 仍属于单次 print 模式；SDK `WarmQuery.query()` 官方类型说明为每个 warm handle 只能调用一次，因此当前采用“任务前预热、任务后再预热下一轮”的保活策略。
+- 复核远端 NixOS Electron：重启后 `Carvis` 窗口仍为 `1280x720+0+0`，DPMS/screen saver 仍关闭。
+
+### 当前验证
+
+- 本地 `npm run build`：通过
+- 本地 `npm run claudecode:sdk-smoke`：通过 dry
+- 本地 `npm test`：通过
+- 远端 NixOS `npm run claudecode:sdk-smoke`：通过 dry
+- 远端 NixOS `CARVIS_CLAUDECODE_SDK_REAL_SMOKE=1 ... npm run claudecode:sdk-smoke`：通过 real
+- 远端 NixOS `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=1 ... npm run mvp:real-smoke`：通过 real
+- 远端 NixOS Electron 全屏复核：`Carvis` 窗口 `1280x720+0+0`
+
+### 当前未完成
+
+- SDK warm handle 不是一个 PID 无限多任务接口；每次 query 结束后需要重新 warm 下一轮。
+- Electron renderer 当前仍是静态 snapshot 文件，尚未做实时 DOM 状态更新和输入提交。
+
 ## 2026-07-02 / Electron BrowserWindow 适配
 
 ### 本次完成

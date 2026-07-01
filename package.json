@@ -26,6 +26,7 @@
     "pidagent:smoke": "npm run build && node dist/agentruntime/pidagent/smoke.js",
     "runtime-pidagent:smoke": "npm run build && node dist/smoke/runtimePidAgent.js",
     "claudecode:smoke": "npm run build && node dist/agentruntime/claudecode/smoke.js",
+    "claudecode:sdk-smoke": "npm run build && node dist/agentruntime/claudecode/warmSdkSmoke.js",
     "workplaces:smoke": "npm run build && node dist/agentruntime/workplaces/smoke.js",
     "output:smoke": "npm run build && node dist/output/smoke.js",
     "e2e:smoke": "npm run build && node dist/smoke/e2e.js",
@@ -36,5 +37,8 @@
   "devDependencies": {
     "@types/node": "^20.19.0",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.197"
   }
 }

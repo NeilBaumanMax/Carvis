@@ -2,7 +2,10 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 
 import { createAgentRuntime } from "../agentruntime/index.js";
-import { createClaudeCodeRoleRunner } from "../agentruntime/claudecode/index.js";
+import {
+  createClaudeCodeRoleRunner,
+  createClaudeCodeWarmSdkRoleRunner,
+} from "../agentruntime/claudecode/index.js";
 import {
   initializeWorkplaces,
   readWorkplaceResults,
@@ -28,24 +31,30 @@ const smokeRoot = await mkdtemp(join(process.cwd(), ".carvis-real-mvp-"));
 const workplacesRoot = join(smokeRoot, "workplaces");
 const outputRoot = join(smokeRoot, "output");
 const promptText = "build a real Claude Code MVP smoke";
+let shutdownClaudeCodeRoleRunner: (() => void) | undefined;
 await initializeWorkplaces(workplacesRoot, promptText);
 
+const roleRunnerOptions = {
+  env,
+  workplacesRoot,
+  cwd: smokeRoot,
+  validateOutput: (role: string, output: string) => {
+    const expected = `${role} real claude smoke ok`;
+
+    assert(output === expected, `${role} expected ${expected}, got ${output}`);
+  },
+  promptForRole: (role: string) => {
+    const expected = `${role} real claude smoke ok`;
+
+    return `Reply exactly: ${expected}`;
+  },
+};
+const roleRunner =
+  env.CARVIS_REAL_MVP_USE_SDK === "1"
+    ? createSdkRoleRunner(roleRunnerOptions)
+    : createClaudeCodeRoleRunner(roleRunnerOptions);
 const runtime = createAgentRuntime(bus, {
-  roleRunner: createClaudeCodeRoleRunner({
-    env,
-    workplacesRoot,
-    cwd: smokeRoot,
-    validateOutput: (role, output) => {
-      const expected = `${role} real claude smoke ok`;
-
-      assert(output === expected, `${role} expected ${expected}, got ${output}`);
-    },
-    promptForRole: (role) => {
-      const expected = `${role} real claude smoke ok`;
-
-      return `Reply exactly: ${expected}`;
-    },
-  }),
+  roleRunner,
   outputWriter: async () => {
     const results = await readWorkplaceResults(workplacesRoot);
 
@@ -91,6 +100,7 @@ try {
 } finally {
   runtime.dispose();
   shell.dispose();
+  shutdownClaudeCodeRoleRunner?.();
 
   if (env.CARVIS_KEEP_REAL_MVP_ARTIFACTS === "1") {
     console.log(`[mvp:real-smoke] artifacts kept at ${smokeRoot}`);
@@ -103,4 +113,11 @@ function assert(condition: boolean, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function createSdkRoleRunner(options: typeof roleRunnerOptions) {
+  const sdkRoleRunner = createClaudeCodeWarmSdkRoleRunner(options);
+
+  shutdownClaudeCodeRoleRunner = sdkRoleRunner.shutdown;
+  return sdkRoleRunner.runner;
 }

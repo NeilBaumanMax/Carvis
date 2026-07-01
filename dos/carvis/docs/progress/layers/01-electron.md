@@ -1,5 +1,22 @@
 # 01 Electron Progress
 
+## 2026-07-02 / NixOS fullscreen 复验 / 本次完成
+
+### 本次完成
+
+- 复核远端 NixOS 上 `carvis-electron.service` 使用真实 Electron BrowserWindow runner。
+- 复核 X11 窗口树：root `1280x720`，`Carvis` 窗口 `1280x720+0+0`。
+- 复核当前会话屏幕休眠：screen saver timeout 为 `0`，DPMS disabled。
+
+### 测试基线
+
+- 远端 NixOS `xwininfo -root -tree`：`Carvis` 窗口 `1280x720+0+0`。
+- 远端 NixOS `xset q`：screen saver timeout `0`，DPMS disabled。
+
+### 剩余风险
+
+- renderer 仍是 snapshot 文件，后续要接实时状态更新和输入提交。
+
 ## 2026-07-02 / BrowserWindow 适配 / 本次完成
 
 ### 本次完成

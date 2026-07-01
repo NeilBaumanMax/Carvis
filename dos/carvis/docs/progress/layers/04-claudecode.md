@@ -1,5 +1,37 @@
 # 04 ClaudeCode Progress
 
+## 2026-07-02 / Claude Agent SDK warm runner / 本次完成
+
+### 本次完成
+
+- 引入 `@anthropic-ai/claude-agent-sdk@0.3.197`。
+- 新增 `ClaudeCodeWarmSdkAgent`，通过 SDK `startup()` 预热 Claude Code 子进程。
+- 使用 SDK `spawnClaudeCodeProcess` 自定义 spawn，记录实际 child PID，并支持 `CARVIS_CLAUDE_CODE_RUNNER=steam-run` 包裹 NixOS 原生二进制。
+- 新增 `claudecode:sdk-smoke`：
+  - dry 模式只验证构建和入口；
+  - real 模式验证预热 PID、真实 DeepSeek 输出、query 后重新预热。
+- 新增 `createClaudeCodeWarmSdkRoleRunner`。
+- `mvp:real-smoke` 支持 `CARVIS_REAL_MVP_USE_SDK=1`，可显式走 SDK warm runner。
+
+### 关键结论
+
+- Claude Code CLI `--print` 和 `--input-format=stream-json` 仍是 print 模式，不等同于本项目最初设想的无限多任务 stdin/stdout worker。
+- SDK `WarmQuery.query()` 类型定义说明每个 warm handle 只能调用一次。
+- 当前可落地策略是：每个角色在任务前保持一个已初始化的 Claude Code 子进程，任务分配时直接提交 prompt，任务结束后重新 warm 下一轮。
+
+### 测试基线
+
+- 本地 `npm run claudecode:sdk-smoke`：通过 dry。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm run claudecode:sdk-smoke`：通过 dry。
+- 远端 NixOS `CARVIS_CLAUDECODE_SDK_REAL_SMOKE=1 ... npm run claudecode:sdk-smoke`：通过 real。
+- 远端 NixOS `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=1 ... npm run mvp:real-smoke`：通过 real。
+
+### 剩余风险
+
+- 这不是同一个 Claude Code PID 连续执行无限多轮任务；SDK warm handle 单次使用后会结束并重新预热。
+- API key 仍必须只通过环境变量或本地 secret 注入，不能写入仓库。
+
 ## 2026-07-02 / Runtime PID Agent 集成基础 / 补充
 
 ### 本次完成

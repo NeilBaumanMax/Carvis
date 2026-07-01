@@ -1,5 +1,39 @@
 # Carvis Construction Log
 
+## 2026-07-02 / Claude Agent SDK warm runner + NixOS 复验
+
+### 目标
+
+- 继续验证 Claude Code 是否能以长期进程方式服务 NixOS MVP。
+- 让 Electron 在 NixOS 上保持真实全屏显示。
+
+### 实际修改
+
+- 新增 `@anthropic-ai/claude-agent-sdk` 依赖。
+- 新增 `src/agentruntime/claudecode/warmSdk.ts`。
+- 新增 `src/agentruntime/claudecode/warmSdkSmoke.ts`。
+- 新增 `src/agentruntime/claudecode/warmSdkRoleRunner.ts`。
+- `mvp:real-smoke` 增加 `CARVIS_REAL_MVP_USE_SDK=1` 路径。
+- `package.json` 增加 `claudecode:sdk-smoke`。
+- 更新 claudecode README、DEV_PROGRESS、HANDOFF 和分层进度。
+
+### 验证结果
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run claudecode:sdk-smoke`：通过 dry。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm run claudecode:sdk-smoke`：通过 dry。
+- 远端 NixOS `CARVIS_CLAUDECODE_SDK_REAL_SMOKE=1 ... npm run claudecode:sdk-smoke`：通过 real。
+- 远端 NixOS `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=1 ... npm run mvp:real-smoke`：通过 real。
+- 远端 NixOS Electron 复核：`Carvis` 窗口 `1280x720+0+0`。
+- 远端 NixOS 屏幕休眠复核：screen saver timeout `0`，DPMS disabled。
+
+### 结论
+
+- NixOS 上真实 Electron 已全屏。
+- Claude Code 可通过 Agent SDK 预热子进程，任务到达时直接提交 prompt。
+- SDK warm handle 不是无限多轮复用接口；每次 query 后需要重新 warm 下一轮。
+
 ## 2026-07-02 / Electron BrowserWindow adapter / 本地施工
 
 ### 本轮计划回放
