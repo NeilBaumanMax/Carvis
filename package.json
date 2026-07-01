@@ -20,6 +20,7 @@
     "electron:smoke": "npm run build && node dist/electron/smoke.js",
     "electron:ui-smoke": "npm run build && node dist/electron/uiSmoke.js",
     "electron:browser-smoke": "npm run build && node dist/electron/browserSmoke.js",
+    "electron:visual-smoke": "npm run build && node dist/electron/runBrowserVisualSmoke.js",
     "agentruntime:smoke": "npm run build && node dist/agentruntime/smoke.js",
     "pidagent:smoke": "npm run build && node dist/agentruntime/pidagent/smoke.js",
     "runtime-pidagent:smoke": "npm run build && node dist/smoke/runtimePidAgent.js",

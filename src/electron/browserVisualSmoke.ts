@@ -1,0 +1,158 @@
+import { mkdir, stat, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { createMessageBus, type MessageBus } from "../messagebus/index.js";
+import type { AgentRole } from "../shared/types/agent.js";
+import type {
+  AgentLifecyclePayload,
+  AgentOutputPayload,
+  OutputReadyPayload,
+  RuntimeHeartbeatPayload,
+} from "../shared/types/events.js";
+import { createElectronShell } from "./shell.js";
+import { createElectronBrowserWindow, type ElectronBrowserModule } from "./browserWindow.js";
+
+console.log("[electron:visual-smoke] boot");
+
+interface ElectronVisualRuntime extends ElectronBrowserModule {
+  app: {
+    disableHardwareAcceleration(): void;
+    whenReady(): Promise<void>;
+    quit(): void;
+  };
+}
+
+interface CapturableBrowserWindow {
+  webContents: {
+    capturePage(): Promise<{
+      toPNG(): Buffer;
+    }>;
+  };
+  close(): void;
+}
+
+const require = createRequire(import.meta.url);
+const electron = require("electron") as ElectronVisualRuntime;
+const outputDir = process.env.CARVIS_ELECTRON_VISUAL_SMOKE_DIR ?? join(tmpdir(), "carvis-electron-visual-smoke");
+const roles: AgentRole[] = ["manager", "writer", "artist", "researcher", "engineer"];
+
+electron.app.disableHardwareAcceleration();
+setTimeout(() => {
+  console.error("[electron:visual-smoke] timed out");
+  electron.app.quit();
+  process.exit(1);
+}, Number(process.env.CARVIS_ELECTRON_VISUAL_SMOKE_TIMEOUT_MS ?? 15_000)).unref();
+
+console.log("[electron:visual-smoke] waiting for app ready");
+void electron.app.whenReady().then(runVisualSmoke).catch((error: unknown) => {
+  console.error(error);
+  electron.app.quit();
+  process.exit(1);
+});
+
+async function seedShellState(bus: MessageBus): Promise<void> {
+  await bus.publish<RuntimeHeartbeatPayload>({
+    type: "runtime.heartbeat",
+    source: "agentruntime",
+    target: "electron",
+    runId: "run-electron-visual-smoke",
+    payload: {
+      activePidCount: 2,
+      idlePidCount: 0,
+      retainedPidCount: 3,
+      queueDepth: 0,
+    },
+  });
+
+  for (const [index, role] of roles.entries()) {
+    await bus.publish<AgentLifecyclePayload>({
+      type: "agent.ready",
+      source: "agentruntime",
+      target: "electron",
+      runId: "run-electron-visual-smoke",
+      agentId: role,
+      payload: {
+        role,
+        status: index === roles.length - 1 ? "working" : "retained",
+        pid: 50_000 + index,
+        workplacePath: `workplaces/${role}`,
+      },
+    });
+    await bus.publish<AgentOutputPayload>({
+      type: "agent.output",
+      source: "agentruntime",
+      target: "electron",
+      runId: "run-electron-visual-smoke",
+      agentId: role,
+      payload: {
+        stream: "stdout",
+        text: `${role} visual smoke output ready for screenshot validation`,
+      },
+    });
+  }
+
+  await bus.publish<OutputReadyPayload>({
+    type: "output.ready",
+    source: "agentruntime",
+    target: "electron",
+    runId: "run-electron-visual-smoke",
+    payload: {
+      outputPath: "output/final-report.md",
+      manifestPath: "output/manifest.json",
+    },
+  });
+}
+
+async function runVisualSmoke(): Promise<void> {
+  console.log("[electron:visual-smoke] app ready");
+  await mkdir(outputDir, { recursive: true });
+
+  const bus = createMessageBus();
+  const shell = createElectronShell(bus);
+
+  try {
+    await seedShellState(bus);
+    console.log("[electron:visual-smoke] shell state seeded");
+
+    const result = await createElectronBrowserWindow({
+      electron,
+      outputDir,
+      state: shell.getState(),
+      show: true,
+    });
+    const window = result.window as unknown as CapturableBrowserWindow;
+
+    console.log("[electron:visual-smoke] window loaded");
+    await delay(1_000);
+    const image = await window.webContents.capturePage();
+    const png = image.toPNG();
+    const pngPath = join(outputDir, "carvis-electron-visual-smoke.png");
+
+    await writeFile(pngPath, png);
+    console.log("[electron:visual-smoke] screenshot captured");
+    const pngStat = await stat(pngPath);
+
+    assert(result.htmlPath.endsWith("electron-shell.html"), "visual smoke should load renderer HTML");
+    assert(pngStat.size > 10_000, `screenshot should be non-empty, got ${pngStat.size} bytes`);
+
+    window.close();
+    console.log(`[electron:visual-smoke] ok ${pngPath}`);
+  } finally {
+    shell.dispose();
+    electron.app.quit();
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function assert(condition: boolean, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
+}

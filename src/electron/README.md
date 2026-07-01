@@ -35,3 +35,11 @@ Current Phase 3 scope includes a TypeScript shell state model and a static HTML 
 - the command input and submit button are present;
 - output links and recent events are visible;
 - responsive CSS rules for narrow screens are present.
+
+`npm run electron:browser-smoke` verifies the BrowserWindow adapter without requiring the Electron runtime.
+
+`npm run electron:visual-smoke` requires an Electron runtime on PATH. On NixOS it can run with:
+
+```text
+nix --extra-experimental-features "nix-command flakes" shell nixpkgs#electron --command npm run electron:visual-smoke
+```

@@ -13,8 +13,9 @@
 - 新增 `src/electron/browserWindow.ts`。
 - 新增 `src/electron/browserMain.ts`，用于真实 Electron runtime 创建窗口。
 - 新增 `src/electron/browserSmoke.ts`。
+- 新增 `src/electron/browserVisualSmoke.ts` 和 `src/electron/runBrowserVisualSmoke.ts`，用于真实 Electron runtime 截图验收。
 - `src/electron/index.ts` 导出 BrowserWindow 适配 API。
-- `package.json` 新增 `electron:browser-smoke`，并纳入 `npm test`。
+- `package.json` 新增 `electron:browser-smoke` 和 `electron:visual-smoke`；默认 `npm test` 纳入 browser smoke，visual smoke 需要外部 Electron runtime。
 
 ### 验证结果
 
@@ -24,12 +25,14 @@
 - 本地 `npm run electron:browser-smoke`：通过。
 - 本地 `npm test`：通过。
 - 远端 NixOS `npm test`：通过。
+- 远端 NixOS `nixpkgs#electron` runtime：可用，版本 `v41.7.2`。
+- 远端 NixOS `npm run electron:visual-smoke` 经 `nix shell nixpkgs#electron`：通过，生成 70KB PNG 截图 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`。
 - 远端 NixOS 真实 `mvp:real-smoke`：通过。
 
 ### 测试指标判断
 
 - Phase 3 Electron 验收新增覆盖：真实 `BrowserWindow` 构造参数、sandbox webPreferences、加载 renderer HTML。
-- 仍未完成真实 Electron 二进制启动截图验收，因为项目尚未引入 Electron runtime 依赖。
+- 真实 Electron 二进制启动和截图验收已用 NixOS `nixpkgs#electron` 覆盖。
 
 ### GitHub 状态
 
@@ -39,8 +42,8 @@
 
 ### 下一步
 
-- 决定是否把 `electron` npm 包纳入项目依赖，或继续由 NixOS 系统层提供 Electron runtime。
-- 做真实窗口截图验收。
+- 决定是否把 `electron` npm 包纳入项目依赖，或正式固定 NixOS `nixpkgs#electron` runtime。
+- 继续验证 Claude Code CLI 长驻交互能力。
 
 ## 2026-07-02 / Runtime PID Agent integration / 本地施工
 

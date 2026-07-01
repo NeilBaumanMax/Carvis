@@ -7,6 +7,8 @@
 - 新增 `src/electron/browserWindow.ts`，把 renderer HTML snapshot 加载进 Electron `BrowserWindow`。
 - 新增 `src/electron/browserMain.ts`，供真实 Electron runtime 启动窗口。
 - 新增 `electron:browser-smoke`，验证 BrowserWindow 参数、sandbox webPreferences、`loadFile()` 和 `ready-to-show` 显示路径。
+- 新增 `electron:visual-smoke`，需要外部 Electron runtime，验证真实 X11 窗口截图。
+- NixOS 上使用 `nixpkgs#electron` 运行真实视觉 smoke，Electron 版本 `v41.7.2`。
 - `npm test` 已包含 `electron:browser-smoke`。
 
 ### 测试基线
@@ -14,12 +16,13 @@
 - 本地 `npm run electron:browser-smoke`：通过。
 - 本地 `npm test`：通过。
 - 远端 NixOS `npm test`：通过。
+- 远端 NixOS `electron:visual-smoke` with `nixpkgs#electron`：通过，生成 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`。
 - 远端 NixOS `mvp:real-smoke`：通过。
 
 ### 剩余风险
 
-- 项目尚未引入 Electron runtime 依赖；真实窗口入口需要外部 Electron runtime 执行。
-- 尚未完成截图级视觉验收。
+- 项目尚未引入 Electron npm runtime 依赖；真实窗口入口当前依赖 NixOS `nixpkgs#electron`。
+- systemd 仍运行 Node shell 入口，尚未切换到真实 Electron window 入口。
 
 ## 2026-07-01 / Phase 3 / 开工计划
 

@@ -66,6 +66,8 @@
 
 - Electron 层已有 `createElectronBrowserWindow()`，可把 renderer HTML snapshot 加载进真实 Electron `BrowserWindow`。
 - `browserMain.ts` 是真实 Electron runtime 入口；当前 systemd 仍运行 Node shell 入口 `electron/main.ts`。
+- NixOS 可用 `nixpkgs#electron` runtime，版本 `v41.7.2`。
+- 真实 X11 窗口截图验收已通过，截图保存在远端 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`。
 - 本地和远端 NixOS `npm test` 均通过，远端真实 `mvp:real-smoke` 也通过。
 
 ### 本轮完成
@@ -73,18 +75,19 @@
 - 新增 `src/electron/browserWindow.ts`。
 - 新增 `src/electron/browserMain.ts`。
 - 新增 `src/electron/browserSmoke.ts`。
+- 新增 `src/electron/browserVisualSmoke.ts`。
+- 新增 `src/electron/runBrowserVisualSmoke.ts`。
 - `npm test` 纳入 `electron:browser-smoke`。
 
 ### 未完成
 
 - 尚未把 Electron npm runtime 加入依赖。
-- 尚未在真实 X11 窗口里做截图级视觉验收。
 - Claude Code CLI 本体尚未证明可长期交互 PID 复用。
 
 ### 下次优先任务
 
-1. 决定 Electron runtime 来源：npm `electron` 依赖，或 NixOS system package。
-2. 在 NixOS X11 会话中启动 `browserMain.ts` 并做截图/窗口存在性验收。
+1. 决定是否把 NixOS `nixpkgs#electron` 固定为正式 runtime 来源，或改为 npm `electron` 依赖。
+2. 将真实 Electron window 入口纳入 systemd/service 启动策略。
 3. 继续验证 Claude Code CLI 长驻交互能力。
 
 ### 关键文件
@@ -92,6 +95,8 @@
 - `src/electron/browserWindow.ts`
 - `src/electron/browserMain.ts`
 - `src/electron/browserSmoke.ts`
+- `src/electron/browserVisualSmoke.ts`
+- `src/electron/runBrowserVisualSmoke.ts`
 - `src/electron/renderer.ts`
 - `package.json`
 
@@ -99,6 +104,7 @@
 
 - 本地 `npm test`：通过。
 - 远端 NixOS `npm test`：通过。
+- 远端 NixOS `electron:visual-smoke` with `nixpkgs#electron`：通过。
 - 远端 NixOS 真实 `mvp:real-smoke`：通过。
 
 ### GitHub 状态

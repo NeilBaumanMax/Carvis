@@ -23,8 +23,9 @@ const bus = createRemoteMessageBus({
 const shell = createElectronShell(bus);
 let openWindowCount = 0;
 
-await electron.app.whenReady();
-await openWindow();
+void electron.app.whenReady().then(async () => {
+  await openWindow();
+});
 
 electron.app.on("activate", () => {
   if (openWindowCount === 0) {

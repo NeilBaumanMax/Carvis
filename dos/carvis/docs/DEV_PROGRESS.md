@@ -9,6 +9,8 @@
 - 新增 `src/electron/browserWindow.ts`，把现有 HTML renderer snapshot 挂载到 Electron `BrowserWindow`。
 - 新增 `src/electron/browserMain.ts`，供真实 Electron runtime 启动窗口时使用；现有 NixOS systemd `electron/main.ts` 入口保持不变。
 - 新增 `electron:browser-smoke`，使用 fake Electron module 验证 `BrowserWindow` 参数、sandbox/webPreferences、`loadFile()` 和 `ready-to-show` 后显示窗口。
+- 新增 `electron:visual-smoke`，通过外部 Electron runtime 创建真实窗口并捕获 PNG 截图。
+- NixOS 上使用 `nixpkgs#electron`，确认 Electron runtime 版本 `v41.7.2`。
 - `npm test` 已纳入 `electron:browser-smoke`。
 
 ### 当前验证
@@ -19,12 +21,13 @@
 - 本地 `npm run electron:browser-smoke`：通过
 - 本地 `npm test`：通过
 - 远端 NixOS `npm test`：通过
+- 远端 NixOS `nix shell nixpkgs#electron --command npm run electron:visual-smoke`：通过，生成 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`
 - 远端 NixOS 真实 `mvp:real-smoke`：通过
 
 ### 当前未完成
 
-- 项目仍未把 `electron` npm 包作为依赖安装；真实窗口入口需要由外部 Electron runtime 或后续依赖安装来执行。
-- 尚未做真实截图级视觉验收。
+- 项目仍未把 `electron` npm 包作为依赖安装；真实窗口入口当前由 NixOS `nixpkgs#electron` 提供。
+- Claude Code CLI 本体仍未证明可长期交互 PID 复用。
 
 ## 2026-07-02 / Runtime 接入长驻 PID Agent 池
 
