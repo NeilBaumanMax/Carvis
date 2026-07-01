@@ -13,6 +13,8 @@ import type {
 } from "../shared/types/events.js";
 import { createElectronShell } from "./shell.js";
 import { createElectronBrowserWindow, type ElectronBrowserModule } from "./browserWindow.js";
+import { writeElectronRendererPreload } from "./renderer.js";
+import type { ElectronShellState } from "./types.js";
 
 console.log("[electron:visual-smoke] boot");
 
@@ -22,10 +24,17 @@ interface ElectronVisualRuntime extends ElectronBrowserModule {
     whenReady(): Promise<void>;
     quit(): void;
   };
+  ipcMain: {
+    handle(channel: "carvis:get-state", listener: () => ElectronShellState): void;
+    handle(channel: "carvis:submit-command", listener: (_event: unknown, commandText: string) => Promise<void>): void;
+    handle(channel: "carvis:open-output", listener: (_event: unknown, outputPath: string) => Promise<string>): void;
+  };
 }
 
 interface CapturableBrowserWindow {
   webContents: {
+    send(channel: string, state: ElectronShellState): void;
+    executeJavaScript(script: string): Promise<unknown>;
     capturePage(): Promise<{
       toPNG(): Buffer;
       getSize(): { width: number; height: number };
@@ -114,21 +123,76 @@ async function runVisualSmoke(): Promise<void> {
 
   const bus = createMessageBus();
   const shell = createElectronShell(bus);
+  let liveWindow: CapturableBrowserWindow | undefined;
+  const openedOutputs: string[] = [];
+
+  electron.ipcMain.handle("carvis:get-state", () => shell.getState());
+  electron.ipcMain.handle("carvis:submit-command", async (_event, commandText) => {
+    await shell.submitCommand(commandText);
+  });
+  electron.ipcMain.handle("carvis:open-output", async (_event, outputPath) => {
+    openedOutputs.push(outputPath);
+    return "";
+  });
+  shell.onStateChanged((state) => {
+    liveWindow?.webContents.send("carvis:state", state);
+  });
 
   try {
     await seedShellState(bus);
     console.log("[electron:visual-smoke] shell state seeded");
+    const preload = await writeElectronRendererPreload(outputDir);
 
     const result = await createElectronBrowserWindow({
       electron,
       outputDir,
       state: shell.getState(),
       show: true,
+      preloadPath: preload.preloadPath,
     });
     const window = result.window as unknown as CapturableBrowserWindow;
+    liveWindow = window;
 
     console.log("[electron:visual-smoke] window loaded");
     await delay(1_000);
+    const submitted = await window.webContents.executeJavaScript(`(async () => {
+      const input = document.querySelector("input[name='command']");
+      const form = document.querySelector("[data-command-form]");
+      input.value = "visual smoke live submit";
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return input.value;
+    })()`);
+
+    assert(submitted === "", "visual smoke submit should clear command input");
+    assert(
+      shell.getState().submittedCommands.includes("visual smoke live submit"),
+      "visual smoke submit should reach Electron shell",
+    );
+
+    await bus.publish<AgentOutputPayload>({
+      type: "agent.output",
+      source: "agentruntime",
+      target: "electron",
+      runId: "run-electron-visual-smoke",
+      agentId: "manager",
+      payload: {
+        stream: "stdout",
+        text: "manager live renderer update ok",
+      },
+    });
+    await delay(300);
+    const managerText = await window.webContents.executeJavaScript(
+      `document.querySelector("[data-role='manager'] .latest")?.textContent`,
+    );
+
+    assert(managerText === "manager live renderer update ok", "visual smoke should live-update role output");
+    await window.webContents.executeJavaScript(
+      `document.querySelector("[data-output-open]")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))`,
+    );
+    await delay(300);
+    assert(openedOutputs.includes("output/final-report.md"), "visual smoke should request output open");
+
     const image = await window.webContents.capturePage();
     const png = image.toPNG();
     const imageSize = image.getSize();

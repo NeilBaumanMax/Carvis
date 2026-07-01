@@ -7,6 +7,10 @@ export interface ElectronRendererSnapshot {
   htmlPath: string;
 }
 
+export interface ElectronRendererPreload {
+  preloadPath: string;
+}
+
 export async function writeElectronRendererSnapshot(
   outputDir: string,
   state: ElectronShellState,
@@ -18,6 +22,34 @@ export async function writeElectronRendererSnapshot(
 
   return {
     htmlPath,
+  };
+}
+
+export async function writeElectronRendererPreload(outputDir: string): Promise<ElectronRendererPreload> {
+  await mkdir(outputDir, { recursive: true });
+  const preloadPath = join(outputDir, "electron-preload.cjs");
+
+  await writeFile(
+    preloadPath,
+    `"use strict";
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("carvis", {
+  getState: () => ipcRenderer.invoke("carvis:get-state"),
+  submitCommand: (commandText) => ipcRenderer.invoke("carvis:submit-command", commandText),
+  openOutput: (outputPath) => ipcRenderer.invoke("carvis:open-output", outputPath),
+  onState: (listener) => {
+    const wrapped = (_event, state) => listener(state);
+    ipcRenderer.on("carvis:state", wrapped);
+    return () => ipcRenderer.off("carvis:state", wrapped);
+  },
+});
+`,
+    "utf8",
+  );
+
+  return {
+    preloadPath,
   };
 }
 
@@ -112,6 +144,9 @@ export function renderElectronHtml(state: ElectronShellState): string {
       font-size: 12px;
       line-height: 1.2;
       white-space: nowrap;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
     }
 
     .workspace {
@@ -288,7 +323,129 @@ export function renderElectronHtml(state: ElectronShellState): string {
   </style>
 </head>
 <body>
-  <div class="app" data-carvis-shell>
+  <div id="carvis-root">${renderElectronApp(state)}</div>
+  <script>
+    window.__CARVIS_INITIAL_STATE__ = ${JSON.stringify(state)};
+  </script>
+  <script>
+    const root = document.getElementById("carvis-root");
+    let currentState = window.__CARVIS_INITIAL_STATE__;
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function renderPanel(panel) {
+      return \`<article class="panel" data-role="\${escapeHtml(panel.role)}">
+  <div class="panel-header">
+    <div class="role">\${escapeHtml(panel.title)}</div>
+    <div class="status status-\${escapeHtml(panel.status)}">\${escapeHtml(panel.status)}</div>
+  </div>
+  <div class="meta">
+    <div>pid \${panel.pid ?? "none"}</div>
+    <div>\${escapeHtml(panel.workplacePath)}</div>
+    <div>\${escapeHtml(panel.lastHeartbeatAt ?? "no heartbeat")}</div>
+  </div>
+  <div class="latest">\${escapeHtml(panel.latestOutput ?? "waiting")}</div>
+</article>\`;
+    }
+
+    function renderApp(state) {
+      const outputHtml = state.outputs.length === 0
+        ? '<span class="event">none</span>'
+        : state.outputs
+          .map((output) => \`<button class="output-link" type="button" data-output-open="\${escapeHtml(output.outputPath)}">\${escapeHtml(output.outputPath)}</button>\`)
+          .join("\\n");
+      const eventHtml = state.recentEvents.length === 0
+        ? '<span class="event">idle</span>'
+        : state.recentEvents
+          .map((event) => \`<span class="event">\${escapeHtml(event)}</span>\`)
+          .join("\\n");
+
+      return \`<div class="app" data-carvis-shell>
+    <header class="topbar">
+      <div class="brand"><span class="mark" aria-hidden="true"></span><span>Carvis</span></div>
+      <div class="stats">
+        <span class="stat">active \${state.runtime.activePidCount}</span>
+        <span class="stat">idle \${state.runtime.idlePidCount}</span>
+        <span class="stat">retained \${state.runtime.retainedPidCount}</span>
+        <span class="stat">queue \${state.runtime.queueDepth}</span>
+      </div>
+    </header>
+    <main>
+      <section class="workspace" aria-label="workplaces">
+        \${state.panels.map(renderPanel).join("\\n")}
+      </section>
+      <section class="side">
+        <aside class="rail">
+          <h2>Output</h2>
+          <div class="stack">\${outputHtml}</div>
+        </aside>
+        <aside class="rail">
+          <h2>Events</h2>
+          <div class="stack">\${eventHtml}</div>
+        </aside>
+      </section>
+    </main>
+    <footer class="commandbar">
+      <form class="command-form" data-command-form>
+        <input class="command-input" name="command" autocomplete="off" value="" aria-label="Command">
+        <button class="command-button" type="submit">Run</button>
+      </form>
+    </footer>
+  </div>\`;
+    }
+
+    function bindForm() {
+      const form = document.querySelector("[data-command-form]");
+      const input = form?.querySelector("input[name='command']");
+
+      form?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const commandText = input?.value ?? "";
+
+        if (commandText.trim().length === 0) {
+          return;
+        }
+
+        await window.carvis?.submitCommand(commandText);
+        if (input) {
+          input.value = "";
+          input.focus();
+        }
+      });
+    }
+
+    function bindOutputLinks() {
+      for (const control of document.querySelectorAll("[data-output-open]")) {
+        control.addEventListener("click", async () => {
+          await window.carvis?.openOutput(control.getAttribute("data-output-open") ?? "");
+        });
+      }
+    }
+
+    function render(state) {
+      currentState = state;
+      root.innerHTML = renderApp(currentState);
+      bindForm();
+      bindOutputLinks();
+    }
+
+    bindForm();
+    bindOutputLinks();
+    window.carvis?.onState((state) => render(state));
+    window.carvis?.getState().then((state) => render(state));
+  </script>
+</body>
+</html>`;
+}
+
+function renderElectronApp(state: ElectronShellState): string {
+  return `<div class="app" data-carvis-shell>
     <header class="topbar">
       <div class="brand"><span class="mark" aria-hidden="true"></span><span>Carvis</span></div>
       <div class="stats">
@@ -312,7 +469,7 @@ export function renderElectronHtml(state: ElectronShellState): string {
                 : state.outputs
                     .map(
                       (output) =>
-                        `<a class="output-link" href="${escapeAttribute(output.outputPath)}">${escapeHtml(output.outputPath)}</a>`,
+                        `<button class="output-link" type="button" data-output-open="${escapeAttribute(output.outputPath)}">${escapeHtml(output.outputPath)}</button>`,
                     )
                     .join("\n            ")
             }
@@ -338,9 +495,7 @@ export function renderElectronHtml(state: ElectronShellState): string {
         <button class="command-button" type="submit">Run</button>
       </form>
     </footer>
-  </div>
-</body>
-</html>`;
+  </div>`;
 }
 
 function renderPanel(panel: ElectronWorkplacePanel): string {

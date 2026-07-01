@@ -1,5 +1,39 @@
 # Carvis Construction Log
 
+## 2026-07-02 / Electron live renderer IPC
+
+### 目标
+
+- 补齐主施工文档中的真实窗口输入提交能力。
+- 让 BrowserWindow renderer 不再只是静态 snapshot，而是能接收状态并提交命令。
+
+### 实际修改
+
+- `ElectronShell` 增加 `onStateChanged()`。
+- `browserMain.ts` 注册 `carvis:get-state`、`carvis:submit-command`，并把 shell state 推送给 renderer。
+- `browserWindow.ts` 支持 preload path。
+- `renderer.ts` 写入 `electron-preload.cjs`，HTML 内置 live render 脚本。
+- Output 入口通过 IPC 调用主进程 open path。
+- `electron:browser-smoke` 增加 preload/live API 断言。
+- `electron:visual-smoke` 增加真实窗口 submit、DOM live update 和 output open 断言。
+
+### 验证结果
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run electron:browser-smoke`：通过。
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `electron:visual-smoke`：通过，截图 `1280x720`，并覆盖 live submit/live update/output open。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke` with `CARVIS_REAL_MVP_USE_SDK=1`：通过。
+- 远端 NixOS `carvis-electron.service` 重启后 active，窗口 `1280x720+0+0`。
+
+### 结论
+
+- 真实 Electron BrowserWindow 已支持窗口内输入提交和状态实时刷新。
+- Output 入口已通过主进程 IPC 打开路径。
+- Electron 仍通过 messagebus 间接提交命令，未破坏层边界。
+
 ## 2026-07-02 / Claude Agent SDK warm runner + NixOS 复验
 
 ### 目标

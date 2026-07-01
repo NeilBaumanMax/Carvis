@@ -60,6 +60,51 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / Electron live renderer IPC / 接力记录
+
+### 当前状态
+
+- Electron BrowserWindow 已支持 live renderer。
+- Renderer 通过 preload IPC 调用 `getState`、`submitCommand`、`onState`。
+- Renderer 通过 `openOutput` IPC 请求主进程打开 output 路径。
+- 真实 NixOS Electron visual smoke 已验证窗口内 submit、DOM 实时更新和 output open 请求。
+- NixOS `carvis-electron.service` 已重启并保持全屏：`1280x720+0+0`。
+- 远端 NixOS `npm test` 和 SDK real MVP smoke 均通过。
+
+### 本轮完成
+
+- `src/electron/renderer.ts` 生成 preload 和 live render 脚本。
+- `src/electron/browserMain.ts` 注册 IPC handler 并推送 shell state。
+- `src/electron/shell.ts` 增加 state change subscription。
+- `src/electron/browserVisualSmoke.ts` 增强真实窗口交互断言。
+
+### 未完成
+
+- 本段无阻塞项。
+
+### 下次优先任务
+
+1. 把 NixOS systemd 健康检查脚本化，统一检查服务、窗口、DPMS、real smoke。
+2. 后续可把 output 打开失败信息回显到 renderer。
+
+### 测试基线
+
+- 本地 `npm test`：通过。
+- 远端 NixOS `electron:visual-smoke`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `mvp:real-smoke` with `CARVIS_REAL_MVP_USE_SDK=1`：通过。
+- 远端 NixOS Electron systemd 全屏复核：通过。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 本轮提交：待收尾提交。
+- push 状态：待 push。
+
+### 风险提醒
+
+- 不要把 DeepSeek API key 写入仓库。
+
 ## 2026-07-02 / Claude Agent SDK warm runner + fullscreen Electron / 接力记录
 
 ### 当前状态
@@ -84,7 +129,6 @@
 ### 未完成
 
 - SDK `WarmQuery` 每个 handle 只能 query 一次；当前策略是任务后重新预热下一轮，不是同一 PID 无限多轮复用。
-- Electron renderer 仍是 snapshot 文件，未实现实时 DOM 更新和真实输入提交。
 
 ### 下次优先任务
 

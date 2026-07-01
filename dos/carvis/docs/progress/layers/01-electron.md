@@ -1,5 +1,29 @@
 # 01 Electron Progress
 
+## 2026-07-02 / Live renderer IPC / 本次完成
+
+### 本次完成
+
+- BrowserWindow renderer 增加 preload IPC 桥，提供 `getState`、`submitCommand`、`onState`。
+- `browserMain.ts` 负责 IPC handler 和 state push；renderer 不直接连接 messagebus，也不直接调用 agentruntime。
+- Renderer 页面可在真实 Electron 窗口内提交命令，并在 shell state 变化时重绘五角色面板、runtime stats、output、events。
+- Output 入口通过 IPC 调用主进程 open path。
+- `electron:visual-smoke` 已覆盖真实窗口内 submit、live DOM update 和 output open 请求。
+- NixOS systemd `carvis-electron.service` 重启后仍为全屏。
+
+### 测试基线
+
+- 本地 `npm run electron:browser-smoke`：通过。
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `electron:visual-smoke` with `nixpkgs#electron`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS `carvis-electron.service` 重启后全屏验收：通过。
+
+### 剩余风险
+
+- 本层当前 MVP 阶段无阻塞风险。
+
 ## 2026-07-02 / NixOS fullscreen 复验 / 本次完成
 
 ### 本次完成
@@ -15,7 +39,7 @@
 
 ### 剩余风险
 
-- renderer 仍是 snapshot 文件，后续要接实时状态更新和输入提交。
+- 已在后续 Live renderer IPC 记录中补齐实时状态更新和输入提交。
 
 ## 2026-07-02 / BrowserWindow 适配 / 本次完成
 

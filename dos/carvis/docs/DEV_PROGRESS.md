@@ -2,6 +2,33 @@
 
 ## 2026-07-02
 
+## 2026-07-02 / Electron live renderer IPC
+
+### 本次完成
+
+- Electron BrowserWindow renderer 从静态 snapshot 升级为 live renderer。
+- 新增 preload 脚本：renderer 通过 `window.carvis.getState()`、`submitCommand()`、`onState()` 与 Electron 主进程通信。
+- `browserMain.ts` 注册 `carvis:get-state` 和 `carvis:submit-command`，仍由 Electron shell 通过 messagebus 提交命令，不绕过 agentruntime。
+- `ElectronShell` 新增状态变更订阅，runtime heartbeat、agent lifecycle、agent output、output ready、command submitted 都会推送最新 state 给 renderer。
+- Output 入口增加 `openOutput()` IPC，renderer 点击 output 按钮后由 Electron 主进程打开路径。
+- `electron:visual-smoke` 增强：真实 Electron 窗口内执行表单 submit，并断言 shell 收到命令；再发布 agent output 并断言 DOM 实时更新；点击 output 入口并断言主进程收到 open 请求。
+- 远端 NixOS 重启 `carvis-electron.service` 后，真实 Carvis 窗口仍保持 `1280x720+0+0` 全屏。
+
+### 当前验证
+
+- 本地 `npm run build`：通过
+- 本地 `npm run electron:browser-smoke`：通过
+- 本地 `npm run electron:ui-smoke`：通过
+- 本地 `npm test`：通过
+- 远端 NixOS `electron:visual-smoke` with `nixpkgs#electron`：通过，包含 live submit、live DOM update、output open
+- 远端 NixOS `npm test`：通过
+- 远端 NixOS `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=1 ... npm run mvp:real-smoke`：通过 real
+- 远端 NixOS `carvis-electron.service` 重启后窗口：`1280x720+0+0`
+
+### 当前未完成
+
+- 本段无阻塞项。
+
 ## 2026-07-02 / Claude Agent SDK warm runner + NixOS fullscreen 复验
 
 ### 本次完成
@@ -26,7 +53,6 @@
 ### 当前未完成
 
 - SDK warm handle 不是一个 PID 无限多任务接口；每次 query 结束后需要重新 warm 下一轮。
-- Electron renderer 当前仍是静态 snapshot 文件，尚未做实时 DOM 状态更新和输入提交。
 
 ## 2026-07-02 / Electron BrowserWindow 适配
 

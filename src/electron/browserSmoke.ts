@@ -67,6 +67,7 @@ try {
     electron,
     outputDir: smokeRoot,
     state: shell.getState(),
+    preloadPath: join(smokeRoot, "preload.cjs"),
   });
   const html = await readFile(result.htmlPath, "utf8");
 
@@ -80,12 +81,18 @@ try {
   assert(calls.options?.webPreferences.contextIsolation === true, "contextIsolation should be enabled");
   assert(calls.options?.webPreferences.nodeIntegration === false, "nodeIntegration should be disabled");
   assert(calls.options?.webPreferences.sandbox === true, "sandbox should be enabled");
+  assert(
+    calls.options?.webPreferences.preload?.endsWith("preload.cjs") === true,
+    "BrowserWindow should receive preload path",
+  );
   assert(calls.loadedFile === result.htmlPath, "BrowserWindow should load rendered HTML file");
   assert(calls.shown, "BrowserWindow should show after ready-to-show");
   assert(calls.fullscreen, "BrowserWindow should be set fullscreen before show");
   assert(calls.kiosk, "BrowserWindow should be set kiosk before show");
   assert(html.includes("data-carvis-shell"), "loaded HTML should contain Carvis shell");
   assert(html.includes("data-role=\"manager\""), "loaded HTML should render role panels");
+  assert(html.includes("window.carvis?.submitCommand"), "loaded HTML should submit commands through preload API");
+  assert(html.includes("window.carvis?.onState"), "loaded HTML should subscribe to live state");
 
   console.log("[electron:browser-smoke] ok");
 } finally {

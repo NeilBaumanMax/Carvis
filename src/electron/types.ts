@@ -37,3 +37,7 @@ export interface ElectronShellState {
 export interface ElectronSubmitCommandOptions {
   requestId?: string;
 }
+
+export interface ElectronShellStateSubscription {
+  unsubscribe(): void;
+}

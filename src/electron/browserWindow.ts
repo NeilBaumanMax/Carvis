@@ -20,12 +20,17 @@ export interface ElectronBrowserWindowConstructorOptions {
     contextIsolation: boolean;
     nodeIntegration: boolean;
     sandbox: boolean;
+    preload?: string;
   };
 }
 
 export interface ElectronBrowserWindow {
+  webContents?: {
+    send(channel: string, ...args: unknown[]): void;
+  };
   loadFile(path: string): Promise<void> | void;
   once(eventName: "ready-to-show", listener: () => void): void;
+  on?(eventName: "closed", listener: () => void): void;
   show(): void;
   isFullScreen?(): boolean;
   setFullScreen?(fullscreen: boolean): void;
@@ -42,6 +47,7 @@ export interface CreateElectronBrowserWindowOptions {
   fullscreen?: boolean;
   kiosk?: boolean;
   show?: boolean;
+  preloadPath?: string;
 }
 
 export interface ElectronBrowserWindowResult {
@@ -70,6 +76,7 @@ export async function createElectronBrowserWindow(
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: options.preloadPath,
     },
   });
 

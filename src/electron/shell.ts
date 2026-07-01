@@ -11,6 +11,7 @@ import type {
   ElectronOutputEntry,
   ElectronRuntimeDisplayState,
   ElectronShellState,
+  ElectronShellStateSubscription,
   ElectronSubmitCommandOptions,
   ElectronWorkplacePanel,
 } from "./types.js";
@@ -19,6 +20,7 @@ const PANEL_ROLES: AgentRole[] = ["manager", "writer", "artist", "researcher", "
 
 export class ElectronShell {
   private readonly subscriptions: MessageBusSubscription[] = [];
+  private readonly stateHandlers = new Set<(state: ElectronShellState) => void>();
   private readonly state: ElectronShellState;
 
   constructor(private readonly bus: MessageBus) {
@@ -61,10 +63,21 @@ export class ElectronShell {
     return cloneState(this.state);
   }
 
+  onStateChanged(handler: (state: ElectronShellState) => void): ElectronShellStateSubscription {
+    this.stateHandlers.add(handler);
+
+    return {
+      unsubscribe: () => {
+        this.stateHandlers.delete(handler);
+      },
+    };
+  }
+
   dispose(): void {
     for (const subscription of this.subscriptions.splice(0)) {
       subscription.unsubscribe();
     }
+    this.stateHandlers.clear();
   }
 
   private subscribeToRuntimeEvents(): void {
@@ -158,6 +171,15 @@ export class ElectronShell {
   private rememberEvent(eventSummary: string): void {
     this.state.recentEvents.unshift(eventSummary);
     this.state.recentEvents.splice(10);
+    this.emitStateChanged();
+  }
+
+  private emitStateChanged(): void {
+    const state = this.getState();
+
+    for (const handler of this.stateHandlers) {
+      handler(state);
+    }
   }
 }
 

@@ -6,12 +6,22 @@ import { join } from "node:path";
 import { createRemoteMessageBus } from "../messagebus/index.js";
 import { createElectronShell } from "./shell.js";
 import { createElectronBrowserWindow, type ElectronBrowserModule } from "./browserWindow.js";
+import { writeElectronRendererPreload } from "./renderer.js";
+import type { ElectronShellState } from "./types.js";
 
 interface ElectronRuntimeModule extends ElectronBrowserModule {
   app: {
     whenReady(): Promise<void>;
     on(eventName: "window-all-closed" | "activate", listener: () => void): void;
     quit(): void;
+  };
+  ipcMain: {
+    handle(channel: "carvis:get-state", listener: () => ElectronShellState): void;
+    handle(channel: "carvis:submit-command", listener: (_event: unknown, commandText: string) => Promise<void>): void;
+    handle(channel: "carvis:open-output", listener: (_event: unknown, outputPath: string) => Promise<string>): void;
+  };
+  shell: {
+    openPath(path: string): Promise<string>;
   };
 }
 
@@ -21,7 +31,20 @@ const bus = createRemoteMessageBus({
   port: readPort(process.env.CARVIS_MESSAGEBUS_PORT),
 });
 const shell = createElectronShell(bus);
+const rendererTargets = new Set<{ send(channel: string, state: ElectronShellState): void }>();
 let openWindowCount = 0;
+
+electron.ipcMain.handle("carvis:get-state", () => shell.getState());
+electron.ipcMain.handle("carvis:submit-command", async (_event, commandText) => {
+  await shell.submitCommand(commandText);
+});
+electron.ipcMain.handle("carvis:open-output", async (_event, outputPath) => electron.shell.openPath(outputPath));
+
+shell.onStateChanged((state) => {
+  for (const target of rendererTargets) {
+    target.send("carvis:state", state);
+  }
+});
 
 void electron.app.whenReady().then(async () => {
   await delay(readStartDelayMs(process.env.CARVIS_ELECTRON_START_DELAY_MS));
@@ -45,12 +68,24 @@ async function openWindow(): Promise<void> {
   const outputDir =
     process.env.CARVIS_ELECTRON_RENDERER_DIR ??
     (await mkdtemp(join(tmpdir(), "carvis-electron-browser-")));
+  const preload = await writeElectronRendererPreload(outputDir);
 
-  await createElectronBrowserWindow({
+  const result = await createElectronBrowserWindow({
     electron,
     outputDir,
     state: shell.getState(),
+    preloadPath: preload.preloadPath,
   });
+  const target = result.window.webContents;
+
+  if (target !== undefined) {
+    rendererTargets.add(target);
+    target.send("carvis:state", shell.getState());
+    result.window.on?.("closed", () => {
+      rendererTargets.delete(target);
+      openWindowCount = Math.max(0, openWindowCount - 1);
+    });
+  }
 }
 
 function readPort(value: string | undefined): number {
