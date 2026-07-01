@@ -1,5 +1,25 @@
 # 00 Setup Progress
 
+## 2026-07-02 / Electron browser systemd 模式 / 本次完成
+
+### 本次完成
+
+- `loadSetupConfig()` 支持 `CARVIS_ELECTRON_BROWSER=1`。
+- browser 模式下 `carvis-electron.service` 运行 `node dist/electron/runBrowserMain.js`，再由 Node runner 启动 NixOS Electron runtime。
+- 支持 `CARVIS_ELECTRON_BIN` 和 `CARVIS_ELECTRON_START_DELAY_MS` 写入 unit 环境变量。
+- NixOS 远端已安装 browser 模式 user unit，并经重启验证自动恢复。
+
+### 测试基线
+
+- 本地 `npm run setup:systemd-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm test`：通过。
+- 远端 NixOS 重启后 `carvis.target`、`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service` 均 active。
+
+### 剩余风险
+
+- systemd status CLI 仍只检查 unit 文件安装状态，尚未检查 active/enabled。
+
 ## 2026-07-02 / 真实 user systemd 启用 / 本次完成
 
 ### 本次完成

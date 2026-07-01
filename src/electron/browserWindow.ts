@@ -11,6 +11,9 @@ export interface ElectronBrowserWindowConstructorOptions {
   height: number;
   minWidth: number;
   minHeight: number;
+  fullscreen: boolean;
+  kiosk: boolean;
+  autoHideMenuBar: boolean;
   show: boolean;
   backgroundColor: string;
   webPreferences: {
@@ -24,6 +27,9 @@ export interface ElectronBrowserWindow {
   loadFile(path: string): Promise<void> | void;
   once(eventName: "ready-to-show", listener: () => void): void;
   show(): void;
+  isFullScreen?(): boolean;
+  setFullScreen?(fullscreen: boolean): void;
+  setKiosk?(kiosk: boolean): void;
 }
 
 export interface CreateElectronBrowserWindowOptions {
@@ -33,6 +39,8 @@ export interface CreateElectronBrowserWindowOptions {
   title?: string;
   width?: number;
   height?: number;
+  fullscreen?: boolean;
+  kiosk?: boolean;
   show?: boolean;
 }
 
@@ -45,12 +53,17 @@ export async function createElectronBrowserWindow(
   options: CreateElectronBrowserWindowOptions,
 ): Promise<ElectronBrowserWindowResult> {
   const snapshot = await writeElectronRendererSnapshot(options.outputDir, options.state);
+  const fullscreen = options.fullscreen ?? process.env.CARVIS_ELECTRON_FULLSCREEN !== "0";
+  const kiosk = options.kiosk ?? fullscreen;
   const window = new options.electron.BrowserWindow({
     title: options.title ?? "Carvis",
     width: options.width ?? 1280,
     height: options.height ?? 820,
     minWidth: 900,
     minHeight: 620,
+    fullscreen,
+    kiosk,
+    autoHideMenuBar: true,
     show: false,
     backgroundColor: "#f4f6f8",
     webPreferences: {
@@ -60,9 +73,17 @@ export async function createElectronBrowserWindow(
     },
   });
 
+  const applyFullscreen = () => {
+    window.setFullScreen?.(fullscreen);
+    window.setKiosk?.(kiosk);
+  };
+
   if (options.show !== false) {
     window.once("ready-to-show", () => {
+      applyFullscreen();
       window.show();
+      setTimeout(applyFullscreen, 1_500).unref();
+      setTimeout(applyFullscreen, 5_000).unref();
     });
   }
 

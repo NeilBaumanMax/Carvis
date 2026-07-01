@@ -53,6 +53,26 @@ assert(
   "target should require all services and install into default.target",
 );
 
+const browserConfig = loadSetupConfig({
+  CARVIS_ELECTRON_BROWSER: "1",
+  CARVIS_ELECTRON_BIN: "/nix/store/example-electron/bin/electron",
+});
+const browserUnits = createSystemdUserUnits(browserConfig.components, {
+  workingDirectory: "/home/howtion/carvis",
+  nodePath: "/run/current-system/sw/bin/node",
+  messagebusPort: 45931,
+});
+const browserElectron = browserUnits.find((unit) => unit.filename === "carvis-electron.service")?.content ?? "";
+
+assert(
+  browserElectron.includes("ExecStart=/run/current-system/sw/bin/node dist/electron/runBrowserMain.js"),
+  "browser electron unit should use BrowserWindow runner",
+);
+assert(
+  browserElectron.includes("Environment=CARVIS_ELECTRON_BIN=/nix/store/example-electron/bin/electron"),
+  "browser electron unit should include electron binary",
+);
+
 console.log("[setup:systemd-smoke] ok");
 
 function mustUnit(filename: string): string {

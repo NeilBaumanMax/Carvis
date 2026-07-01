@@ -28,8 +28,11 @@ interface CapturableBrowserWindow {
   webContents: {
     capturePage(): Promise<{
       toPNG(): Buffer;
+      getSize(): { width: number; height: number };
     }>;
   };
+  isFullScreen(): boolean;
+  isKiosk(): boolean;
   close(): void;
 }
 
@@ -128,6 +131,7 @@ async function runVisualSmoke(): Promise<void> {
     await delay(1_000);
     const image = await window.webContents.capturePage();
     const png = image.toPNG();
+    const imageSize = image.getSize();
     const pngPath = join(outputDir, "carvis-electron-visual-smoke.png");
 
     await writeFile(pngPath, png);
@@ -135,10 +139,14 @@ async function runVisualSmoke(): Promise<void> {
     const pngStat = await stat(pngPath);
 
     assert(result.htmlPath.endsWith("electron-shell.html"), "visual smoke should load renderer HTML");
+    assert(window.isFullScreen(), "visual smoke window should be fullscreen");
+    assert(window.isKiosk(), "visual smoke window should be kiosk fullscreen");
+    assert(imageSize.width >= 1200, `screenshot width should look fullscreen, got ${imageSize.width}`);
+    assert(imageSize.height >= 700, `screenshot height should look fullscreen, got ${imageSize.height}`);
     assert(pngStat.size > 10_000, `screenshot should be non-empty, got ${pngStat.size} bytes`);
 
     window.close();
-    console.log(`[electron:visual-smoke] ok ${pngPath}`);
+    console.log(`[electron:visual-smoke] ok ${pngPath} ${imageSize.width}x${imageSize.height}`);
   } finally {
     shell.dispose();
     electron.app.quit();

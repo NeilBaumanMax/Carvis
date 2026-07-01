@@ -11,6 +11,8 @@
 - 新增 `electron:browser-smoke`，使用 fake Electron module 验证 `BrowserWindow` 参数、sandbox/webPreferences、`loadFile()` 和 `ready-to-show` 后显示窗口。
 - 新增 `electron:visual-smoke`，通过外部 Electron runtime 创建真实窗口并捕获 PNG 截图。
 - NixOS 上使用 `nixpkgs#electron`，确认 Electron runtime 版本 `v41.7.2`。
+- 按用户要求把 Electron 设置为全屏/kiosk；systemd `carvis-electron.service` 现在运行 `dist/electron/runBrowserMain.js` 并调用 NixOS Electron。
+- 为避免开机时 Plasma/KWin 抢占面板空间，BrowserWindow 会重复应用 fullscreen/kiosk，systemd unit 写入 `CARVIS_ELECTRON_START_DELAY_MS=8000`。
 - `npm test` 已纳入 `electron:browser-smoke`。
 
 ### 当前验证
@@ -22,6 +24,8 @@
 - 本地 `npm test`：通过
 - 远端 NixOS `npm test`：通过
 - 远端 NixOS `nix shell nixpkgs#electron --command npm run electron:visual-smoke`：通过，生成 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`
+- 远端 NixOS 重启后 `carvis-electron.service`：active，窗口 `Carvis` 尺寸 `1280x720+0+0`
+- 远端 NixOS 重启后 WiFi、长亮服务、Carvis 四个 user systemd 服务：均正常
 - 远端 NixOS 真实 `mvp:real-smoke`：通过
 
 ### 当前未完成

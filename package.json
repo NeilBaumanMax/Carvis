@@ -16,6 +16,7 @@
     "messagebus:start": "node dist/messagebus/main.js",
     "agentruntime:start": "node dist/agentruntime/main.js",
     "electron:start": "node dist/electron/main.js",
+    "electron:browser-start": "npm run build && node dist/electron/runBrowserMain.js",
     "messagebus:smoke": "npm run build && node dist/messagebus/smoke.js",
     "electron:smoke": "npm run build && node dist/electron/smoke.js",
     "electron:ui-smoke": "npm run build && node dist/electron/uiSmoke.js",

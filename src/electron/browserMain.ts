@@ -24,6 +24,7 @@ const shell = createElectronShell(bus);
 let openWindowCount = 0;
 
 void electron.app.whenReady().then(async () => {
+  await delay(readStartDelayMs(process.env.CARVIS_ELECTRON_START_DELAY_MS));
   await openWindow();
 });
 
@@ -64,4 +65,24 @@ function readPort(value: string | undefined): number {
   }
 
   return port;
+}
+
+function readStartDelayMs(value: string | undefined): number {
+  if (value === undefined) {
+    return 8_000;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 8_000;
+  }
+
+  return parsed;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }

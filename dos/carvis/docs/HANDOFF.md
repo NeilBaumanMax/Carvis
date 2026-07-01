@@ -68,6 +68,8 @@
 - `browserMain.ts` 是真实 Electron runtime 入口；当前 systemd 仍运行 Node shell 入口 `electron/main.ts`。
 - NixOS 可用 `nixpkgs#electron` runtime，版本 `v41.7.2`。
 - 真实 X11 窗口截图验收已通过，截图保存在远端 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`。
+- `carvis-electron.service` 已切换到真实 Electron BrowserWindow runner：`node dist/electron/runBrowserMain.js`。
+- 重启后 Carvis 窗口自动全屏：X11 root `1280x720`，`Carvis` 窗口 `1280x720+0+0`。
 - 本地和远端 NixOS `npm test` 均通过，远端真实 `mvp:real-smoke` 也通过。
 
 ### 本轮完成
@@ -77,18 +79,20 @@
 - 新增 `src/electron/browserSmoke.ts`。
 - 新增 `src/electron/browserVisualSmoke.ts`。
 - 新增 `src/electron/runBrowserVisualSmoke.ts`。
+- 新增 `src/electron/runBrowserMain.ts`。
+- Electron BrowserWindow 默认 fullscreen/kiosk。
+- setup/systemd 支持 `CARVIS_ELECTRON_BROWSER=1` 和 `CARVIS_ELECTRON_START_DELAY_MS=8000`。
 - `npm test` 纳入 `electron:browser-smoke`。
 
 ### 未完成
 
-- 尚未把 Electron npm runtime 加入依赖。
 - Claude Code CLI 本体尚未证明可长期交互 PID 复用。
 
 ### 下次优先任务
 
-1. 决定是否把 NixOS `nixpkgs#electron` 固定为正式 runtime 来源，或改为 npm `electron` 依赖。
-2. 将真实 Electron window 入口纳入 systemd/service 启动策略。
-3. 继续验证 Claude Code CLI 长驻交互能力。
+1. 继续验证 Claude Code CLI 长驻交互能力。
+2. 若 Claude Code 不支持稳定 stdin/stdout 长驻模式，把限制写入施工文档，并固定短进程 real runner + 通用 PID Agent 池的架构。
+3. 后续可把重启验收脚本化。
 
 ### 关键文件
 
@@ -105,6 +109,7 @@
 - 本地 `npm test`：通过。
 - 远端 NixOS `npm test`：通过。
 - 远端 NixOS `electron:visual-smoke` with `nixpkgs#electron`：通过。
+- 远端 NixOS 重启后全屏 Electron systemd 验收：通过。
 - 远端 NixOS 真实 `mvp:real-smoke`：通过。
 
 ### GitHub 状态
