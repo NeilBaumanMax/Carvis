@@ -1,5 +1,26 @@
 # 01 Electron Progress
 
+## 2026-07-01 / Phase 3 / 开工计划
+
+### 当前目标
+
+- 实现 Electron 可视化外壳的最小可运行版本，先用 TypeScript mock shell 固定 UI 状态和 messagebus 交互协议。
+
+### 计划改动
+
+- 新增 `src/electron/README.md`，固定 Electron 当前职责、输入规则和禁止事项。
+- 新增 Electron 状态模型和 shell，包含五个 workplace 面板、运行时心跳状态、最近事件和 output 入口。
+- 新增 `electron:smoke`，验证命令提交、心跳订阅和 output ready 展示。
+- 在 `package.json` 增加 `electron:smoke`。
+
+### 验收指标
+
+- 默认状态包含 manager、writer、artist、researcher、engineer 五个隔间。
+- 输入命令后通过 messagebus 发布 `command.submitted`。
+- 收到 `runtime.heartbeat` 后 Electron 状态展示 active/idle/retained PID 和 queueDepth。
+- 收到 `output.ready` 后 Electron 状态展示产物入口。
+- Electron 不直接管理 PID、不绕过 messagebus、不读写 workplace。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标

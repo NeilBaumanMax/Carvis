@@ -2,6 +2,55 @@
 
 ## 2026-07-01
 
+## 2026-07-01 / Phase 3 / 开工计划
+
+### 本轮目标
+
+- 完成 Phase 3：`src/electron` 可视化外壳的最小可运行版本。
+- 建立五个 workplace 面板状态模型：manager、writer、artist、researcher、engineer。
+- 建立 Electron mock shell，通过 messagebus 发布 `command.submitted`，订阅 `runtime.heartbeat` 和 `output.ready` 并更新展示状态。
+- 建立 `electron:smoke`，验证输入命令、心跳展示和 output 入口展示。
+
+### 涉及层
+
+- `01-electron`
+- `02-messagebus`
+- `shared types`
+- `docs`
+
+### 计划修改
+
+- `src/electron/README.md`
+- `src/electron/types.ts`
+- `src/electron/shell.ts`
+- `src/electron/index.ts`
+- `src/electron/smoke.ts`
+- `src/shared/types/events.ts`
+- `package.json`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run electron:smoke`
+- `npm run messagebus:smoke`
+- `npm run setup:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`a0f5a06aa78e286fab13de0047ccdea8ebc37b4f`
+- 备份分支：`backup/pre-phase3-electron-20260701-2343`
+- 远端状态：待 push 备份分支
+
+### 回滚预案
+
+- 优先使用 `git revert <phase3-commit>` 回滚本轮代码和文档提交。
+- 如仅需回滚未提交文件，删除本轮新增的 `src/electron/*`，并还原 `package.json`、`src/shared/types/events.ts` 和本轮文档追加。
+
 ## 2026-07-01 / Phase 2 / 开工计划
 
 ### 本轮目标
