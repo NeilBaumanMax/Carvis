@@ -60,20 +60,21 @@
 - `runtime.heartbeat` 会更新 Electron runtime 展示状态。
 - `output.ready` 会创建 output 展示入口。
 - `npm run typecheck`、`npm run electron:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke` 均通过。
-- 远程 SSH 调试已连接 `howtion@192.168.137.59`，确认 NixOS、Node、npm、git 可用；后续同步远端 smoke 时连接中断。
+- 远程 SSH 调试已连接 `howtion@192.168.137.59`，确认 NixOS、Node、npm、git 可用。
+- 已连接远端 WiFi `kyle`，默认出网路由走 `wlan0`，有线保留用于 SSH。
+- 已同步到远端 `~/carvis-remote-smoke`，远端干净 `npm ci` 后，`npm run typecheck`、`npm run electron:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke` 均通过。
 
 ### 当前未完成
 
 - 真实 Electron 窗口和 renderer UI 尚未实现。
 - 桌面与窄窗口视觉验收尚未建立。
 - output 打开真实文件的能力尚未实现。
-- 远端 NixOS smoke test 尚未执行，原因是同步时目标机网络/SSH 会话中断。
 
 ### 下一步
 
-1. 等 `howtion@192.168.137.59` SSH 恢复稳定后，继续同步 `~/carvis-remote-smoke` 并执行 smoke test。
-2. Phase 4：实现 agentruntime 调度核心的最小状态机。
-3. 让 agentruntime 通过 messagebus 发布 `runtime.heartbeat`。
+1. Phase 4：实现 agentruntime 调度核心的最小状态机。
+2. 让 agentruntime 通过 messagebus 发布 `runtime.heartbeat`。
+3. 后续真实 Electron 窗口建立后做桌面与窄窗口视觉验收。
 
 ## 2026-07-01 / Phase 2 / 开工计划
 

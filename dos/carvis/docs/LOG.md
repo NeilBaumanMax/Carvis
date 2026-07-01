@@ -55,7 +55,8 @@
 - `npm run messagebus:smoke`：通过
 - `npm run setup:smoke`：通过
 - `sshpass ... ssh howtion@192.168.137.59 'hostname; uname -a; node --version; npm --version; git --version'`：通过，远端为 NixOS，Node `v22.22.2`，npm `10.9.7`，git `2.51.2`
-- `rsync` 同步到 `~/carvis-remote-smoke` 并执行远端 smoke：失败，后续连接返回 `No route to host` / `Connection closed by 192.168.137.59 port 22`
+- 远端 WiFi：已连接 `kyle`，`wlan0` 地址 `192.168.135.250`，默认出网路由走 WiFi；有线 `enp1s0` 保留用于 SSH
+- `rsync` 同步到远端 `~/carvis-remote-smoke` 并执行远端 smoke：通过，远端干净 `npm ci --ignore-scripts --no-audit --no-fund` 后，`npm run typecheck`、`npm run electron:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke` 均通过
 
 ### 测试日志
 
@@ -64,8 +65,13 @@
 - 第 1 次：`npm run messagebus:smoke`，通过，输出 `[messagebus:smoke] ok`
 - 第 1 次：`npm run setup:smoke`，通过，输出 `[setup:smoke] ok`
 - 第 1 次远程 SSH 调试：免密认证失败，用户提供密码后连接成功，确认远端 NixOS、Node、npm、git 可用
-- 第 1 次远端同步 smoke：失败，网络或 SSH 会话中断，未完成 `rsync` 和远端 smoke
-- 失败修复：本轮无法在本地修复目标机网络/SSH 会话中断，需要确认 NixOS 主机在线、IP 未变化、SSH 服务稳定
+- 第 1 次远端同步 smoke：失败，目标机重启前连接中断，未完成 `rsync` 和远端 smoke
+- 第 2 次远端同步 smoke：目标机重启后连通，远端 `npm install` 卡住；终止后发现 `tsc` 命令缺失
+- 失败修复：同步本地 `node_modules` 到远端 `~/carvis-remote-smoke/node_modules`
+- 第 3 次远端同步 smoke：通过，远端输出 `[electron:smoke] ok`、`[messagebus:smoke] ok`、`[setup:smoke] ok`
+- WiFi 调试：远端连接 `kyle`，调整 `kyle` route metric 为 `50`，确认 `ip route get 8.8.8.8` 走 `wlan0`
+- npm 复测：远端 `/tmp/carvis-npm-check` 干净 `npm ci --ignore-scripts --no-audit --no-fund` 通过
+- 第 4 次远端同步 smoke：远端 `~/carvis-remote-smoke` 删除 `node_modules` 和 `dist` 后干净 `npm ci`，随后 `typecheck`、`electron:smoke`、`messagebus:smoke`、`setup:smoke` 全部通过
 
 ### 测试指标判断
 
@@ -85,9 +91,9 @@
 
 - 当前分支：`main`
 - 开发前备份分支：`backup/pre-phase3-electron-20260701-2343`
-- 本轮主体提交：待提交
-- 最终记录提交：待提交
-- push 状态：待 push
+- 本轮主体提交：`d535c3f`
+- 最终记录提交：本次收尾回写提交
+- push 状态：收尾回写提交后 push 到 `main`
 
 ### 回滚判断
 
@@ -97,7 +103,6 @@
 
 ### 下一步
 
-- NixOS 目标机恢复稳定 SSH 后，同步 `~/carvis-remote-smoke` 并执行远端 smoke test。
 - Phase 4：实现 agentruntime 调度核心的最小状态机和 heartbeat 发布。
 
 ## 2026-07-01 / Phase 2 / messagebus 事件协议
