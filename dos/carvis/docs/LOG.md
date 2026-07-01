@@ -815,6 +815,24 @@
 - 真实 enable/start 仍待用户确认后执行。
 - NixOS 直连 DeepSeek 出口仍不稳定，真实 smoke 仍通过临时代理完成。
 
+## 2026-07-02 / NixOS WiFi 直连 DeepSeek 复验
+
+### 目标
+
+按用户要求切回 NixOS WiFi，验证真实 Claude Code + DeepSeek MVP smoke 不依赖本机临时代理。
+
+### 验证结果
+
+- NixOS `wlan0` 已连接 `kyle`。
+- 默认路由优先走 WiFi：`default via 192.168.135.247 dev wlan0`。
+- NixOS 直连 `https://api.deepseek.com/models` 返回未认证响应，说明出口可通。
+- 未设置 `HTTP_PROXY` / `HTTPS_PROXY` 的情况下，NixOS `mvp:real-smoke` 通过。
+
+### 结论
+
+- NixOS 当前可通过 WiFi 直连 DeepSeek。
+- 真实 MVP smoke 已确认使用 Claude Code CLI + DeepSeek API，并在 WiFi 路由下通过。
+
 ## 2026-07-02 / systemd status CLI / GitHub 备份前收尾
 
 ### 目标

@@ -636,3 +636,17 @@
 1. 如需正式自启动，在 NixOS 上执行真实 install + enable/start。
 2. 增加 systemctl active/enabled 状态 smoke。
 3. 修复 NixOS 直连 DeepSeek 网络，减少临时代理依赖。
+
+## 2026-07-02 / WiFi 直连状态
+
+### 当前状态
+
+- NixOS `wlan0` 已连接 `kyle`。
+- 默认路由优先走 WiFi。
+- DeepSeek 直连出口已验证。
+- 无代理环境下 `mvp:real-smoke` 已通过。
+
+### 后续注意
+
+- 后续远端真实 smoke 可优先不设置 `CARVIS_REMOTE_HTTPS_PROXY`。
+- 如果 WiFi 出口再次不稳定，再临时回退到本机代理。
