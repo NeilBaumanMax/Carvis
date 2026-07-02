@@ -150,7 +150,9 @@ function createPublicProgressLines(role: string, commandText: string): string[] 
     ? "公版作品改编"
     : isBuriedGiantTask(commandText)
       ? "受主题启发的原创 RPG；不得复制受保护角色、情节、地名和独特设定"
-      : "文学 RPG 改编；执行版权安全检查";
+      : isGreenWaterMonsterTask(commandText)
+        ? "受主题气质启发的原创 galgame；不得复制受保护角色、情节和独特表达"
+        : "文学 RPG 改编；执行版权安全检查";
 
   return [
     `${prefix} 人设=${profile.name}`,
@@ -181,6 +183,9 @@ function renderRoleResult(role: string, commandText: string): string {
   }
   if (isBuriedGiantTask(commandText)) {
     return renderBuriedGiantInspiredRoleResult(role, commandText);
+  }
+  if (isGreenWaterMonsterTask(commandText)) {
+    return renderGreenWaterMonsterInspiredRoleResult(role, commandText);
   }
   if (isMacbethTask(commandText)) {
     return renderMacbethRoleResult(role, commandText);
@@ -263,6 +268,12 @@ function isBuriedGiantTask(commandText: string): boolean {
   const normalized = commandText.toLowerCase();
 
   return normalized.includes("被掩埋") || normalized.includes("buried giant") || normalized.includes("ishiguro");
+}
+
+function isGreenWaterMonsterTask(commandText: string): boolean {
+  const normalized = commandText.toLowerCase();
+
+  return normalized.includes("绿毛水怪") || normalized.includes("王小波") || normalized.includes("galgame");
 }
 
 function roleProfile(role: string): { name: string; specialty: string; voice: string } {
@@ -604,6 +615,156 @@ function renderBuriedGiantInspiredRoleResult(role: string, commandText: string):
         "- 第 2 周：记忆回声系统和对话后果。",
         "- 第 3 周：低频战斗和证物化解。",
         "- 第 4 周：game-preview.html、存档、结局结算和演示打磨。",
+      ].join("\n");
+    default:
+      return `Completed ${role}: ${commandText}`;
+  }
+}
+
+function renderGreenWaterMonsterInspiredRoleResult(role: string, commandText: string): string {
+  switch (role) {
+    case "manager":
+      return [
+        "## 制作人方案",
+        "",
+        `Task: ${commandText}`,
+        "",
+        "人设：制作人林，负责把用户给出的文学气质转成安全、原创、可落地的 galgame 项目范围。",
+        "",
+        "版权边界：这是受《绿毛水怪》相关青春、荒诞、通信、异类感与温柔反叛气质启发的原创 galgame，不使用原作角色、原作情节、原作独特表达或可识别桥段。",
+        "",
+        "工作标题：绿潮来信。",
+        "",
+        "产品承诺：一款中文青春荒诞 galgame。玩家在海边工业小城收到一封封来自“水怪社”的匿名信，逐渐发现所谓怪物不是敌人，而是青春期无法被正常命名的孤独、欲望、聪明和反抗。",
+        "",
+        "目标体验：",
+        "- 4 到 6 小时视觉小说，包含多女主/多友人路线、短信/书信系统、低强度探索、选择分支和真结局。",
+        "- 文风要求：中文输出，机智、克制、反讽，但不模仿任何具体作者句式。",
+        "- 游戏主题：青春期异类感、城市边缘、自由想象、亲密关系、成人世界的荒唐规则。",
+        "",
+        "核心支柱：",
+        "- 信件驱动叙事：每封信既是线索，也是角色对现实的改写。",
+        "- 怪物不是怪物：水怪传闻会随玩家选择变成玩笑、秘密组织、心理投射或真实奇观。",
+        "- Galgame 关系线：不是单纯恋爱选择，而是“是否理解对方的怪异”。",
+        "- 结局不灌鸡汤：允许错过、误解、一起逃课、共同创作和各自长大。",
+        "",
+        "MVP 范围：",
+        "- 三个主要角色路线、一个海边地图、一个学校地图、一个废弃泵站地图。",
+        "- 系统：信件收件箱、好感/理解度、荒诞值、选择回溯、CG 解锁、结局树。",
+      ].join("\n");
+    case "writer":
+      return [
+        "## 叙事设计",
+        "",
+        "人设：叙事设计乔，负责把青春荒诞气质改成可玩的 galgame 路线和选择。",
+        "",
+        "故事前提：",
+        "1990 年代末的海边工业小城“青盐市”，高中生陈默在旧图书馆的借书卡里发现一封署名“绿潮”的信。信里说：学校排水渠里住着一只绿色水怪，它专门吃掉学生没敢说出口的话。陈默以为这是恶作剧，却很快被卷入一个名为“水怪社”的秘密通信游戏。",
+        "",
+        "主要角色：",
+        "- 陈默：玩家视角主角，擅长写冷笑话，害怕认真表达。",
+        "- 林藻：理科尖子，常说自己想变成两栖动物，路线主题是聪明人的孤独。",
+        "- 夏汐：广播站成员，收集城市噪音，路线主题是声音、误会和公开告白。",
+        "- 许湾：转学生，画怪物漫画，路线主题是被看见与被误读。",
+        "- 老谢：图书管理员，知道上一代“水怪社”的失败故事。",
+        "",
+        "三章结构：",
+        "1. 借书卡里的绿信：玩家决定是否回信，开启不同角色的通信频率。",
+        "2. 排水渠夜航：三条路线在同一晚分叉，玩家选择跟谁去寻找水怪。",
+        "3. 毕业前的涨潮：学校要拆掉旧泵站，玩家决定公开水怪社、保留秘密，或把所有信投进海里。",
+        "",
+        "结局分支：",
+        "- 普通结局：水怪只是传闻，大家毕业后失联，但主角保留写信习惯。",
+        "- 角色结局：理解某位角色的怪异，解锁双人 CG 和未来通信。",
+        "- 真结局：水怪社不是逃避现实，而是少年们自造语言的方式；众人共同完成最后一本怪物志。",
+      ].join("\n");
+    case "artist":
+      return [
+        "## 美术指导",
+        "",
+        "人设：美术指导维加，负责把海边工业小城、青春荒诞和 galgame UI 做成统一视觉。",
+        "",
+        "视觉命题：",
+        "画面要像潮湿练习本上的涂鸦：现实是旧校服、锈铁、海风和日光灯；幻想是绿色水纹、怪物贴纸和手写信纸边缘长出的鳞片。",
+        "",
+        "色彩：",
+        "- 日常：粉笔白、校服蓝、旧墙灰、午后橙。",
+        "- 水怪传闻：荧光绿、海藻绿、深水蓝。",
+        "- 亲密场景：低饱和粉、暖黄台灯、雨后玻璃反光。",
+        "",
+        "关键场景：",
+        "- 旧图书馆：借书卡抽屉、风扇、泛黄小说、藏信暗格。",
+        "- 学校排水渠：水泥墙、绿苔、手电光、远处海声。",
+        "- 广播站：磁带、话筒、窗外操场、被剪断的广播线。",
+        "- 废弃泵站：最终章地图，墙上画满历代水怪社涂鸦。",
+        "",
+        "UI 母题：",
+        "- 对话框像半透明信纸，角色名使用手写标签。",
+        "- 收件箱是借书卡盒，读过的信会留下水渍。",
+        "- 好感不叫好感，叫“理解度”；荒诞值用绿色潮位线表示。",
+        "",
+        "CG 方向：",
+        "- 林藻路线：实验室水槽和窗外暴雨。",
+        "- 夏汐路线：广播站夜间独白。",
+        "- 许湾路线：废泵站墙绘完成瞬间。",
+      ].join("\n");
+    case "researcher":
+      return [
+        "## 系统研究",
+        "",
+        "人设：系统研究员沈，负责把 galgame 的路线、信件和选择后果设计成清晰系统。",
+        "",
+        "主机制：信件与理解度",
+        "- 玩家每天可选择回一封信、调查一个地点、或写一段不寄出的草稿。",
+        "- 理解度不是讨好角色，而是玩家是否读懂对方的表达方式。",
+        "- 荒诞值越高，水怪传闻越像真实奇观；荒诞值越低，故事更偏现实青春片。",
+        "- 真结局要求三条路线都留下关键理解，而不是把所有角色好感刷满。",
+        "",
+        "Galgame 循环：",
+        "- 白天学校对话 -> 傍晚地图探索 -> 夜间读信/回信 -> 梦境或水怪传闻变化。",
+        "- 选择分为三类：认真回答、开玩笑回避、把话写进怪物设定。",
+        "- 每类选择会改变角色理解度和城市传闻状态。",
+        "",
+        "分支规则：",
+        "- 林藻路线偏理性和逃离：要求玩家尊重她的冷幽默，而不是逼她变温柔。",
+        "- 夏汐路线偏声音和公开：要求玩家选择何时沉默，何时让话被所有人听见。",
+        "- 许湾路线偏创作和被看见：要求玩家区分欣赏怪物画和消费她的怪异。",
+        "",
+        "失败与回收：",
+        "- 没有坏结局虐玩家，但会有错过结局、误读结局和过度解释结局。",
+        "- 回收系统允许读未寄出的草稿，理解自己当时为什么没说出口。",
+      ].join("\n");
+    case "engineer":
+      return [
+        "## 玩法工程清单",
+        "",
+        "人设：玩法工程师任，负责把中文 galgame 拆成可实现的垂直切片。",
+        "",
+        "MVP 架构：",
+        "- Script 数据：章节、场景、角色、台词、选择、跳转条件。",
+        "- Letter 数据：发信人、收到日期、正文、可选回复、理解度变化、荒诞值变化。",
+        "- RouteState：三条角色路线的理解度、关键选择、CG 解锁、结局标记。",
+        "- MapNode：图书馆、排水渠、广播站、泵站，控制可探索事件。",
+        "- Gallery：CG、信件、草稿、怪物志条目。",
+        "",
+        "第一可玩切片：",
+        "1. 标题界面、存读档、文本框、角色立绘切换。",
+        "2. 第一章：旧图书馆发现绿信，玩家选择是否回信。",
+        "3. 三个地点探索：图书馆、排水渠、广播站。",
+        "4. 三个角色各一段关键对话和一封可回复信件。",
+        "5. 一个短结局：玩家决定是否加入水怪社。",
+        "",
+        "数据结构草案：",
+        "- Choice：id、文本、条件、效果、下一节点。",
+        "- Letter：id、sender、body、replyOptions、routeEffects。",
+        "- CharacterState：理解度、误读值、关键 CG、路线锁定状态。",
+        "- EndingState：路线、荒诞值、公开秘密、怪物志完成度。",
+        "",
+        "实现清单：",
+        "- 第 1 周：视觉小说播放器、文本脚本解析、基础 UI。",
+        "- 第 2 周：信件系统、地图节点、路线状态。",
+        "- 第 3 周：三角色 MVP 路线和 CG 占位。",
+        "- 第 4 周：game-preview.html、音乐音效、结局树和演示打磨。",
       ].join("\n");
     default:
       return `Completed ${role}: ${commandText}`;

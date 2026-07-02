@@ -37,6 +37,9 @@
 - 补齐原目标任务：提交“受《被掩埋的巨人》主题启发的原创 RPG”中文任务，明确不复制原作角色/情节/地名/独特设定。
 - 远端 NixOS 生成 `output/final-report.md` 和 `output/game-preview.html`：通过，报告包含 `版权边界`、`工作标题：雾下余烬`、`主机制：雾与证词`。
 - 远端截图 `/tmp/carvis-buried-giant-cn-1000x640.png`：五个 agent 框均有中文输出，Output 区显示产物文件夹预览和 `game-preview.html`。
+- 新增《绿毛水怪》主题气质安全原创 galgame 模板：不复制王小波原作角色、情节、独特表达或可识别桥段。
+- 远端提交“绿毛水怪 galgame”任务：通过，`final-report.md` 包含 `工作标题：绿潮来信`、`主机制：信件与理解度`，`game-preview.html` 包含 `绿潮来信 Galgame Preview`。
+- 远端截图 `/tmp/carvis-green-water-galgame.png`：五个 agent 框均有中文 galgame 输出，Output 区显示产物预览。
 
 ## 2026-07-02 / Electron live renderer IPC
 

@@ -45,6 +45,10 @@
 - `src/output/index.ts` 新增《雾下余烬》游戏预览内容。
 - 远端通过 messagebus 提交原目标测试任务，生成 `雾下余烬` 中文报告和 `game-preview.html`。
 - 远端截图 `/tmp/carvis-buried-giant-cn-1000x640.png`：五个 agent 框中文输出可见，Output 区显示产物文件夹预览。
+- `src/agentruntime/main.ts` 新增《绿毛水怪》主题气质安全原创 galgame 模板，五个 agent 输出制作人、叙事、美术、系统、工程方案。
+- `src/output/index.ts` 新增 `绿潮来信 Galgame Preview`。
+- 远端通过 messagebus 提交“绿毛水怪 galgame”任务，生成 `绿潮来信` 中文报告和 `game-preview.html`。
+- 远端截图 `/tmp/carvis-green-water-galgame.png`：五个 agent 框中文输出可见，Output 区显示产物文件夹预览。
 
 ### 结论
 

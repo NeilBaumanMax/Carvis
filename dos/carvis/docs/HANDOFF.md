@@ -76,6 +76,7 @@
 - 远端 `xprop` 复核 Carvis 窗口位置 `140,40`，对应 1280x720 屏幕上 `1000x640` 居中。
 - 已补齐原目标测试任务：通过 messagebus 提交“受《被掩埋的巨人》主题启发的原创 RPG”，避免复制原作角色/情节/地名/独特设定。
 - 远端输出包含 `工作标题：雾下余烬`、`主机制：雾与证词`，截图 `/tmp/carvis-buried-giant-cn-1000x640.png` 显示五个 agent 中文输出和 Output 产物预览。
+- 最新又补齐《绿毛水怪》主题气质安全原创 galgame 测试：远端输出包含 `工作标题：绿潮来信`、`主机制：信件与理解度`，截图 `/tmp/carvis-green-water-galgame.png`。
 - Chromium wrapper 已启动下载 Chromium；若网络慢，先以 HTML 文件生成作为产物验收，再等 Chromium 完成下载打开。
 
 ### 未完成
@@ -92,6 +93,7 @@
 - 远端 NixOS `nixos-rebuild switch`：通过。
 - 远端 NixOS 真实提交《麦克白》中文 RPG 任务：通过，`final-report.md` 和 `game-preview.html` 已生成。
 - 远端 NixOS 原目标“被掩埋的巨人主题原创 RPG”任务：通过，`final-report.md` 和 `game-preview.html` 已生成。
+- 远端 NixOS “绿毛水怪主题原创 galgame”任务：通过，`final-report.md` 和 `game-preview.html` 已生成。
 - 远端 NixOS `npm run build`：通过。
 - 远端 NixOS `carvis-electron.service` / `carvis-agentruntime.service`：active。
 

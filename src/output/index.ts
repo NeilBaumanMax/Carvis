@@ -184,6 +184,21 @@ function createGamePreviewContent(finalReport: string): {
     };
   }
 
+  if (finalReport.includes("绿潮来信") || finalReport.includes("绿毛水怪") || finalReport.includes("水怪社")) {
+    return {
+      heading: "绿潮来信 Galgame Preview",
+      primaryStat: "理解度",
+      sceneTitle: "借书卡里的绿信",
+      sceneText: "旧图书馆的风扇吱呀作响。你在借书卡背面发现一封潮湿的信：排水渠里住着一只专吃真心话的绿色水怪。",
+      buttons: ["认真回信", "开玩笑回避", "写进怪物志"],
+      scenes: {
+        charge: ["认真回信", "你没有把它当成恶作剧。信纸上的水渍慢慢扩散，像有人终于被认真听见。理解度上升。", { chivalry: 12, reality: 6, reputation: 3 }],
+        inspect: ["玩笑防身", "你写了三行冷笑话。对方回得更快了，但信末多了一句：你是不是害怕认真？", { chivalry: 4, reality: 8, reputation: -2 }],
+        appeal: ["怪物志第一页", "你把没敢说出口的话写成一种水怪习性。第二天，广播站有人念出了相似的句子。", { chivalry: 8, reality: 5, reputation: 10 }],
+      },
+    };
+  }
+
   return {
     heading: "堂吉诃德 RPG Preview",
     primaryStat: "Chivalry",
