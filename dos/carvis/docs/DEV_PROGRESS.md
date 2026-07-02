@@ -34,6 +34,9 @@
 - 远端 NixOS 真实 Electron 输入《麦克白》RPG 任务：通过，`output/final-report.md` 包含中文设计内容，`output/game-preview.html` 包含 `麦克白 RPG Preview`
 - 远端 NixOS `xprop` 复核：Carvis 窗口位置 `140,40`，对应 1280x720 屏幕上的 `1000x640` 居中窗口；截图 `/tmp/carvis-1000x640-window.png` 显示五个 agent 框同屏露出。
 - 远端 NixOS 最新代码同步后 `npm run build`：通过，`carvis-electron.service` / `carvis-agentruntime.service` active。
+- 补齐原目标任务：提交“受《被掩埋的巨人》主题启发的原创 RPG”中文任务，明确不复制原作角色/情节/地名/独特设定。
+- 远端 NixOS 生成 `output/final-report.md` 和 `output/game-preview.html`：通过，报告包含 `版权边界`、`工作标题：雾下余烬`、`主机制：雾与证词`。
+- 远端截图 `/tmp/carvis-buried-giant-cn-1000x640.png`：五个 agent 框均有中文输出，Output 区显示产物文件夹预览和 `game-preview.html`。
 
 ## 2026-07-02 / Electron live renderer IPC
 

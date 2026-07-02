@@ -147,8 +147,10 @@ function createPublicProgressLines(role: string, commandText: string): string[] 
   const prefix = `>>> LIVE CLI STREAM [${role.toUpperCase()}]`;
   const profile = roleProfile(role);
   const adaptationMode = isDonQuixoteTask(commandText)
-    ? "public-domain Don Quixote adaptation"
-    : "literary RPG adaptation with safety checks";
+    ? "公版作品改编"
+    : isBuriedGiantTask(commandText)
+      ? "受主题启发的原创 RPG；不得复制受保护角色、情节、地名和独特设定"
+      : "文学 RPG 改编；执行版权安全检查";
 
   return [
     `${prefix} 人设=${profile.name}`,
@@ -176,6 +178,9 @@ function sleep(ms: number): Promise<void> {
 function renderRoleResult(role: string, commandText: string): string {
   if (isDonQuixoteTask(commandText)) {
     return renderDonQuixoteRoleResult(role, commandText);
+  }
+  if (isBuriedGiantTask(commandText)) {
+    return renderBuriedGiantInspiredRoleResult(role, commandText);
   }
   if (isMacbethTask(commandText)) {
     return renderMacbethRoleResult(role, commandText);
@@ -252,6 +257,12 @@ function isMacbethTask(commandText: string): boolean {
   const normalized = commandText.toLowerCase();
 
   return normalized.includes("麦克白") || normalized.includes("macbeth");
+}
+
+function isBuriedGiantTask(commandText: string): boolean {
+  const normalized = commandText.toLowerCase();
+
+  return normalized.includes("被掩埋") || normalized.includes("buried giant") || normalized.includes("ishiguro");
 }
 
 function roleProfile(role: string): { name: string; specialty: string; voice: string } {
@@ -444,6 +455,155 @@ function renderDonQuixoteRoleResult(role: string, commandText: string): string {
         "- Week 2: combat state machine and dual-identity enemy display.",
         "- Week 3: dialogue/choice consequences and reputation ledger.",
         "- Week 4: art pass, sound cues, save/load, vertical slice polish.",
+      ].join("\n");
+    default:
+      return `Completed ${role}: ${commandText}`;
+  }
+}
+
+function renderBuriedGiantInspiredRoleResult(role: string, commandText: string): string {
+  switch (role) {
+    case "manager":
+      return [
+        "## 制作人方案",
+        "",
+        `Task: ${commandText}`,
+        "",
+        "人设：制作人林，负责把用户给出的文学主题转成安全、原创、可落地的 RPG 项目范围。",
+        "",
+        "版权边界：这是受《被掩埋的巨人》相关主题启发的原创 RPG，不使用原作角色、原作情节、原作地名、原作独特设定或可识别表达。",
+        "",
+        "工作标题：雾下余烬。",
+        "",
+        "产品承诺：一款关于记忆、遗忘、老年伴侣、战后创伤与共同和解的叙事探索 RPG。玩家不是寻找某个原作答案，而是在一个原创山谷里决定真相该如何被重新承担。",
+        "",
+        "目标体验：",
+        "- 8 到 10 小时低战斗密度 RPG，重点是探索、对话、记忆回声、关系选择和结局分支。",
+        "- 玩家操作两位年迈旅人和临时同伴，穿过被雾覆盖的山谷，恢复或压下被共同遗忘的历史。",
+        "- 游戏必须让“记起来”既有价值也有代价：真相能修复身份，也可能重新点燃仇恨。",
+        "",
+        "核心支柱：",
+        "- 记忆不是收集品，而是社会契约：每次恢复记忆都会改变 NPC、地图和冲突状态。",
+        "- 老年主角不是弱化设定，而是节奏、耐力、互相照护和回忆可靠性的玩法来源。",
+        "- 战后创伤不能做成单纯怪物图鉴，要体现沉默、责任转移和迟到的悼念。",
+        "- 和解不是强制大团圆，结局允许遗忘、审判、哀悼、共同守夜等不同代价。",
+        "",
+        "MVP 范围：",
+        "- 一个村庄 hub、一条雾路、一座废堡、一处河边纪念地和一个终局记忆审判。",
+        "- 系统：记忆雾值、伴侣羁绊、证词账本、低频回合战斗、对话后果、结局结算。",
+      ].join("\n");
+    case "writer":
+      return [
+        "## 叙事设计",
+        "",
+        "人设：叙事设计乔，负责把记忆与和解主题改成可玩的任务、角色和选择。",
+        "",
+        "故事前提：",
+        "原创山谷“灰苔谷”被一场多年不散的白雾覆盖。雾会让人忘掉仇恨，也忘掉亲人、承诺和罪责。两位年迈旅人岚和弥，在一次葬礼后发现彼此对同一段往事记忆不一致，于是离开村庄，沿着旧战路寻找被抹去的真相。",
+        "",
+        "主要角色：",
+        "- 岚：退休石匠，职业为守碑者，擅长修复遗迹、辨认旧铭文和承受伤害。",
+        "- 弥：草药师，职业为灯草医者，擅长安抚、治疗、识别创伤回声。",
+        "- 灰犬少年：失去族谱的年轻向导，代表下一代如何继承未知仇恨。",
+        "- 无旗骑士：拒绝说出效忠对象的流亡者，知道战争真相的一角。",
+        "- 织悼人：负责把恢复的记忆织进公共悼念仪式，而不是让它们变成复仇名单。",
+        "",
+        "三章任务：",
+        "1. 空桌宴：村庄每年给不存在的人留座。玩家选择调查空座名单，或维持村民靠遗忘获得的平静。",
+        "2. 苔下石路：旧路碑被刻意翻面。玩家恢复碑文后，会改变两个村落对边界和责任的认知。",
+        "3. 河雾守夜：河边埋着战后交换人质的证据。玩家决定公开证词、交给织悼人，或只让当事家庭知道。",
+        "",
+        "结局分支：",
+        "- 雾中安眠：山谷继续和平，但主角也逐渐失去彼此最珍贵的记忆。",
+        "- 诸名归来：真相公开，冲突重燃，但新的责任制度开始建立。",
+        "- 共守长夜：只公开足够哀悼的真相，把复仇冲动转化为守夜仪式和共同修复。",
+      ].join("\n");
+    case "artist":
+      return [
+        "## 美术指导",
+        "",
+        "人设：美术指导维加，负责把雾、老年旅程、废墟和悼念仪式做成清晰视觉系统。",
+        "",
+        "视觉命题：",
+        "画面不是史诗战争，而是战后很久的潮湿沉默。雾像布，苔像封条，灯火像人还愿意记住彼此的证据。",
+        "",
+        "色彩：",
+        "- 日常：湿灰、苔绿、旧木褐、羊毛白。",
+        "- 记忆回声：低饱和金色、暗红线、冷蓝边缘光。",
+        "- 冲突场景：铁锈、泥黑、干草黄，避免艳丽英雄感。",
+        "",
+        "关键场景：",
+        "- 村庄空桌长屋：桌上摆着无人认领的碗。",
+        "- 雾路：近景清楚、远景被白雾吞掉，路标经常互相矛盾。",
+        "- 废堡：没有王者符号，只剩修补过又被砸碎的墙。",
+        "- 河边纪念地：石头半沉水中，名字要通过玩家选择才会浮现。",
+        "",
+        "UI 母题：",
+        "- 记忆雾值用一盏油灯表现，灯芯越短，遗忘越强。",
+        "- 证词账本像被水泡过的手抄本，玩家可以把证词标记为公开、保留或悼念。",
+        "- 羁绊 UI 是两只旧杯子，裂纹会随争执扩大，也可被修补。",
+        "",
+        "动画：",
+        "- 年迈角色移动要慢但有重量；互相搀扶不是装饰，而是交互提示。",
+        "- 记忆恢复时场景不闪白，而是局部物件逐渐显出旧使用痕迹。",
+      ].join("\n");
+    case "researcher":
+      return [
+        "## 系统研究",
+        "",
+        "人设：系统研究员沈，负责把记忆、遗忘、创伤和和解落成可玩机制。",
+        "",
+        "主机制：雾与证词",
+        "- 雾值高：敌意低、冲突少、NPC 安稳，但线索缺失、地图模糊、角色关系变浅。",
+        "- 雾值低：真相、隐藏道路和新对话出现，但旧仇、恐惧和报复事件上升。",
+        "- 证词不是自动真相，玩家要标记来源、可信度、公开范围和可能伤害。",
+        "- 伴侣羁绊会影响回忆可靠性：两位主角可能记得不同版本，需要互相校正。",
+        "",
+        "探索循环：",
+        "- 到达地点 -> 观察遗物 -> 触发记忆回声 -> 询问证人 -> 决定记录方式 -> 地图和 NPC 状态改变。",
+        "- 每个地点至少有一个“记住的收益”和一个“记住的代价”。",
+        "- 玩家可选择把记忆交给个人、村庄、悼念仪式或暂时封存。",
+        "",
+        "战斗循环：",
+        "- 低频回合战斗，敌人多为恐惧形体、誓言残影、误认对手的人。",
+        "- 行动包括守护、呼唤名字、展示证物、撤退、攻击。",
+        "- 最优解通常不是杀死敌人，而是让冲突对象被正确辨认。",
+        "",
+        "成长：",
+        "- 岚：守护、修补、铭刻、负重。",
+        "- 弥：安抚、治疗、辨香、唤回。",
+        "- 队伍轨道：雾值、羁绊、公开真相、复仇风险、共同悼念。",
+      ].join("\n");
+    case "engineer":
+      return [
+        "## 玩法工程清单",
+        "",
+        "人设：玩法工程师任，负责把原创记忆 RPG 拆成可实现的垂直切片。",
+        "",
+        "MVP 架构：",
+        "- Quest 数据：地点、遗物、证词、公开范围、雾值变化、NPC 状态变化。",
+        "- MemoryEcho 数据：触发条件、画面覆盖、可选解释、后果标签。",
+        "- Dialogue 状态：证词可信度、角色关系、是否公开、是否进入悼念仪式。",
+        "- Combat 状态机：低频回合制、恐惧形体、证物行动、非致命解决。",
+        "- Output：生成 final-report.md 和 game-preview.html，方便在浏览器查看设计结果。",
+        "",
+        "第一可玩切片：",
+        "1. 村庄 hub：6 个 NPC、空桌宴任务、一次公开/保留证词选择。",
+        "2. 雾路：3 个遗物交互、雾值影响道路可见性。",
+        "3. 废堡：一次恐惧形体战斗，支持攻击和证物化解两种路线。",
+        "4. 河边纪念地：根据证词账本结算三个结局原型。",
+        "",
+        "数据结构草案：",
+        "- Testimony：id、来源、可信度、公开范围、伤害风险、悼念价值。",
+        "- MemoryEcho：id、地点、触发物、雾值阈值、回声文本、状态修改。",
+        "- BondState：岚/弥分歧点、修复事件、共同记忆等级。",
+        "- EndingState：雾值、公开真相、复仇风险、悼念完成度。",
+        "",
+        "实现清单：",
+        "- 第 1 周：地图、证词账本、雾值 UI。",
+        "- 第 2 周：记忆回声系统和对话后果。",
+        "- 第 3 周：低频战斗和证物化解。",
+        "- 第 4 周：game-preview.html、存档、结局结算和演示打磨。",
       ].join("\n");
     default:
       return `Completed ${role}: ${commandText}`;

@@ -169,6 +169,21 @@ function createGamePreviewContent(finalReport: string): {
     };
   }
 
+  if (finalReport.includes("雾下余烬") || finalReport.includes("被掩埋") || finalReport.includes("Buried Giant")) {
+    return {
+      heading: "雾下余烬 RPG Preview",
+      primaryStat: "记忆",
+      sceneTitle: "空桌宴",
+      sceneText: "长屋里多摆了一只碗，却没人承认它属于谁。雾让村庄安静，也让名字从舌尖滑走。",
+      buttons: ["公开空座名单", "暂时保留证词", "交给织悼人"],
+      scenes: {
+        charge: ["诸名归来", "你公开空座名单。村民终于想起失踪者，也想起谁曾沉默。记忆上升，名声震荡。", { chivalry: 14, reality: 8, reputation: -6 }],
+        inspect: ["雾中缓行", "你把证词暂时封存，只与当事家庭核对。冲突被推迟，但信任开始积累。", { chivalry: 3, reality: 10, reputation: 7 }],
+        appeal: ["共守长夜", "织悼人把名字织进守夜仪式。真相没有变成复仇名单，而成为共同哀悼。", { chivalry: 8, reality: 6, reputation: 12 }],
+      },
+    };
+  }
+
   return {
     heading: "堂吉诃德 RPG Preview",
     primaryStat: "Chivalry",

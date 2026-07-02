@@ -41,6 +41,10 @@
 - 远端截图 `/tmp/carvis-1000x640-window.png`：五个 agent 框同屏全部可见。
 - 本地完整 `npm test`：通过。
 - 远端 NixOS 最新同步后 `npm run build`：通过，Electron/agentruntime user service 均 active。
+- `src/agentruntime/main.ts` 新增《被掩埋的巨人》主题安全原创模板：只使用记忆、遗忘、老年、战后创伤、和解等主题，不复制受保护表达。
+- `src/output/index.ts` 新增《雾下余烬》游戏预览内容。
+- 远端通过 messagebus 提交原目标测试任务，生成 `雾下余烬` 中文报告和 `game-preview.html`。
+- 远端截图 `/tmp/carvis-buried-giant-cn-1000x640.png`：五个 agent 框中文输出可见，Output 区显示产物文件夹预览。
 
 ### 结论
 
