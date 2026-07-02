@@ -99,7 +99,6 @@ assertSequence(phases, [
   "engineer_building",
   "output_ready",
   "retaining_agents",
-  "shutdown",
 ]);
 assert(starts[0] === "manager", "manager should start first");
 assert(starts.includes("writer"), "writer should start");
@@ -112,12 +111,12 @@ assert(dones.indexOf("engineer") > dones.indexOf("writer"), "engineer should fin
 assert(dones.indexOf("engineer") > dones.indexOf("artist"), "engineer should finish after artist");
 assert(dones.indexOf("engineer") > dones.indexOf("researcher"), "engineer should finish after researcher");
 assert(dones.lastIndexOf("manager") < dones.indexOf("engineer"), "engineer should finish after manager review");
-assertSequence(shutdowns, ["manager", "writer", "artist", "researcher", "engineer"]);
+assertSequence(shutdowns, []);
 assert(retainedCounts.some((count) => count === 5), "all five agents should be retained before shutdown");
 assertSequence(outputs, ["output/final-report.md"]);
 assert(snapshot.queueDepth === 0, "queue should be empty after run");
-assert(snapshot.retainedPidCount === 0, "retained PID count should be zero after shutdown");
-assert(snapshot.agents.every((agent) => agent.status === "shutdown"), "all agents should be shutdown");
+assert(snapshot.retainedPidCount === 5, "retained PID count should stay at five after run");
+assert(snapshot.agents.every((agent) => agent.status === "retained"), "all agents should stay retained after run");
 
 runtime.dispose();
 

@@ -51,13 +51,13 @@ try {
   assert(state.outputs.length === 1, "output entry should be visible");
   assert(state.outputs[0]?.outputPath.endsWith("final-report.md"), "output path should point to final report");
   assert(state.runtime.queueDepth === 0, "runtime queue should be empty");
-  assert(state.runtime.retainedPidCount === 0, "runtime should shutdown retained agents after run");
+  assert(state.runtime.retainedPidCount === 5, "runtime should retain all five agents after run");
 
   for (const role of ["manager", "writer", "artist", "researcher", "engineer"] as const) {
     const panel = state.panels.find((item) => item.role === role);
 
     assert(panel !== undefined, `${role} panel should exist`);
-    assert(panel.status === "shutdown", `${role} panel should show shutdown`);
+    assert(panel.status === "retained", `${role} panel should show retained`);
     assert(panel.pid !== undefined, `${role} panel should show PID`);
     assert(panel.latestOutput !== undefined, `${role} panel should show latest output`);
   }

@@ -6,3 +6,5 @@ logs/
 /output/
 /workplaces/
 .carvis-real-mvp-*/
+.env.qwen
+.env.qwen-omni

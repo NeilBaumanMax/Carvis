@@ -53,8 +53,8 @@ try {
       () => `output.ready should arrive over IPC; received=${electronEvents.join(",")}`,
     );
     await waitFor(
-      () => shell.getState().panels.every((panel) => panel.status === "shutdown"),
-      () => `agent shutdown events should arrive; statuses=${shell.getState().panels.map((panel) => `${panel.role}:${panel.status}`).join(",")}`,
+      () => shell.getState().panels.every((panel) => panel.status === "retained"),
+      () => `agent retained events should arrive; statuses=${shell.getState().panels.map((panel) => `${panel.role}:${panel.status}`).join(",")}`,
     );
 
     const state = shell.getState();
@@ -67,7 +67,7 @@ try {
       const panel = state.panels.find((item) => item.role === role);
 
       assert(panel !== undefined, `${role} panel should exist`);
-      assert(panel.status === "shutdown", `${role} panel should be shutdown`);
+      assert(panel.status === "retained", `${role} panel should be retained`);
       assert(panel.pid !== undefined, `${role} panel should include pid`);
     }
   } finally {

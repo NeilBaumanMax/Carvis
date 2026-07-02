@@ -143,10 +143,8 @@ export class AgentRuntime {
       await this.runRole(ENGINEER_ROLE, command.commandText);
     }
     await this.changePhase("output_ready");
-    await this.publishOutputReady();
+    await this.publishOutputReady(command.commandText);
     await this.changePhase("retaining_agents");
-    await this.shutdownRetainedAgents();
-    await this.changePhase("shutdown");
     this.currentRun = undefined;
     await this.publishHeartbeat();
   }
@@ -179,10 +177,37 @@ export class AgentRuntime {
             previousPidOutput,
             retryReason,
           })) ?? `${role}: ${commandText}`;
-        const result = await pidAgent.runTask({
-          input: pidInput,
-          timeoutMs: this.options.pidTaskTimeoutMs,
-        });
+        const startedAt = Date.now();
+        let progressBusy = false;
+        const progressTimer = setInterval(() => {
+          if (progressBusy) {
+            return;
+          }
+
+          progressBusy = true;
+          const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+          void this.setAgentStatus(
+            agent,
+            "working",
+            "agent.output",
+            `${role} still running: attempt ${attempt}/${maxAttempts}, elapsed ${elapsedSeconds}s`,
+          ).finally(() => {
+            progressBusy = false;
+          });
+        }, 10_000);
+
+        let result: Awaited<ReturnType<typeof pidAgent.runTask>>;
+        try {
+          result = await pidAgent.runTask({
+            input: pidInput,
+            timeoutMs: this.options.pidTaskTimeoutMs,
+            onOutput: (output) => {
+              void this.setAgentStatus(agent, "working", "agent.output", output);
+            },
+          });
+        } finally {
+          clearInterval(progressTimer);
+        }
 
         agent.pid = result.pid;
         pidOutput = result.output;
@@ -318,9 +343,9 @@ export class AgentRuntime {
     });
   }
 
-  private async publishOutputReady(): Promise<void> {
+  private async publishOutputReady(commandText: string): Promise<void> {
     const run = this.mustCurrentRun();
-    const output = await this.createOutputReadyPayload();
+    const output = await this.createOutputReadyPayload(commandText);
 
     await this.bus.publish<OutputReadyPayload>({
       type: "output.ready",
@@ -332,11 +357,12 @@ export class AgentRuntime {
     });
   }
 
-  private async createOutputReadyPayload(): Promise<OutputReadyPayload> {
+  private async createOutputReadyPayload(commandText: string): Promise<OutputReadyPayload> {
     if (this.options.outputWriter !== undefined) {
       return this.options.outputWriter({
         run: this.mustCurrentRun(),
         agents: [...this.agents.values()].map((agent) => ({ ...agent })),
+        commandText,
       });
     }
 

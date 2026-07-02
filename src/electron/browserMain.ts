@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { access, mkdtemp } from "node:fs/promises";
+import { access, mkdtemp, readdir, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -112,14 +112,21 @@ async function openLatestGamePreview(state: ElectronShellState): Promise<void> {
 }
 
 async function backfillExistingOutput(): Promise<void> {
-  if (process.env.CARVIS_ELECTRON_BACKFILL_OUTPUT === "0") {
+  if (process.env.CARVIS_ELECTRON_BACKFILL_OUTPUT !== "1") {
     return;
   }
 
-  const outputRoot = resolve(process.env.CARVIS_OUTPUT_ROOT ?? "output");
-  const outputPath = join(outputRoot, "final-report.md");
-  const manifestPath = join(outputRoot, "manifest.json");
-  const gamePreviewPath = join(outputRoot, "game-preview.html");
+  const outputRoot = resolve(process.env.CARVIS_OUTPUT_ROOT ?? join("output", "runs"));
+  const latestOutputRoot = await findLatestOutputRoot(outputRoot);
+
+  if (latestOutputRoot === undefined) {
+    return;
+  }
+
+  const outputPath = join(latestOutputRoot, "final-report.md");
+  const runManifestPath = join(latestOutputRoot, "manifest.json");
+  const rootManifestPath = join(outputRoot, "manifest.json");
+  const gamePreviewPath = join(latestOutputRoot, "game-preview.html");
 
   if (!(await pathExists(outputPath))) {
     return;
@@ -127,9 +134,47 @@ async function backfillExistingOutput(): Promise<void> {
 
   await shell.registerOutputReady({
     outputPath,
-    manifestPath: (await pathExists(manifestPath)) ? manifestPath : undefined,
+    manifestPath: (await pathExists(runManifestPath))
+      ? runManifestPath
+      : (await pathExists(rootManifestPath))
+        ? rootManifestPath
+        : undefined,
     gamePreviewPath: (await pathExists(gamePreviewPath)) ? gamePreviewPath : undefined,
   });
+}
+
+async function findLatestOutputRoot(outputRoot: string): Promise<string | undefined> {
+  if (await pathExists(join(outputRoot, "final-report.md"))) {
+    return outputRoot;
+  }
+
+  let entries: string[];
+  try {
+    entries = await readdir(outputRoot);
+  } catch {
+    return undefined;
+  }
+
+  const candidates = await Promise.all(
+    entries.map(async (entry) => {
+      const path = join(outputRoot, entry);
+
+      try {
+        const info = await stat(path);
+
+        return info.isDirectory() && (await pathExists(join(path, "final-report.md")))
+          ? { path, mtimeMs: info.mtimeMs }
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    }),
+  );
+  const latest = candidates
+    .filter((candidate): candidate is { path: string; mtimeMs: number } => candidate !== undefined)
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
+
+  return latest?.path;
 }
 
 async function pathExists(path: string): Promise<boolean> {

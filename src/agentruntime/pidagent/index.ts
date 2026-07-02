@@ -14,6 +14,7 @@ export interface PersistentPidAgentCommand {
 export interface PersistentPidAgentTask {
   input: string;
   timeoutMs?: number;
+  onOutput?: (output: string) => void;
 }
 
 export interface PersistentPidAgentTaskResult {
@@ -72,6 +73,7 @@ class LineProtocolPidAgent implements PersistentPidAgent {
       resolve: (output: string) => void;
       reject: (error: Error) => void;
       timeout: NodeJS.Timeout;
+      onOutput?: (output: string) => void;
     }
   >();
   private closed = false;
@@ -138,6 +140,7 @@ class LineProtocolPidAgent implements PersistentPidAgent {
         resolve,
         reject,
         timeout,
+        onOutput: task.onOutput,
       });
       this.child.stdin.write(`${JSON.stringify({ taskId, input: task.input })}\n`);
     });
@@ -196,6 +199,7 @@ class LineProtocolPidAgent implements PersistentPidAgent {
 
     if (message.output !== undefined) {
       pending.output.push(message.output);
+      pending.onOutput?.(message.output);
     }
 
     if (message.done === true) {

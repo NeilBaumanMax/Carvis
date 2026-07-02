@@ -31,6 +31,7 @@ export interface RuntimePidOutputValidation {
 export interface RuntimeOutputContext {
   run: RunState;
   agents: AgentRuntimeState[];
+  commandText: string;
 }
 
 export interface AgentRuntimeOptions {

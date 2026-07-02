@@ -28,6 +28,7 @@
     "claudecode:smoke": "npm run build && node dist/agentruntime/claudecode/smoke.js",
     "claudecode:sdk-smoke": "npm run build && node dist/agentruntime/claudecode/warmSdkSmoke.js",
     "provider:smoke": "npm run build && node dist/agentruntime/provider/smoke.js",
+    "artist-image-mcp:smoke": "npm run build && node dist/agentruntime/mcp/smoke.js",
     "workplaces:smoke": "npm run build && node dist/agentruntime/workplaces/smoke.js",
     "output:smoke": "npm run build && node dist/output/smoke.js",
     "e2e:smoke": "npm run build && node dist/smoke/e2e.js",

@@ -28,9 +28,9 @@ try {
   const runtimePids = snapshot.agents.map((agent) => agent.pid);
   const pooledAgents = pool.getAgents();
 
-  assert(pooledAgents.length === 0, "pid agent pool should be empty after runtime shutdown");
-  assert(state.runtime.retainedPidCount === 0, "runtime should not retain pids after shutdown");
-  assert(snapshot.agents.every((agent) => agent.status === "shutdown"), "all runtime agents should be shutdown");
+  assert(pooledAgents.length === 5, "pid agent pool should keep all five retained agents after run");
+  assert(state.runtime.retainedPidCount === 5, "runtime should retain all five pids after run");
+  assert(snapshot.agents.every((agent) => agent.status === "retained"), "all runtime agents should be retained");
   assert(runtimePids.every((pid) => pid !== undefined && pid > 0), "all runtime agents should expose real pids");
   assert(
     runtimePids.every((pid) => pid !== undefined && (pid < 40_000 || pid > 40_004)),
@@ -40,7 +40,7 @@ try {
   for (const role of ["manager", "writer", "artist", "researcher", "engineer"] as const) {
     const panel = state.panels.find((item) => item.role === role);
 
-    assert(panel?.status === "shutdown", `${role} panel should be shutdown`);
+    assert(panel?.status === "retained", `${role} panel should be retained`);
     assert(panel.pid !== undefined && panel.pid > 0, `${role} panel should show pid`);
     assert(
       panel.latestOutput?.includes(`${role}:${role}: run through persistent pid agents`) === true,

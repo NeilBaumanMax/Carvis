@@ -92,7 +92,7 @@ try {
     const expected = `${role} real claude smoke ok`;
     const panel = state.panels.find((item) => item.role === role);
 
-    assert(panel?.status === "shutdown", `${role} panel should be shutdown`);
+    assert(panel?.status === "retained", `${role} panel should be retained`);
     assert(finalReport.includes(expected), `final report should include ${role} Claude result`);
   }
 

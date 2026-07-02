@@ -21,11 +21,12 @@ import {
 const bus = createRemoteMessageBus({
   port: readPort(process.env.CARVIS_MESSAGEBUS_PORT),
 });
-const workplacesRoot = process.env.CARVIS_WORKPLACES_ROOT ?? join(process.cwd(), "workplaces", "live");
-const outputRoot = process.env.CARVIS_OUTPUT_ROOT ?? "output";
+const workplacesRoot = process.env.CARVIS_WORKPLACES_ROOT ?? join(process.cwd(), "workplaces", "runs");
+const outputRoot = process.env.CARVIS_OUTPUT_ROOT ?? join("output", "runs");
 const progressDelayMs = readNonNegativeInteger(process.env.CARVIS_AGENTRUNTIME_STREAM_DELAY_MS, 260);
 const previewDelayMs = readNonNegativeInteger(process.env.CARVIS_AGENTRUNTIME_PREVIEW_DELAY_MS, 140);
 const initializedRuns = new Set<string>();
+const runPaths = new Map<string, { workplacesRoot: string; outputRoot: string }>();
 const providerPidAgentPool = isRealProviderMode() ? createProviderPidAgentPool() : undefined;
 const runtime = createAgentRuntime(bus, {
   pidAgentPool: providerPidAgentPool,
@@ -36,8 +37,9 @@ const runtime = createAgentRuntime(bus, {
     isRealProviderMode() && process.env.CARVIS_ENGINEER_RUNS_AFTER_FAILED_REVIEW !== "0",
   pidTaskInputBuilder: isRealProviderMode()
     ? async ({ run, agent, commandText, attempt, previousPidOutput, retryReason }) => {
+        const paths = getRunPaths(run, commandText);
         if (!initializedRuns.has(run.runId)) {
-          await initializeWorkplaces(workplacesRoot, commandText);
+          await initializeWorkplaces(paths.workplacesRoot, commandText);
           initializedRuns.add(run.runId);
         }
 
@@ -45,8 +47,9 @@ const runtime = createAgentRuntime(bus, {
           role: agent.role,
           phase: run.phase,
           commandText,
+          outputRootPath: paths.outputRoot,
           systemPrompt: createRoleSystemPrompt(agent.role, run.phase),
-          prompt: await createRoleUserPrompt(agent.role, run.phase, commandText, {
+          prompt: await createRoleUserPrompt(paths.workplacesRoot, agent.role, run.phase, commandText, {
             attempt: attempt ?? 1,
             previousPidOutput,
             retryReason,
@@ -55,8 +58,9 @@ const runtime = createAgentRuntime(bus, {
       }
     : undefined,
   roleRunner: async ({ run, agent, commandText, pidOutput }) => {
+    const paths = getRunPaths(run, commandText);
     if (!initializedRuns.has(run.runId)) {
-      await initializeWorkplaces(workplacesRoot, commandText);
+      await initializeWorkplaces(paths.workplacesRoot, commandText);
       initializedRuns.add(run.runId);
     }
 
@@ -64,7 +68,7 @@ const runtime = createAgentRuntime(bus, {
     const managerReview = isManagerReview
       ? isRealProviderMode() && pidOutput !== undefined
         ? parseManagerReview(pidOutput)
-        : await renderManagerReviewResult(commandText)
+        : await renderManagerReviewResult(paths.workplacesRoot, commandText)
       : undefined;
     const roleResult =
       managerReview?.content ??
@@ -74,9 +78,9 @@ const runtime = createAgentRuntime(bus, {
       await streamRoleProgress(run.requestId, run.runId, agent.agentId, agent.role, commandText, run.phase);
     }
     if (isManagerReview) {
-      await writeManagerReview(workplacesRoot, roleResult);
+      await writeManagerReview(paths.workplacesRoot, roleResult);
     } else {
-      await writeWorkplaceResult(workplacesRoot, agent.role, roleResult);
+      await writeWorkplaceResult(paths.workplacesRoot, agent.role, roleResult);
     }
     await streamRoleResultPreview(run.requestId, run.runId, agent.agentId, agent.role, roleResult);
     await publishRoleOutput(
@@ -84,8 +88,8 @@ const runtime = createAgentRuntime(bus, {
       run.runId,
       agent.agentId,
       isManagerReview
-        ? `Claude Code CLI public output: manager review gate written to ${join(workplacesRoot, "manager", "review.md")}`
-        : `Claude Code CLI public output: ${agent.role} result written to ${join(workplacesRoot, agent.role, "result.md")}`,
+        ? `Claude Code CLI public output: manager review gate written to ${join(paths.workplacesRoot, "manager", "review.md")}`
+        : `Claude Code CLI public output: ${agent.role} result written to ${join(paths.workplacesRoot, agent.role, "result.md")}`,
     );
     if (managerReview !== undefined) {
       return {
@@ -93,11 +97,12 @@ const runtime = createAgentRuntime(bus, {
       };
     }
   },
-  outputWriter: async () => {
-    const results = await readWorkplaceResults(workplacesRoot);
+  outputWriter: async ({ run, commandText }) => {
+    const paths = getRunPaths(run, commandText);
+    const results = await readWorkplaceResults(paths.workplacesRoot);
 
     return writeOutput({
-      outputRootPath: outputRoot,
+      outputRootPath: paths.outputRoot,
       title: "Carvis Live Task Output",
       workplaceResults: results.map((result) => ({
         role: result.role,
@@ -107,6 +112,41 @@ const runtime = createAgentRuntime(bus, {
     });
   },
 });
+
+function getRunPaths(run: { runId: string; requestId: string; createdAt: string }, commandText: string): { workplacesRoot: string; outputRoot: string } {
+  const existing = runPaths.get(run.runId);
+
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const slug = createRunSlug(run.createdAt, run.requestId, commandText);
+  const paths = {
+    workplacesRoot: join(workplacesRoot, slug),
+    outputRoot: join(outputRoot, slug),
+  };
+
+  runPaths.set(run.runId, paths);
+  return paths;
+}
+
+function createRunSlug(createdAt: string, requestId: string, commandText: string): string {
+  const timestamp = createdAt
+    .replace(/[-:]/g, "")
+    .replace("T", "-")
+    .replace(/\.\d+Z$/, "");
+  const requestPart = safePathPart(requestId).slice(0, 36);
+  const commandPart = safePathPart(commandText).slice(0, 32);
+
+  return [timestamp, requestPart, commandPart].filter((part) => part.length > 0).join("-");
+}
+
+function safePathPart(value: string): string {
+  return value
+    .replace(/[\s/\\:*?"<>|]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 await runComponentMain({
   name: "agentruntime",
@@ -181,6 +221,7 @@ function createRoleSystemPrompt(role: AgentRole, phase: string): string {
 }
 
 async function createRoleUserPrompt(
+  currentWorkplacesRoot: string,
   role: AgentRole,
   phase: string,
   commandText: string,
@@ -190,15 +231,15 @@ async function createRoleUserPrompt(
     retryReason?: string;
   },
 ): Promise<string> {
-  const workplace = createWorkplacePaths(workplacesRoot, role);
+  const workplace = createWorkplacePaths(currentWorkplacesRoot, role);
   const input = await safeRead(workplace.inputPath);
   const skill = await safeRead(workplace.skillPath);
   const plan = await safeRead(workplace.planPath);
-  const managerResult = await safeRead(createWorkplacePaths(workplacesRoot, "manager").resultPath);
-  const managerReview = await safeRead(createWorkplacePaths(workplacesRoot, "manager").reviewPath);
-  const writerResult = await safeRead(createWorkplacePaths(workplacesRoot, "writer").resultPath);
-  const artistResult = await safeRead(createWorkplacePaths(workplacesRoot, "artist").resultPath);
-  const researcherResult = await safeRead(createWorkplacePaths(workplacesRoot, "researcher").resultPath);
+  const managerResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "manager").resultPath);
+  const managerReview = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "manager").reviewPath);
+  const writerResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "writer").resultPath);
+  const artistResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "artist").resultPath);
+  const researcherResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "researcher").resultPath);
 
   const upstream =
     role === "manager" && phase === "manager_reviewing"
@@ -242,6 +283,7 @@ async function createRoleUserPrompt(
             "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，必须明确实现。",
             "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，HTML 代码内必须实现对应事件。",
             "- 必须用 Canvas/SVG/CSS 代码生成素材或明确嵌入素材，不得只写美术氛围。",
+            "- 如果 artist/result.md 包含 GENERATED_IMAGE_ASSETS，必须在 HTML 中使用这些本地图片资产；从 output/game-preview.html 引用时使用相对路径 assets/文件名。",
           ].join("\n")
         : [
             "## 上游主管规则",
@@ -250,6 +292,9 @@ async function createRoleUserPrompt(
             "## 本角色工作要求",
             "- 必须引用用户原始任务中的题材、控制方式、素材要求和交付格式。",
             "- 必须输出足够 engineer 直接实现的材料。",
+            role === "artist"
+              ? "- 必须给出生图提示词、资产用途和构图要求；真实 provider 会把图片资产追加到 GENERATED_IMAGE_ASSETS。"
+              : "",
           ].join("\n");
   const retryBlock =
     retry.attempt > 1
@@ -301,7 +346,7 @@ function validateRealProviderOutput({
   if (output.length === 0) {
     return { ok: false, reason: "输出为空" };
   }
-  if (output.includes("PROVIDER_ERROR")) {
+  if (/^PROVIDER_ERROR:/m.test(output)) {
     return { ok: false, reason: "provider 调用失败" };
   }
   if (output.includes("<function_calls>") || output.includes("<invoke name=") || normalized.includes("workplace目录不存在")) {
@@ -530,8 +575,11 @@ function renderRoleResult(role: string, commandText: string): string {
   }
 }
 
-async function renderManagerReviewResult(commandText: string): Promise<{ content: string; gatePassed: boolean }> {
-  const results = await readWorkplaceResults(workplacesRoot);
+async function renderManagerReviewResult(
+  currentWorkplacesRoot: string,
+  commandText: string,
+): Promise<{ content: string; gatePassed: boolean }> {
+  const results = await readWorkplaceResults(currentWorkplacesRoot);
   const employeeRoles = ["writer", "artist", "researcher"] as const;
   const employeeResults = employeeRoles.map((role) => {
     const result = results.find((item) => item.role === role);

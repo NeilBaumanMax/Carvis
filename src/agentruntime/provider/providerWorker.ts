@@ -2,6 +2,7 @@ import { createInterface } from "node:readline";
 
 import type { AgentRole } from "../../shared/types/agent.js";
 import { runClaudeCodePrint } from "../claudecode/command.js";
+import { callArtistImageMcp, renderArtistImageMcpAssets } from "../mcp/artistImageMcp.js";
 import { getRoleProviderConfig } from "./roles.js";
 import { runQwenOpenAiText } from "./qwenOpenAi.js";
 
@@ -11,6 +12,7 @@ interface ProviderTaskInput {
   commandText: string;
   prompt: string;
   systemPrompt: string;
+  outputRootPath?: string;
 }
 
 const input = createInterface({
@@ -38,7 +40,12 @@ async function handleLine(line: string): Promise<void> {
 
   try {
     const task = JSON.parse(message.input) as ProviderTaskInput;
-    const result = await runProviderTask(task);
+    const result = await runProviderTask(task, (output) => {
+      writeMessage({
+        taskId: message.taskId,
+        output,
+      });
+    });
 
     writeMessage({
       taskId: message.taskId,
@@ -60,10 +67,11 @@ async function handleLine(line: string): Promise<void> {
   }
 }
 
-async function runProviderTask(task: ProviderTaskInput): Promise<string> {
+async function runProviderTask(task: ProviderTaskInput, onProgress: (output: string) => void): Promise<string> {
   const config = getRoleProviderConfig(task.role);
 
   if (config.provider === "deepseek-claudecode") {
+    onProgress(`provider:${task.role}: deepseek claude-code started model=${config.defaultModel}`);
     const result = await runClaudeCodePrint(task.prompt, {
       env: {
         ...process.env,
@@ -76,6 +84,7 @@ async function runProviderTask(task: ProviderTaskInput): Promise<string> {
       systemPrompt: task.systemPrompt,
     });
     const output = result.stdout.trim();
+    onProgress(`provider:${task.role}: deepseek claude-code finished exit=${String(result.exitCode)}`);
 
     if (result.exitCode !== 0) {
       throw new Error(
@@ -92,11 +101,25 @@ async function runProviderTask(task: ProviderTaskInput): Promise<string> {
     ].join("\n");
   }
 
+  onProgress(`provider:${task.role}: qwen text started model=${config.defaultModel}`);
   const qwenOutput = await runQwenOpenAiText({
     model: config.defaultModel,
     systemPrompt: task.systemPrompt,
     userPrompt: task.prompt,
   });
+  onProgress(`provider:${task.role}: qwen text finished chars=${qwenOutput.length}`);
+  const imageAssets =
+    task.role === "artist"
+      ? await callArtistImageMcp({
+          role: task.role,
+          commandText: task.commandText,
+          artistOutput: qwenOutput,
+          outputRootPath: task.outputRootPath,
+          onProgress: (message) => {
+            onProgress(`provider:${task.role}: ${message}`);
+          },
+        })
+      : undefined;
 
   return [
     `PROVIDER: ${config.provider}`,
@@ -104,6 +127,7 @@ async function runProviderTask(task: ProviderTaskInput): Promise<string> {
     `ROLE: ${task.role}`,
     "",
     qwenOutput,
+    imageAssets === undefined ? "" : renderArtistImageMcpAssets(imageAssets),
   ].join("\n");
 }
 
