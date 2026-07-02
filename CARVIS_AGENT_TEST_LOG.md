@@ -394,6 +394,9 @@
 - 2026-07-03 00:30 左右：`npm run build` 通过。
 - 2026-07-03 00:31 左右：`npm run workplaces:smoke` 通过。
 - 2026-07-03 00:32 左右：完整 `npm test` 通过。
+- 2026-07-03 00:41 左右：第一次提交第二轮测试 1 后确认远端 prompt 已包含 `common/role.md`、`common/policy.md` 和 `selected task skill`，但也发现旧 `skill.md` 全文仍被拼进真实 prompt，造成上下文重复。
+- 2026-07-03 00:43 左右：停止等待该未产出的队列，收紧 prompt 构造：旧 `skill.md` 继续落盘兼容，但不再进入真实模型上下文；真实 prompt 只读 `input.md`、`common/*.md`、`skills/selected.md`、`plan.md` 和分层 handoff。
+- 2026-07-03 00:44 左右：收紧后本地 `npm run build && npm run workplaces:smoke && npm run agentruntime:smoke` 通过。
 
 ### 第二轮四测试重跑记录
 

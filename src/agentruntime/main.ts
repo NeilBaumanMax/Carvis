@@ -260,7 +260,6 @@ async function createRoleUserPrompt(
 ): Promise<string> {
   const workplace = createWorkplacePaths(currentWorkplacesRoot, role);
   const input = await safeRead(workplace.inputPath);
-  const skill = await safeRead(workplace.skillPath);
   const plan = await safeRead(workplace.planPath);
   const commonRole = await safeRead(workplace.commonRolePath);
   const commonPolicy = await safeRead(workplace.commonPolicyPath);
@@ -373,9 +372,6 @@ async function createRoleUserPrompt(
     "",
     "# workplace/input.md",
     input,
-    "",
-    "# 本角色 skill.md",
-    skill,
     "",
     "# 本角色 common/role.md",
     commonRole,
