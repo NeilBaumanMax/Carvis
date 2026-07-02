@@ -2,6 +2,53 @@
 
 ## 2026-07-02
 
+## 2026-07-02 / Real provider role routing with DeepSeek and Qwen / 开工计划
+
+### 本轮目标
+
+- 把 NixOS 常驻 agentruntime 从本地模板生成升级为真实 provider 调用。
+- manager 和 engineer 使用 DeepSeek + Claude Code CLI。
+- writer、artist、researcher 使用 Qwen3.5-Omni-Plus OpenAI 兼容接口。
+- 每个角色运行时注入对应 `skill.md`、`plan.md` 和上游 workplace 内容。
+- 不把 DeepSeek/Qwen API Key 写进仓库。
+
+### 涉及层
+
+- `03-agentruntime`
+- `04-claudecode`
+- `06-workplaces`
+- `07-output`
+- NixOS systemd/user secret 配置
+
+### 计划修改
+
+- 新增 Qwen OpenAI-compatible client 和 role runner。
+- 新增真实 multi-provider role runner：按角色选择 DeepSeek Claude Code 或 Qwen。
+- 常驻 `agentruntime/main.ts` 增加真实 provider 模式开关，默认仍可 dry/smoke。
+- manager review 使用真实/结构化产物进行 gate；engineer 只在 gate 通过后集成。
+- 测试覆盖 provider 路由、prompt 注入和不泄漏密钥。
+
+### 测试计划
+
+- `npm run build`
+- `npm run agentruntime:smoke`
+- `npm run workplaces:smoke`
+- 新增 provider runner smoke
+- `npm test`
+- NixOS 上配置本地 secret 后运行 DeepSeek/Qwen 真实 smoke。
+- NixOS 从 Electron/messagebus 提交一条游戏任务，检查 output 是否包含用户要求、provider 标记和真实产物。
+
+### GitHub 备份计划
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 基线提交：`38ee7e2 backup: add manager review gate`
+- 备份分支：继续 push 当前分支，真实密钥只写远端本地文件。
+
+### 回滚预案
+
+- 回滚 provider runner 新增文件和 `agentruntime/main.ts` 的真实 provider 模式。
+- 保留已有 manager review gate 和 skill 文件能力。
+
 ## 2026-07-02 / Manager review gate before engineering
 
 ### 本轮计划

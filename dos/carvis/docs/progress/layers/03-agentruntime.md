@@ -1,5 +1,27 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-02 / Real provider role routing / 开工计划
+
+### 当前目标
+
+- 常驻 `agentruntime/main.ts` 不再只用本地模板，应可切到真实 provider runner。
+- manager/engineer 路由到 DeepSeek Claude Code。
+- writer/artist/researcher 路由到 Qwen3.5-Omni-Plus OpenAI 兼容接口。
+- 所有角色 prompt 注入本角色 `skill.md`、`plan.md` 和必要上游 workplace 内容。
+
+### 计划改动
+
+- 新增 multi-provider role runner。
+- 新增 Qwen client。
+- 保留现有模板 runner 作为无 key/dry fallback 和 smoke 路径。
+- 让 manager review gate 消费真实员工产物。
+
+### 验收指标
+
+- 本地 smoke 能断言角色 provider 路由正确。
+- NixOS systemd 常驻服务带本地 secret 后能执行真实 provider 调用。
+- 产物不再出现与用户任务无关的固定“雾/记忆/老年旅人”模板。
+
 ## 2026-07-02 / Manager review gate / 本次完成
 
 ### 本次完成

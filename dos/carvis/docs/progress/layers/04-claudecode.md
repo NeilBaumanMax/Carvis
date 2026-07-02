@@ -1,5 +1,26 @@
 # 04 ClaudeCode Progress
 
+## 2026-07-02 / DeepSeek + Qwen provider split / 开工计划
+
+### 当前目标
+
+- DeepSeek 继续使用 Claude Code CLI 的 Anthropic 兼容接入。
+- Qwen3.5-Omni-Plus 按 `QWEN3.5-OMNI-PLUS_CODEX_SETUP.md` 使用 OpenAI 兼容接口。
+- manager/engineer 使用 DeepSeek；writer/artist/researcher 使用 Qwen。
+- 不把 provider key 写入仓库。
+
+### 计划改动
+
+- 新增 Qwen OpenAI-compatible HTTP client。
+- 新增 role provider 配置和 multi-provider role runner。
+- DeepSeek 角色继续使用 Claude Code CLI 封装。
+- NixOS user systemd 使用本地 env file 注入 secret。
+
+### 验收指标
+
+- Dry smoke 验证 provider 路由和 prompt 构造。
+- NixOS real smoke 验证 DeepSeek 和 Qwen 至少各成功调用一次。
+
 ## 2026-07-02 / Claude Agent SDK warm runner / 本次完成
 
 ### 本次完成
