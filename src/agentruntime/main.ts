@@ -1,12 +1,17 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { createRemoteMessageBus } from "../messagebus/index.js";
 import { writeOutput } from "../output/index.js";
 import { runComponentMain } from "../shared/componentMain.js";
+import type { AgentRole } from "../shared/types/agent.js";
 import type { AgentOutputPayload } from "../shared/types/events.js";
 import { createAgentRuntime } from "./index.js";
+import { PersistentPidAgentPool } from "./pidagent/index.js";
+import { getRoleProviderConfig } from "./provider/roles.js";
 import { renderAgentSkillProgressLines } from "./skills/index.js";
 import {
+  createWorkplacePaths,
   initializeWorkplaces,
   readWorkplaceResults,
   writeManagerReview,
@@ -21,18 +26,45 @@ const outputRoot = process.env.CARVIS_OUTPUT_ROOT ?? "output";
 const progressDelayMs = readNonNegativeInteger(process.env.CARVIS_AGENTRUNTIME_STREAM_DELAY_MS, 260);
 const previewDelayMs = readNonNegativeInteger(process.env.CARVIS_AGENTRUNTIME_PREVIEW_DELAY_MS, 140);
 const initializedRuns = new Set<string>();
+const providerPidAgentPool = isRealProviderMode() ? createProviderPidAgentPool() : undefined;
 const runtime = createAgentRuntime(bus, {
-  roleRunner: async ({ run, agent, commandText }) => {
+  pidAgentPool: providerPidAgentPool,
+  pidTaskTimeoutMs: readNonNegativeInteger(process.env.CARVIS_REAL_PROVIDER_TIMEOUT_MS, 240_000),
+  pidTaskInputBuilder: isRealProviderMode()
+    ? async ({ run, agent, commandText }) => {
+        if (!initializedRuns.has(run.runId)) {
+          await initializeWorkplaces(workplacesRoot, commandText);
+          initializedRuns.add(run.runId);
+        }
+
+        return JSON.stringify({
+          role: agent.role,
+          phase: run.phase,
+          commandText,
+          systemPrompt: createRoleSystemPrompt(agent.role, run.phase),
+          prompt: await createRoleUserPrompt(agent.role, run.phase, commandText),
+        });
+      }
+    : undefined,
+  roleRunner: async ({ run, agent, commandText, pidOutput }) => {
     if (!initializedRuns.has(run.runId)) {
       await initializeWorkplaces(workplacesRoot, commandText);
       initializedRuns.add(run.runId);
     }
 
     const isManagerReview = agent.role === "manager" && run.phase === "manager_reviewing";
-    const managerReview = isManagerReview ? await renderManagerReviewResult(commandText) : undefined;
-    const roleResult = managerReview?.content ?? renderRoleResult(agent.role, commandText);
+    const managerReview = isManagerReview
+      ? isRealProviderMode() && pidOutput !== undefined
+        ? parseManagerReview(pidOutput)
+        : await renderManagerReviewResult(commandText)
+      : undefined;
+    const roleResult =
+      managerReview?.content ??
+      (isRealProviderMode() && pidOutput !== undefined ? pidOutput : renderRoleResult(agent.role, commandText));
 
-    await streamRoleProgress(run.requestId, run.runId, agent.agentId, agent.role, commandText, run.phase);
+    if (!isRealProviderMode()) {
+      await streamRoleProgress(run.requestId, run.runId, agent.agentId, agent.role, commandText, run.phase);
+    }
     if (isManagerReview) {
       await writeManagerReview(workplacesRoot, roleResult);
     } else {
@@ -102,6 +134,134 @@ function readNonNegativeInteger(value: string | undefined, fallback: number): nu
   const parsed = Number.parseInt(value, 10);
 
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function isRealProviderMode(): boolean {
+  return process.env.CARVIS_AGENTRUNTIME_REAL_PROVIDERS === "1";
+}
+
+function createProviderPidAgentPool(): PersistentPidAgentPool {
+  return new PersistentPidAgentPool({
+    createCommand: () => ({
+      command: process.execPath,
+      args: ["dist/agentruntime/provider/providerWorker.js"],
+      env: process.env,
+      cwd: process.cwd(),
+    }),
+  });
+}
+
+function createRoleSystemPrompt(role: AgentRole, phase: string): string {
+  const provider = getRoleProviderConfig(role);
+  const phaseLine =
+    role === "manager" && phase === "manager_reviewing"
+      ? "你现在是主管复审阶段。必须审核 writer/artist/researcher 是否满足用户原始要求，不通过就输出 GATE_PASSED: false。"
+      : "你必须按本角色 skill 和上下游材料工作。";
+
+  return [
+    "你是 Carvis 多 Agent 系统中的一个真实工作进程。",
+    `角色：${role}`,
+    `Provider：${provider.provider}`,
+    `Model：${provider.defaultModel}`,
+    "输出语言必须是中文，技术文件名和必要 API 名可以保留英文。",
+    "不要输出隐藏思考过程；只输出可公开的工作结果、检查清单、文件方案和必要代码。",
+    "必须紧贴用户原始任务，不得套用与任务无关的固定模板。",
+    "如果用户要求做游戏，最终必须推动生成可打开、可玩的 HTML/JS 预览，而不是只写设定。",
+    phaseLine,
+  ].join("\n");
+}
+
+async function createRoleUserPrompt(role: AgentRole, phase: string, commandText: string): Promise<string> {
+  const workplace = createWorkplacePaths(workplacesRoot, role);
+  const input = await safeRead(workplace.inputPath);
+  const skill = await safeRead(workplace.skillPath);
+  const plan = await safeRead(workplace.planPath);
+  const managerResult = await safeRead(createWorkplacePaths(workplacesRoot, "manager").resultPath);
+  const managerReview = await safeRead(createWorkplacePaths(workplacesRoot, "manager").reviewPath);
+  const writerResult = await safeRead(createWorkplacePaths(workplacesRoot, "writer").resultPath);
+  const artistResult = await safeRead(createWorkplacePaths(workplacesRoot, "artist").resultPath);
+  const researcherResult = await safeRead(createWorkplacePaths(workplacesRoot, "researcher").resultPath);
+
+  const upstream =
+    role === "manager" && phase === "manager_reviewing"
+      ? [
+          "## 员工产物待审核",
+          "### writer/result.md",
+          writerResult,
+          "### artist/result.md",
+          artistResult,
+          "### researcher/result.md",
+          researcherResult,
+          "",
+          "## 复审输出硬要求",
+          "- 逐条核对用户原始任务有没有被满足。",
+          "- 检查是否偷懒：泛泛设定、缺少可执行任务、缺少文件产物、缺少控制方式、缺少素材方案都要判返工。",
+          "- 最后一行必须是 `GATE_PASSED: true` 或 `GATE_PASSED: false`。",
+        ].join("\n")
+      : role === "engineer"
+        ? [
+            "## 上游材料",
+            "### manager/result.md",
+            managerResult,
+            "### manager/review.md",
+            managerReview,
+            "### writer/result.md",
+            writerResult,
+            "### artist/result.md",
+            artistResult,
+            "### researcher/result.md",
+            researcherResult,
+            "",
+            "## 技术产出硬要求",
+            "- 必须把上游内容集成为真实可玩游戏产物方案。",
+            "- 必须列出 output/game-preview.html 或 game/index.html 的文件结构和核心代码方案。",
+            "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，必须明确实现。",
+            "- 必须说明素材生成或素材来源，不得只写美术氛围。",
+          ].join("\n")
+        : [
+            "## 上游主管规则",
+            managerResult,
+            "",
+            "## 本角色工作要求",
+            "- 必须引用用户原始任务中的题材、控制方式、素材要求和交付格式。",
+            "- 必须输出足够 engineer 直接实现的材料。",
+          ].join("\n");
+
+  return [
+    "# 用户原始任务",
+    commandText,
+    "",
+    "# workplace/input.md",
+    input,
+    "",
+    "# 本角色 skill.md",
+    skill,
+    "",
+    "# 本角色 plan.md",
+    plan,
+    "",
+    upstream,
+  ].join("\n");
+}
+
+function parseManagerReview(output: string): { content: string; gatePassed: boolean } {
+  const normalized = output.toLowerCase();
+  const explicitFalse = /gate_passed\s*:\s*false/i.test(output);
+  const explicitTrue = /gate_passed\s*:\s*true/i.test(output);
+  const hasRework = output.includes("返工") || output.includes("不通过") || normalized.includes("rework");
+
+  return {
+    content: output,
+    gatePassed: explicitFalse ? false : explicitTrue ? true : !hasRework,
+  };
+}
+
+async function safeRead(path: string): Promise<string> {
+  try {
+    return await readFile(path, "utf8");
+  } catch {
+    return "";
+  }
 }
 
 async function streamRoleProgress(

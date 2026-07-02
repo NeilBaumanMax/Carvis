@@ -60,6 +60,79 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / Real provider routing / 接力记录
+
+### 当前状态
+
+- 代码侧已接入真实 provider 路由：
+  - manager：DeepSeek Claude Code
+  - engineer：DeepSeek Claude Code
+  - writer/artist/researcher：Qwen OpenAI-compatible
+- `CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1` 时，常驻 `agentruntime/main.ts` 会启动 `PersistentPidAgentPool`，每个角色一个 provider worker PID。
+- provider worker PID 在任务完成后保留，直到 Runtime 统一 shutdown。
+- prompt 会注入用户任务、本角色 `skill.md`、`plan.md` 和上游 workplace result。
+- NixOS 本地 secret 文件路径：`~/.config/carvis/agentruntime.env`，权限 600，不进 Git。
+- DeepSeek Claude Code real smoke 已通过。
+- 五角色全 DeepSeek real MVP smoke 已通过，普通 CLI runner 和 SDK warm runner 都通过。
+- Qwen real smoke 当前未通过：接口返回 `invalid_api_key`。
+- Qwen API 问题记录在根目录 `QWEN_API_ISSUE.md`。
+
+### 本轮完成
+
+- 新增 `src/agentruntime/provider/roles.ts`。
+- 新增 `src/agentruntime/provider/qwenOpenAi.ts`。
+- 新增 `src/agentruntime/provider/providerWorker.ts`。
+- `AgentRuntime` 新增 `pidTaskInputBuilder` 和 `pidOutput`。
+- setup/systemd 支持 `EnvironmentFile=`。
+- 新增 npm script：`provider:smoke`。
+
+### 未完成
+
+- Qwen key/base URL 未通过真实鉴权，因此完整五角色 real provider 链尚不能标记完成。
+- systemd 常驻服务暂不建议启用完整 real provider 生产模式，避免 writer/artist/researcher 因 Qwen 鉴权失败而失败。
+- DeepSeek Claude Code 调用仍是 provider worker 内部按任务启动 CLI print；长驻的是外层 provider worker PID，不是 Claude Code 本体无限多轮 PID。
+
+### 下次优先任务
+
+1. 让用户提供有效 DashScope API Key，或提供当前 `sk-ws-...` key 对应的正确 workspace/base URL。
+2. 在 NixOS 运行：`CARVIS_QWEN_REAL_SMOKE=1 npm run provider:smoke`。
+3. Qwen 通过后，用 `CARVIS_AGENTRUNTIME_ENV_FILE=~/.config/carvis/agentruntime.env` 重装 user systemd unit，启用 `CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1`。
+4. 从 Electron/messagebus 提交一条游戏任务，确认 output 不再是本地模板，且包含用户任务要求和真实 provider 标记。
+
+### 关键文件
+
+- `src/agentruntime/provider/roles.ts`
+- `src/agentruntime/provider/qwenOpenAi.ts`
+- `src/agentruntime/provider/providerWorker.ts`
+- `src/agentruntime/main.ts`
+- `src/agentruntime/runtime.ts`
+- `src/setup/systemd.ts`
+- `QWEN3.5-OMNI-PLUS_CODEX_SETUP.md`
+
+### 测试基线
+
+- `npm run provider:smoke`：通过 dry。
+- `npm run setup:systemd-smoke`：通过。
+- `npm run agentruntime:smoke`：通过。
+- `npm run runtime-pidagent:smoke`：通过。
+- `npm test`：通过。
+- NixOS `npm run build`：通过。
+- NixOS DeepSeek `CARVIS_CLAUDECODE_REAL_SMOKE=1 npm run claudecode:smoke`：通过。
+- NixOS 五角色全 DeepSeek `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=0 npm run mvp:real-smoke`：通过。
+- NixOS 五角色全 DeepSeek SDK warm `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=1 npm run mvp:real-smoke`：通过。
+- NixOS Qwen `CARVIS_QWEN_REAL_SMOKE=1 npm run provider:smoke`：失败，`invalid_api_key`。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：待本轮提交。
+- 已 push：待本轮 push。
+
+### 风险提醒
+
+- 真实 API Key 不能写入仓库或文档。
+- Qwen real 未通过前，不要向用户承诺完整五角色真实生产已经通过。
+
 ## 2026-07-02 / Manager review gate before engineering / 接力记录
 
 ### 当前状态

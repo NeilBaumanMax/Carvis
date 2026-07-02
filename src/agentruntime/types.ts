@@ -13,9 +13,11 @@ export interface RuntimeRoleContext {
   run: RunState;
   agent: AgentRuntimeState;
   commandText: string;
+  pidOutput?: string;
 }
 
 export type RuntimeOutputWriter = (context: RuntimeOutputContext) => OutputReadyPayload | Promise<OutputReadyPayload>;
+export type RuntimePidTaskInputBuilder = (context: RuntimeRoleContext) => string | Promise<string>;
 
 export interface RuntimeOutputContext {
   run: RunState;
@@ -24,6 +26,7 @@ export interface RuntimeOutputContext {
 
 export interface AgentRuntimeOptions {
   roleRunner?: RuntimeRoleRunner;
+  pidTaskInputBuilder?: RuntimePidTaskInputBuilder;
   pidAgentPool?: PersistentPidAgentPool;
   pidTaskTimeoutMs?: number;
   outputWriter?: RuntimeOutputWriter;

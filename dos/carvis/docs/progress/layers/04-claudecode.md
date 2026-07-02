@@ -21,6 +21,27 @@
 - Dry smoke 验证 provider 路由和 prompt 构造。
 - NixOS real smoke 验证 DeepSeek 和 Qwen 至少各成功调用一次。
 
+### 本次完成
+
+- 新增 `src/agentruntime/provider/roles.ts`：manager/engineer 使用 DeepSeek，writer/artist/researcher 使用 Qwen。
+- 新增 `src/agentruntime/provider/qwenOpenAi.ts`：通过 OpenAI-compatible `/chat/completions` 调用 Qwen3.5-Omni-Plus。
+- 新增 `src/agentruntime/provider/providerWorker.ts`：长驻 PID worker，按角色 provider 调用 DeepSeek Claude Code 或 Qwen OpenAI-compatible。
+- 新增 `provider:smoke`。
+- systemd unit 支持 `EnvironmentFile=`，用于本地 secret 注入。
+
+### 当前验证
+
+- 本地 `npm run provider:smoke`：通过 dry。
+- 本地 `npm test`：通过。
+- 远端 NixOS `CARVIS_CLAUDECODE_REAL_SMOKE=1 npm run claudecode:smoke`：通过 real。
+- 远端 NixOS Qwen real smoke：未通过，接口返回 `invalid_api_key`。
+- 已确认同一 NixOS 机器通过 WiFi 访问 DeepSeek/DashScope 域名正常，失败点是 Qwen key/endpoint 鉴权。
+
+### 剩余风险
+
+- 需要用户提供有效 DashScope API Key，或提供该 `sk-ws-...` key 对应的正确 workspace/base URL。
+- Qwen real 未通过前，不应把常驻 systemd 切成完整真实 provider 生产模式，否则 writer/artist/researcher 会失败。
+
 ## 2026-07-02 / Claude Agent SDK warm runner / 本次完成
 
 ### 本次完成

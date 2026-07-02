@@ -49,6 +49,32 @@
 - 回滚 provider runner 新增文件和 `agentruntime/main.ts` 的真实 provider 模式。
 - 保留已有 manager review gate 和 skill 文件能力。
 
+### 本次完成
+
+- 新增 provider 路由：manager/engineer -> DeepSeek Claude Code，writer/artist/researcher -> Qwen OpenAI-compatible。
+- 新增 `src/agentruntime/provider/qwenOpenAi.ts`，按 `QWEN3.5-OMNI-PLUS_CODEX_SETUP.md` 使用 OpenAI 兼容 chat completions。
+- 新增 `src/agentruntime/provider/providerWorker.ts`，作为长驻 PID worker，任务结束后进程保留，Runtime 统一 shutdown。
+- `AgentRuntime` 新增 `pidTaskInputBuilder` 和 `pidOutput`，让长驻 PID worker 的真实 provider 输出进入 roleRunner。
+- `agentruntime/main.ts` 支持 `CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1` 切到真实 provider 模式，并把 `skill.md`、`plan.md`、上游 workplace result 注入 prompt。
+- systemd 支持 `EnvironmentFile=`，用于 NixOS 本地 secret env file，不把 API Key 写进仓库。
+- 新增 `provider:smoke`，dry 模式验证五角色 provider 路由。
+
+### 当前验证
+
+- 本地 `npm run provider:smoke`：通过。
+- 本地 `npm run setup:systemd-smoke`：通过。
+- 本地 `npm run agentruntime:smoke`：通过。
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS 默认路由优先 `wlan0`，DeepSeek 和 DashScope 域名均可连通。
+- 远端 NixOS `npm run build`：通过。
+- 远端 NixOS `CARVIS_CLAUDECODE_REAL_SMOKE=1 npm run claudecode:smoke`：通过，DeepSeek Claude Code 可用。
+- 远端 NixOS 五角色全 DeepSeek `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=0 npm run mvp:real-smoke`：通过。
+- 远端 NixOS 五角色全 DeepSeek SDK warm `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=1 npm run mvp:real-smoke`：通过。
+- 远端 NixOS `CARVIS_QWEN_REAL_SMOKE=1 npm run provider:smoke`：未通过，Qwen 返回 `invalid_api_key`。
+- 已尝试 DashScope 标准域、coding 域、token-plan/trial workspace 域、dashscope-intl 域，均未通过 Qwen key 鉴权。
+- ModelScope OpenAI 域 `/chat/completions` 也返回鉴权失败；当前需要有效 DashScope/Workspace API Key 或正确 workspace base URL 才能完成 Qwen real 验收。
+
 ## 2026-07-02 / Manager review gate before engineering
 
 ### 本轮计划

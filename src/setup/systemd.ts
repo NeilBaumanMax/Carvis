@@ -96,6 +96,7 @@ function createComponentUnit(
       `WorkingDirectory=${escapeSystemdValue(options.workingDirectory)}`,
       `ExecStart=${escapeSystemdExec([options.nodePath, ...component.args])}`,
       `Environment=CARVIS_MESSAGEBUS_PORT=${options.messagebusPort}`,
+      ...environmentFileLines(component.environmentFile),
       ...environmentLines(component.environment),
       "Restart=on-failure",
       "RestartSec=3",
@@ -120,6 +121,14 @@ function dependencyLines(component: SetupComponentName): string[] {
     "Requires=carvis-messagebus.service carvis-agentruntime.service",
     "After=carvis-messagebus.service carvis-agentruntime.service",
   ];
+}
+
+function environmentFileLines(environmentFile: string | undefined): string[] {
+  if (environmentFile === undefined || environmentFile.length === 0) {
+    return [];
+  }
+
+  return [`EnvironmentFile=${escapeSystemdValue(environmentFile)}`];
 }
 
 function environmentLines(environment: Readonly<Record<string, string>> | undefined): string[] {

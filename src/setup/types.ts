@@ -8,6 +8,7 @@ export interface SetupComponentConfig {
   args: readonly string[];
   required: boolean;
   environment?: Readonly<Record<string, string>>;
+  environmentFile?: string;
 }
 
 export interface SetupConfig {

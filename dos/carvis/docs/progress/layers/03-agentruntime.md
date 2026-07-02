@@ -22,6 +22,25 @@
 - NixOS systemd 常驻服务带本地 secret 后能执行真实 provider 调用。
 - 产物不再出现与用户任务无关的固定“雾/记忆/老年旅人”模板。
 
+### 本次完成
+
+- `AgentRuntimeOptions` 新增 `pidTaskInputBuilder`，可把 role/phase/skill/upstream context 编成 PID worker 输入。
+- `RuntimeRoleContext` 新增 `pidOutput`，真实 provider worker 输出会进入 roleRunner 并写入 workplace。
+- 常驻 `agentruntime/main.ts` 增加 `CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1` 模式。
+- 真实模式下每个角色由 `PersistentPidAgentPool` 启动一个 provider worker PID，任务结束后保留到 runtime 统一 shutdown。
+- prompt 构造会读取本角色 `skill.md`、`plan.md`，并按阶段注入 manager/writer/artist/researcher 的上游 result。
+
+### 当前验证
+
+- 本地 `npm run agentruntime:smoke`：通过。
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 本地 `npm test`：通过。
+
+### 剩余风险
+
+- 真实 Qwen key 当前鉴权失败，NixOS 还不能完整运行五角色真实 provider 链。
+- Claude Code SDK warm handle 仍不是无限多轮 stdin/stdout；本轮长驻的是 provider worker PID，DeepSeek Claude Code 调用仍由 worker 内部按任务启动 CLI print。
+
 ## 2026-07-02 / Manager review gate / 本次完成
 
 ### 本次完成

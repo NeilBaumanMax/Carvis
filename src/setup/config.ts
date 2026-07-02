@@ -21,6 +21,8 @@ function createDefaultComponents(env: NodeJS.ProcessEnv): readonly SetupComponen
       command: "node",
       args: ["dist/agentruntime/main.js"],
       required: true,
+      environment: readAgentRuntimeEnvironment(env),
+      environmentFile: env.CARVIS_AGENTRUNTIME_ENV_FILE,
     },
     {
       name: "electron",
@@ -30,6 +32,29 @@ function createDefaultComponents(env: NodeJS.ProcessEnv): readonly SetupComponen
       environment: readElectronEnvironment(env),
     },
   ];
+}
+
+function readAgentRuntimeEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<string, string>> | undefined {
+  const values: Record<string, string> = {};
+
+  for (const key of [
+    "CARVIS_AGENTRUNTIME_REAL_PROVIDERS",
+    "CARVIS_REAL_PROVIDER_TIMEOUT_MS",
+    "CARVIS_REAL_PROVIDER_MAX_BUDGET_USD",
+    "CARVIS_CLAUDE_CODE_BIN",
+    "CARVIS_CLAUDE_CODE_RUNNER",
+    "CARVIS_CLAUDE_CODE_BARE",
+    "QWEN_OPENAI_BASE_URL",
+    "QWEN_OMNI_MODEL",
+  ]) {
+    const value = env[key];
+
+    if (value !== undefined && value.length > 0) {
+      values[key] = value;
+    }
+  }
+
+  return Object.keys(values).length === 0 ? undefined : values;
 }
 
 function readElectronEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<string, string>> | undefined {

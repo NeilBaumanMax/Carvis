@@ -1,5 +1,53 @@
 # Carvis Construction Log
 
+## 2026-07-02 / Real provider role routing with DeepSeek and Qwen
+
+### 目标
+
+- 接入真实 provider，替换常驻 runtime 的纯本地模板生产。
+- manager/engineer 使用 DeepSeek + Claude Code CLI。
+- writer/artist/researcher 使用 Qwen3.5-Omni-Plus OpenAI 兼容接口。
+- 每个角色注入对应 skills、plan 和上游 workplace 结果。
+- NixOS 上通过 WiFi 测试。
+
+### 实际修改
+
+- 新增 `src/agentruntime/provider/roles.ts`，固定角色 provider 路由：
+  - manager：DeepSeek Claude Code
+  - engineer：DeepSeek Claude Code
+  - writer/artist/researcher：Qwen OpenAI-compatible
+- 新增 `src/agentruntime/provider/qwenOpenAi.ts`，按本地 `QWEN3.5-OMNI-PLUS_CODEX_SETUP.md` 使用 `/chat/completions`。
+- 新增 `src/agentruntime/provider/providerWorker.ts`，作为长驻 PID worker；Runtime 统一 shutdown 前不关闭。
+- `AgentRuntime` 新增 `pidTaskInputBuilder` 和 `pidOutput`，使 provider worker 输出可写入 workplace。
+- `agentruntime/main.ts` 新增 `CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1` 真实 provider 模式。
+- prompt 注入内容包括用户原始任务、本角色 `skill.md`、`plan.md`、manager 规则/复审、员工 result。
+- setup/systemd 增加 `EnvironmentFile=` 支持，用于 NixOS 本地 secret 文件。
+- 新增 `provider:smoke`。
+
+### 验证结果
+
+- 本地 `npm run provider:smoke`：通过。
+- 本地 `npm run setup:systemd-smoke`：通过。
+- 本地 `npm run agentruntime:smoke`：通过。
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 本地 `npm test`：通过。
+- NixOS 默认路由优先 `wlan0`，DeepSeek/DashScope 域名均可访问。
+- NixOS `npm run build`：通过。
+- NixOS `CARVIS_CLAUDECODE_REAL_SMOKE=1 npm run claudecode:smoke`：通过，DeepSeek Claude Code 可用。
+- NixOS 五角色全 DeepSeek `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=0 npm run mvp:real-smoke`：通过。
+- NixOS 五角色全 DeepSeek SDK warm `CARVIS_REAL_MVP_SMOKE=1 CARVIS_REAL_MVP_USE_SDK=1 npm run mvp:real-smoke`：通过。
+- NixOS `CARVIS_QWEN_REAL_SMOKE=1 npm run provider:smoke`：未通过，Qwen 返回 `invalid_api_key`。
+- 已尝试多个 Qwen base URL：DashScope 标准域、coding 域、token-plan/trial workspace 域、dashscope-intl 域，均未通过当前 Qwen key 鉴权。
+- ModelScope OpenAI 域 `/chat/completions` 也鉴权失败。
+
+### 结论
+
+- 代码侧已完成 DeepSeek/Qwen provider 路由、skills/context 注入、长驻 provider worker PID 和本地 secret 注入能力。
+- DeepSeek 真实调用已在 NixOS 通过。
+- Qwen 真实调用未通过，原因是当前提供的 Qwen key 或 base URL 无效；需要有效 DashScope/Workspace API Key 或正确 workspace base URL 后才能完成 full real provider 验收。
+- 在 Qwen key 修复前，不应把 systemd 常驻服务切到完整 `CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1` 生产模式，否则 writer/artist/researcher 会失败。
+- Qwen 问题已单独记录到根目录 `QWEN_API_ISSUE.md`。
+
 ## 2026-07-02 / Manager review gate before engineering
 
 ### 目标

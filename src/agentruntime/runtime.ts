@@ -163,19 +163,28 @@ export class AgentRuntime {
     await this.setAgentStatus(agent, "starting", "agent.starting");
     await this.setAgentStatus(agent, "ready", "agent.ready");
     await this.setAgentStatus(agent, "working", "agent.output", `${role} working`);
+    let pidOutput: string | undefined;
     if (pidAgent !== undefined) {
+      const pidInput =
+        (await this.options.pidTaskInputBuilder?.({
+          run: this.mustCurrentRun(),
+          agent,
+          commandText,
+        })) ?? `${role}: ${commandText}`;
       const result = await pidAgent.runTask({
-        input: `${role}: ${commandText}`,
+        input: pidInput,
         timeoutMs: this.options.pidTaskTimeoutMs,
       });
 
       agent.pid = result.pid;
+      pidOutput = result.output;
       await this.setAgentStatus(agent, "working", "agent.output", result.output);
     }
     const roleResult = await this.options.roleRunner?.({
       run: this.mustCurrentRun(),
       agent,
       commandText,
+      pidOutput,
     });
     await this.setAgentStatus(agent, "done", "agent.done");
     agent.retained = true;

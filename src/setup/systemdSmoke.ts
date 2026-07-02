@@ -73,6 +73,26 @@ assert(
   "browser electron unit should include electron binary",
 );
 
+const providerConfig = loadSetupConfig({
+  CARVIS_AGENTRUNTIME_ENV_FILE: "/home/howtion/.config/carvis/agentruntime.env",
+  CARVIS_AGENTRUNTIME_REAL_PROVIDERS: "1",
+});
+const providerUnits = createSystemdUserUnits(providerConfig.components, {
+  workingDirectory: "/home/howtion/carvis",
+  nodePath: "/run/current-system/sw/bin/node",
+  messagebusPort: 45931,
+});
+const providerRuntime = providerUnits.find((unit) => unit.filename === "carvis-agentruntime.service")?.content ?? "";
+
+assert(
+  providerRuntime.includes("EnvironmentFile=/home/howtion/.config/carvis/agentruntime.env"),
+  "runtime unit should support local provider env file",
+);
+assert(
+  providerRuntime.includes("Environment=CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1"),
+  "runtime unit should include real provider mode flag",
+);
+
 console.log("[setup:systemd-smoke] ok");
 
 function mustUnit(filename: string): string {
