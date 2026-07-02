@@ -92,7 +92,7 @@ export function renderElectronHtml(state: ElectronShellState): string {
     .app {
       height: 100vh;
       display: grid;
-      grid-template-rows: auto minmax(0, auto) minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr) auto;
       overflow: hidden;
     }
 
@@ -110,6 +110,13 @@ export function renderElectronHtml(state: ElectronShellState): string {
     .commandbar {
       border-top: 1px solid var(--line);
       border-bottom: 0;
+    }
+
+    main {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(0, 188px) minmax(0, 1fr);
+      overflow: hidden;
     }
 
     .brand {
@@ -226,6 +233,7 @@ export function renderElectronHtml(state: ElectronShellState): string {
       padding: 7px;
       align-items: stretch;
       min-height: 0;
+      overflow: hidden;
     }
 
     .panel {
@@ -349,6 +357,7 @@ export function renderElectronHtml(state: ElectronShellState): string {
       gap: 6px;
       padding: 0 7px 6px;
       min-height: 0;
+      overflow: hidden;
     }
 
     .rail {

@@ -287,11 +287,11 @@ async function createRoleUserPrompt(
         ].join("\n")
       : role === "engineer"
         ? [
+            "## Engineer implementation brief",
+            ...createEngineerImplementationBrief(commandText, artistResult),
+            "",
             "## 上游材料",
-            "### manager/result.md",
-            summarizeRoleResultForEngineer("manager", managerResult, commandText),
-            "### manager/review.md",
-            summarizeRoleResultForEngineer("manager", managerReview, commandText),
+            ...createEngineerManagerSections(managerResult, managerReview, commandText),
             "### writer/result.md",
             summarizeRoleResultForEngineer("writer", writerResult, commandText),
             "### artist/result.md",
@@ -479,6 +479,38 @@ function createEngineerRequirements(commandText: string, artistResult: string): 
   ];
 }
 
+function createEngineerImplementationBrief(commandText: string, artistResult: string): string[] {
+  const lines = [
+    "- 先做最小完整可玩 HTML，再补视觉和文案；不要复述上游报告。",
+    "- 所有数据优先写成短数组/对象，所有交互必须能在一个浏览器页面内完成。",
+    "- 页面必须避免黑屏：图片加载失败时也要有 CSS/Canvas fallback 和可点击按钮。",
+    "- 脚本放在一个闭包或模块化对象里，避免全局变量重复声明。",
+  ];
+
+  if (/商店|自动战斗|roguelike|Bazaar|The Bazaar/i.test(commandText)) {
+    lines.push(
+      "- 商店/自动战斗任务最小切片：8-12 个物品、3 个敌人、一个商店刷新池、一个物品栏、一个自动战斗循环、战斗日志、下一天、重开。",
+      "- 必须实现购买、刷新、升级或合成、出售、开始战斗、胜负结算；不要只做物品展示页。",
+      "- HUD 至少展示金币、天数、飞艇耐久或生命、声望/热度。",
+    );
+  }
+
+  if (/assets\/[\w.-]+\.(?:png|jpg|jpeg|webp|svg)/i.test(artistResult)) {
+    lines.push("- 必须引用 artist 本次实际生成的 `assets/...` 相对路径，不要自造图片文件名。");
+  }
+
+  return lines;
+}
+
+function createEngineerManagerSections(managerResult: string, managerReview: string, commandText: string): string[] {
+  const review = managerReview.trim();
+  const hasUsableReview = review.length > 0 && !/Pending result/i.test(review);
+
+  return hasUsableReview
+    ? ["### manager/review.md", summarizeRoleResultForEngineer("manager", managerReview, commandText)]
+    : ["### manager/result.md", summarizeRoleResultForEngineer("manager", managerResult, commandText)];
+}
+
 function summarizeRoleResult(role: AgentRole, content: string): string {
   const trimmed = content.trim();
 
@@ -522,12 +554,12 @@ function summarizeRoleResultForEngineer(role: AgentRole, content: string, comman
     manager: [
       /GATE_PASSED\s*:/i,
       /统一整合标准|最终验收|必做|阻塞|文件名|assets\/[\w.-]+\.png/i,
-      /标题页|第\s*\d+\s*关|关卡|胜利|失败|版权边界/i,
+      /标题页|商店|自动战斗|第\s*\d+\s*关|关卡|胜利|失败|版权边界/i,
     ],
     writer: gameTask
       ? [
           /游戏名|主角|反派|同伴|第\s*\d+\s*关|关卡|目标|阻碍|对白|过关|失败|结局|ending|scene|dialogue/i,
-          /```(?:json)?/i,
+          /物品|商品|价格|触发|效果|风味|金币|商店|刷新|升级|出售|自动战斗|战斗日志|敌人|竞争者|声望|耐久|回合|护盾|伤害|地点|传闻/i,
         ]
       : [/概览|目录|文件|用途|流程|步骤|风险|表格|展示/i, /```(?:json)?/i],
     artist: [
@@ -537,23 +569,22 @@ function summarizeRoleResultForEngineer(role: AgentRole, content: string, comman
     ],
     researcher: gameTask
       ? [
-          /PlayerState|GameState|EntityState|状态|字段|核心循环|数值|碰撞|胜利|失败|playtest|检查/i,
-          /移动|跳跃|互动|收集|警戒|追捕|生命|关卡钥匙/i,
+          /PlayerState|GameState|EntityState|ITEM_DB|ENEMY_DB|状态|字段|核心循环|数值|碰撞|胜利|失败|playtest|检查/i,
+          /金币|声望|热度|耐久|商店|刷新|升级|合成|出售|槽位|触发|回合|自动战斗|战斗日志|护盾|伤害|敌人|奖励|惩罚|移动|跳跃|互动|收集|生命/i,
         ]
       : [/技术栈|脚手架|目录|文件|依赖|命令|风险|检查项|搭建/i],
     engineer: [/```html/i],
   };
   const maxChars: Record<AgentRole, number> = {
-    manager: 2_600,
-    writer: 3_200,
-    artist: 2_400,
+    manager: 1_600,
+    writer: 2_400,
+    artist: 1_800,
     researcher: 2_400,
     engineer: 8_000,
   };
   const parts = [
     extractProviderHeader(trimmed),
     extractMatchingLines(trimmed, rolePatterns[role]),
-    role === "writer" ? extractCodeBlocks(trimmed, 2_200) : "",
   ].filter((part) => part.length > 0);
   const summary = dedupeLines(parts.join("\n\n")).slice(0, maxChars[role]);
 

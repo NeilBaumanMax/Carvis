@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 
 import { createRemoteMessageBus } from "../messagebus/index.js";
 import { createElectronShell } from "./shell.js";
-import { createElectronBrowserWindow, type ElectronBrowserModule } from "./browserWindow.js";
+import { createElectronBrowserWindow, fitWindowToWorkArea, type ElectronBrowserModule } from "./browserWindow.js";
 import { writeElectronRendererPreload } from "./renderer.js";
 import type { ElectronShellState } from "./types.js";
 
@@ -209,15 +209,18 @@ async function openGamePreviewPath(gamePreviewPath: string): Promise<string> {
 
 async function openGamePreviewWindow(gamePreviewPath: string): Promise<string> {
   try {
+    const bounds = fitWindowToWorkArea(electron, 1000, 640);
     const window = new electron.BrowserWindow({
       title: "Carvis Game Preview",
-      width: 1000,
-      height: 640,
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
       minWidth: 720,
-      minHeight: 480,
+      minHeight: Math.min(480, bounds.height),
       fullscreen: false,
       kiosk: false,
-      center: true,
+      center: bounds.x === undefined || bounds.y === undefined,
       autoHideMenuBar: true,
       show: false,
       backgroundColor: "#000000",

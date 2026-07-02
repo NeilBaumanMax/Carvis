@@ -172,23 +172,71 @@
 
 ### 任务输入
 
-待提交。
+开始时间：2026-07-02 23:48 左右。
+
+目标：五角色协作生成一个原创中文浏览器游戏，玩法结构参考 The Bazaar 一类的“商店经营 / 物品组合 / 回合自动战斗 / 经济抉择 / roguelike 成长”框架，但必须原创化。
+
+版权边界：
+
+- 不复制 The Bazaar 的角色、英雄、物品名称、UI 布局、图标风格、文本、数值表和独特表达。
+- 可以抽象借鉴高层机制：买卖、升级、合成、背包格、回合自动战斗、随机事件、连锁触发、经济取舍。
+- 最终产物必须是原创中文主题、原创资产和原创命名。
+
+关键约束：
+
+- manager 要先把任务拆成 writer / artist / researcher / engineer 的清晰分工，并明确原创边界、MVP 范围、胜负条件和最终浏览器截图验收标准。
+- writer 必须写强故事性：原创商人主角、竞争者、地点、回合事件、商品传闻、胜败文案；不能只写物品表。
+- researcher 必须设计经济与自动战斗状态字段：金币、声望/热度、物品槽位、商店刷新、物品触发时机、战斗回合、敌人血量/护盾/伤害。
+- artist 默认生图，少写长文，生成 2-4 张关键资产：标题图、商店背景、物品/角色/敌人资产；需要给 engineer 明确相对路径。
+- engineer 必须输出完整 fenced HTML：可打开、可玩，包含商店购买/刷新/升级、物品栏、开始战斗、自动战斗日志、胜负反馈、下一天/重开；必须实际引用 artist 本轮 assets。
+- HTML 脚本必须通过 `new Function(script)` 语法检查，不允许黑屏。
 
 ### 时间线
 
-待记录。
+- 23:48：通过 NixOS Electron 输入框提交测试 3，run 目录：
+  - `workplaces/runs/20260702-154848-req-test3-bazaar-like-autobattler-17-测试3：请五个角色协作生成一个原创中文浏览器游戏，玩法结构参考-`
+- 23:52 左右：writer / artist / researcher / manager 产物完成，manager 复审输出 `GATE_PASSED: true`。
+- artist 本轮生图成功，生成 4 张资产，保留了“少写长文、默认产图、engineer 可嵌入”的方向。
+- engineer 第 1 次尝试 360 秒超时；runtime 自动进入第 2 次尝试，没有直接发布伪成功输出。
+- 00:05：engineer 第 2 次完成，`engineer/result.md` 约 51KB，输出完整 fenced HTML。
+- 00:05：系统写出本次 `game-preview.html`，并打开 Electron 内部预览窗口。
 
 ### 产物
 
-待记录。
+- HTML：
+  - `output/runs/20260702-154848-req-test3-bazaar-like-autobattler-17-测试3：请五个角色协作生成一个原创中文浏览器游戏，玩法结构参考-/game-preview.html`
+  - 大小：约 50.8KB。
+  - 包含 1 个 `<script>`，`new Function(script)` 语法检查通过。
+  - 无 `<canvas>`，主要使用 DOM/CSS + artist PNG 背景/角色图实现界面。
+- 图片资产：
+  - `assets/artist-title-bg.png`
+  - `assets/artist-shop-bg.png`
+  - `assets/artist-hero-portrait.png`
+  - `assets/artist-enemy-spritesheet.png`
+- 静态关键词检查命中：
+  - 购买、刷新、升级/出售、开始战斗、下一天、金币、商店、物品栏、战斗日志。
 
 ### 截图验收
 
-待记录。
+- 00:05 截图：`/tmp/carvis-test3-screen.png`
+  - 可见游戏已进入第 3 天商店/战斗界面。
+  - HUD 显示天数、金币、声望、耐久。
+  - 商店区可见物品卡和购买按钮，货舱有 6 格，战斗区可见角色图，底部有开始战斗/继续航行/重新开始按钮。
+  - 问题：1000x640 预览窗口在 1280x720 + 底部任务栏环境下底部贴得过低，按钮底部被任务栏遮挡一截。
+- 00:07 修复后截图：`/tmp/carvis-test3-window-fixed.png`
+  - Electron 预览窗口改为按 primary display `workArea` 计算尺寸和居中位置。
+  - 标题页、artist 标题图和“起航”按钮正常显示，窗口底边位于任务栏上方，不再被遮挡。
 
 ### 问题与优化点
 
-待记录。
+- 当前复杂商店/自动战斗任务仍会给 engineer 较大压力，第 1 次 engineer 超时说明上游输入还偏重。
+- 已进一步优化 engineer handoff：
+  - engineer 只接收可用的 `manager/review.md`，不再同时接收 manager 初稿和复审长文。
+  - 增加 `Engineer implementation brief`：先做最小完整可玩 HTML，不复述上游报告；商店/自动战斗任务明确 8-12 个物品、3 个敌人、商店刷新池、物品栏、战斗循环、日志、下一天、重开。
+  - writer/researcher 摘要增加商店、金币、刷新、升级、出售、触发、自动战斗、护盾、伤害等关键词，减少无效长 JSON/长文。
+- Electron 布局修复：
+  - 控制台 `.app` 从错误的 4 行 grid 改为 header/main/footer 三行，`main` 内部固定角色面板区，Output/Events 内滚动，底部输入栏不再被挤出屏幕。
+  - 主窗口和游戏预览窗口都使用 `screen.getPrimaryDisplay().workArea` 约束尺寸，避免 1280x720 下被系统任务栏遮挡。
 
 ## 测试 4：open-yachiyo 脚手架整理 HTML
 
