@@ -104,6 +104,14 @@
 - 不要向用户承诺可显示 Claude Code 的隐藏思考链；只能显示公开进度/输出摘要。
 - NixOS 中文输入法对当前 Electron 是否即时生效取决于进程环境，已重启 Electron 后会继承 user environment。
 
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：以 `mvp0.0` tag 指向的提交为准。
+- 已 push：是，`origin/backup/mvp-nixos-20260702-020835`
+- 版本名：`mvp0.0` tag 指向本次文档漂移修正后的提交。
+- 备份分支：`backup/mvp-nixos-20260702-020835`
+
 ## 2026-07-02 / Electron live renderer IPC / 接力记录
 
 ### 当前状态

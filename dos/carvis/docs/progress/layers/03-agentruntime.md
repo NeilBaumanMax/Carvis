@@ -1,5 +1,26 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-02 / Current live role templates / 当前状态
+
+### 当前事实
+
+- 常驻 `agentruntime/main.ts` 连接 remote messagebus，订阅 Electron 提交的 `command.submitted`。
+- 五角色顺序保持：manager -> writer/artist/researcher -> engineer。
+- 每个 agent 会流式发布中文公开进度和结果预览到 `agent.output`，Electron 面板追加显示最近 80 行。
+- 公开输出使用五个中文人设：制作人、叙事设计、美术指导、系统研究、玩法工程师。
+- 已有专门任务模板：
+  - 《麦克白》中文 RPG。
+  - 《被掩埋的巨人》主题启发原创 RPG，明确不复制原作角色/情节/地名/独特设定。
+  - 《绿毛水怪》主题气质启发原创 galgame，明确不复制原作角色/情节/独特表达。
+  - 原创爬塔卡牌 roguelike，明确不复制《杀戮尖塔》的名称、角色、卡牌、遗物、敌人、美术、UI 或数值表达。
+- IPC smoke 中通过 `CARVIS_AGENTRUNTIME_STREAM_DELAY_MS=1` 和 `CARVIS_AGENTRUNTIME_PREVIEW_DELAY_MS=1` 加速测试；真实 systemd 默认保留可见流式延迟。
+
+### 当前验证
+
+- 本地 `npm test`：通过。
+- 远端 `carvis-agentruntime.service`：active。
+- 远端已验证 `雾下余烬`、`绿潮来信`、`星炉远征` 三类任务均生成 `final-report.md` 和 `game-preview.html`。
+
 ## 2026-07-02 / Runtime 接入长驻 PID Agent 池 / 本次完成
 
 ### 本次完成

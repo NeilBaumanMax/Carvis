@@ -1,5 +1,29 @@
 # 01 Electron Progress
 
+## 2026-07-02 / Current windowed live renderer / 当前状态
+
+### 当前事实
+
+- 真实 Electron 入口是 `dist/electron/runBrowserMain.js`，由 NixOS user service `carvis-electron.service` 运行。
+- BrowserWindow 默认 `1000x640`、`center=true`，默认 `fullscreen=false`、`kiosk=false`。
+- 远端 1280x720 屏幕上复核位置为 `140,40`，即 `1000x640` 居中窗口。
+- 1000px 宽度下五个 agent 面板保持一行，全部同屏露出。
+- Renderer 是 live renderer：通过 preload IPC 调用 `getState`、`submitCommand`、`onState`、`openOutput`。
+- agent 输出区是深色终端风格，显示公开进度/输出摘要；不显示隐藏思考链。
+- Output 区显示产物文件夹预览，包含 `final-report.md`、`manifest.json`、`game-preview.html` 和五个 role result。
+
+### 当前验证
+
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm run build`：通过。
+- 远端 `carvis-electron.service`：active。
+- 远端截图 `/tmp/carvis-1000x640-window.png`：五个 agent 面板同屏露出。
+- 远端任务截图 `/tmp/carvis-deck-tower.png`：原创爬塔卡牌任务已在窗口内显示中文输出。
+
+### 漂移提醒
+
+- 下方早期段落中关于 `1280x720+0+0` 全屏/kiosk 的记录是历史状态，不代表当前设计。
+
 ## 2026-07-02 / Live renderer IPC / 本次完成
 
 ### 本次完成

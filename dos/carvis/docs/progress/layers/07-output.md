@@ -1,5 +1,29 @@
 # 07 Output Progress
 
+## 2026-07-02 / Current output folder preview / 当前状态
+
+### 当前事实
+
+- `writeOutput()` 当前会在 output 根目录生成：
+  - `final-report.md`
+  - `manifest.json`
+  - `game-preview.html`
+- `manifest.json` 记录每个 role result 的 source path，并包含 `gamePreviewPath`。
+- Electron 收到 `output.ready` 后读取 `manifest.json` 和 `final-report.md`，在 Output 区展示整个产物文件夹预览。
+- `game-preview.html` 会根据报告内容生成对应预览：
+  - `麦克白 RPG Preview`
+  - `雾下余烬 RPG Preview`
+  - `绿潮来信 Galgame Preview`
+  - `星炉远征 Card Roguelike Preview`
+  - 默认堂吉诃德预览
+- Electron 支持 `CARVIS_GAME_PREVIEW_BROWSER_CMD` 指定 Chrome/Chromium wrapper 打开游戏预览；远端 wrapper 为 `~/bin/carvis-open-chromium`。
+
+### 当前验证
+
+- 本地 `npm run output:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 `output/final-report.md` 和 `output/game-preview.html` 已在多类任务中生成并被 Electron 预览。
+
 ## 2026-07-02 / Local MVP smoke / 本次完成
 
 ### 当前目标
