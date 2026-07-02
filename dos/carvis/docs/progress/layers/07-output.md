@@ -1,28 +1,41 @@
 # 07 Output Progress
 
+## 2026-07-03 / NixOS readback and drift fix / 开工计划
+
+### 当前目标
+
+- 修正 output 文档中正式运行目录和 Electron 打开能力的过期描述。
+
+### 计划改动
+
+- 明确正式运行输出为 `output/runs/<timestamp-request>/`。
+- 记录 manifest 包含 `finalReportPath`、`gamePreviewPath` 和五个角色 result source path。
+- 记录 Electron 当前可以展示 output folder preview，并可通过主进程打开当前 run 的 `game-preview.html`。
+
+### 验收指标
+
+- 文档与远端最新 `output/runs/.../manifest.json` 一致。
+- `npm run typecheck` 和 `npm run build` 通过。
+
 ## 2026-07-02 / Current output folder preview / 当前状态
 
 ### 当前事实
 
-- `writeOutput()` 当前会在 output 根目录生成：
+- `writeOutput()` 当前会在每个 run 的 output 目录生成：
   - `final-report.md`
   - `manifest.json`
   - `game-preview.html`
-- `manifest.json` 记录每个 role result 的 source path，并包含 `gamePreviewPath`。
+- 正式路径为 `output/runs/<timestamp-request>/`。
+- `manifest.json` 记录 `finalReportPath`、`gamePreviewPath` 和每个 role result 的 source path。
 - Electron 收到 `output.ready` 后读取 `manifest.json` 和 `final-report.md`，在 Output 区展示整个产物文件夹预览。
-- `game-preview.html` 会根据报告内容生成对应预览：
-  - `麦克白 RPG Preview`
-  - `雾下余烬 RPG Preview`
-  - `绿潮来信 Galgame Preview`
-  - `星炉远征 Card Roguelike Preview`
-  - 默认堂吉诃德预览
+- 当 engineer 输出 fenced `html` 时，`game-preview.html` 直接采用 engineer 的完整 HTML；否则才使用 fallback preview。
 - Electron 支持 `CARVIS_GAME_PREVIEW_BROWSER_CMD` 指定 Chrome/Chromium wrapper 打开游戏预览；远端 wrapper 为 `~/bin/carvis-open-chromium`。
 
 ### 当前验证
 
 - 本地 `npm run output:smoke`：通过。
 - 本地 `npm test`：通过。
-- 远端 `output/final-report.md` 和 `output/game-preview.html` 已在多类任务中生成并被 Electron 预览。
+- 远端最新 `output/runs/.../manifest.json` 包含绝对 `finalReportPath`、`gamePreviewPath` 和五个 role result `sourcePath`。
 
 ## 2026-07-02 / Local MVP smoke / 本次完成
 

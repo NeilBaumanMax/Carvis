@@ -1,5 +1,19 @@
 # 02 MessageBus Progress
 
+## 2026-07-03 / NixOS readback / 当前状态
+
+### 当前事实
+
+- 远端 `carvis-messagebus.service` active，运行 `dist/messagebus/main.js`。
+- 默认端口仍为 `CARVIS_MESSAGEBUS_PORT=45931`。
+- `carvis-agentruntime.service` 和 `carvis-electron.service` 均通过该端口连接 messagebus。
+- journal 显示 messagebus 持续 heartbeat。
+
+### 当前验证
+
+- SSH readback：通过。
+- `systemctl --user status carvis-messagebus.service`：active。
+
 ## 2026-07-02 / IPC 重连 / 本次完成
 
 ### 本次完成

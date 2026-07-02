@@ -60,6 +60,90 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-03 / NixOS readback and documentation drift fix / 接力记录
+
+### 当前状态
+
+- 已通过 SSH 连接 NixOS：`howtion@192.168.137.59`，主机名 `nixos`。
+- 远端运行目录：`/home/howtion/carvis-remote-smoke`。
+- 远端 `carvis-messagebus.service` active，运行 `dist/messagebus/main.js`。
+- 远端 `carvis-agentruntime.service` active，运行 `dist/agentruntime/main.js`，并保留 5 个 `dist/agentruntime/provider/providerWorker.js` PID。
+- 远端 `carvis-electron.service` active，运行 `dist/electron/runBrowserMain.js`。
+- `carvis-agentruntime.service` 通过 drop-in `EnvironmentFile=/home/howtion/.config/carvis/agentruntime.env` 注入 secret。
+- 当前 production flow：`created -> parallel_roles_working -> engineer_building -> output_ready -> retaining_agents`。
+- `manager`、`writer`、`artist`、`researcher` 并行运行，`engineer` 最后审计合并并输出最终 HTML。
+- `manager_planning` / `manager_reviewing` 是历史 gate 和兼容代码，不是当前常驻 production flow。
+- 正式 workplace 路径：`workplaces/runs/<timestamp-request>/<role>/`。
+- 正式 output 路径：`output/runs/<timestamp-request>/`。
+- 远端最新 manifest 包含绝对 `finalReportPath`、`gamePreviewPath` 和五个 role result `sourcePath`。
+- 远端最新 engineer `usage.json` provider 为 `deepseek-claudecode`；artist `usage.json` provider 为 `qwen-openai` 且 usage source 为 `provider`。
+
+### 本轮完成
+
+- 修正入口文档、架构文档、层契约、施工计划、测试指标和分层进度中的当前状态。
+- 补充 NixOS readback 事实：services active、5 个 provider worker、run-scoped workplace/output、usage.json。
+- 保留历史日志，但在顶部和当前状态段明确哪些是历史状态，避免误判。
+- 本轮不修改运行时代码，不写入任何 API Key。
+
+### 未完成
+
+- 还没有新增 systemd health-check 脚本来自动检查 active/enabled、provider worker 数量、窗口尺寸和 output 最新产物。
+- 还没有把历史 `manager_reviewing` 类型/兼容代码清理掉；当前只是文档上明确它不是 production flow。
+- 还没有跑新的真实 provider 任务；本轮依据远端现有 active 服务和 run artifacts 做 readback 核验。
+
+### 下次优先任务
+
+1. 增加可重复执行的 NixOS health check：检查 user services active、5 个 providerWorker、最新 output manifest、最新 usage.json。
+2. 决定是否保留 `manager_reviewing` 兼容代码；若不保留，清理类型、smoke 和文档历史引用。
+3. 继续加固 engineer HTML：确保稳定引用 artist 生成的 `assets/artist-*.png`，并补浏览器截图/像素验收。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/CODEX_START_HERE.md`
+- `dos/carvis/docs/ARCHITECTURE.md`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+- `dos/carvis/docs/progress/layers/06-workplaces.md`
+- `dos/carvis/docs/progress/layers/07-output.md`
+
+### 关键文件
+
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/main.ts`
+- `src/agentruntime/provider/roles.ts`
+- `src/agentruntime/provider/providerWorker.ts`
+- `src/agentruntime/workplaces/index.ts`
+- `src/output/index.ts`
+- `src/electron/browserMain.ts`
+- `src/electron/runBrowserMain.ts`
+
+### 测试基线
+
+- SSH NixOS readback：通过。
+- 远端 services active readback：通过。
+- 远端 latest manifest/usage readback：通过。
+- `npm run typecheck`：通过。
+- `npm run build`：通过。
+- `npm run artist-image-mcp:smoke`：通过。
+- `npm test`：通过。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 基线提交：`8210390051741ece05a1a69edb686919069ff567`
+- 已 push：基线已 push。
+- 本轮提交：`docs: reconcile nixos runtime handoff`，最终提交号以 `git log -1` 为准。
+- 本轮 push：已 push 到 `origin/backup/mvp-nixos-20260702-020835`。
+- 备份分支：`origin/backup/mvp-nixos-20260702-020835`
+
+### 风险提醒
+
+- 工作区在本轮开始前已有未提交改动：README、MCP 生图规则、skills、多个层 README 等；不要回滚这些改动。
+- 真实 API Key 只允许在远端本地 env file，不能写入仓库。
+- 历史日志中仍有“全屏/kiosk”和“manager 二次复审 gate”记录，读取时必须看顶部当前状态。
+
 ## 2026-07-02 / Real provider routing / 接力记录
 
 ### 当前状态

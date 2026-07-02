@@ -1,5 +1,22 @@
 # 04 ClaudeCode Progress
 
+## 2026-07-03 / NixOS readback / 当前状态
+
+### 当前事实
+
+- 远端 NixOS 常驻 real provider 模式已运行。
+- manager/writer/engineer 当前通过 DeepSeek Claude Code CLI 路由，`usage.json` 记录估算 token，因为 Claude Code CLI route 不直接暴露 provider usage。
+- artist/researcher 当前通过 Qwen OpenAI-compatible text route，`usage.json` 记录 provider 返回的 `prompt_tokens`、`completion_tokens`、`total_tokens`。
+- artist 可通过本地 artist-image MCP wrapper 调用 Qwen Image 生成 `assets/artist-*.png`。
+- 外层 retained PID 是 `providerWorker`；DeepSeek Claude Code 本体仍按任务由 worker 内部调用 CLI print，不是无限多轮 stdin/stdout Claude Code PID。
+
+### 当前验证
+
+- 远端 `carvis-agentruntime.service` active。
+- 远端 5 个 `providerWorker` PID active。
+- 远端最新 engineer `usage.json` provider 为 `deepseek-claudecode`。
+- 远端最新 artist `usage.json` provider 为 `qwen-openai`，usage source 为 `provider`。
+
 ## 2026-07-02 / DeepSeek + Qwen provider split / 开工计划
 
 ### 当前目标

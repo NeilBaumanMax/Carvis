@@ -1,5 +1,22 @@
 # 01 Electron Progress
 
+## 2026-07-03 / NixOS readback and drift fix / 开工计划
+
+### 当前目标
+
+- 用远端 NixOS readback 修正 Electron 文档中全屏历史状态和当前 windowed live renderer 状态的混杂描述。
+
+### 计划改动
+
+- 当前状态保留为 `1000x640` windowed live renderer。
+- 记录远端 `carvis-electron.service` active，入口为 `dist/electron/runBrowserMain.js`，通过 NixOS Electron 41.7.2 runtime 启动。
+- 历史全屏/kiosk 段落只作为历史记录，不作为当前验收标准。
+
+### 验收指标
+
+- 文档不再把旧 `1280x720+0+0` 全屏状态写成当前设计。
+- `npm run typecheck` 和 `npm run build` 通过。
+
 ## 2026-07-02 / Current windowed live renderer / 当前状态
 
 ### 当前事实

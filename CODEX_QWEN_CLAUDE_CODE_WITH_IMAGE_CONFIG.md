@@ -1,11 +1,8 @@
-# Codex 配置说明：为当前 Qwen / Claude Code 方案补齐生图能力
+# Qwen / Claude Code / Image 配置说明
 
-> 目标：在现有 Claude Code + Qwen 多模态方案中，新增真正的文生图能力。  
-> 重要结论：`qwen3.5-omni-plus` 负责文本、图片、音频、视频理解；它不是生图模型。真正文生图请使用 `qwen-image-2.0-pro`。
+> 当前状态：Carvis 已经实现 DeepSeek Claude Code 文本角色、Qwen OpenAI-compatible 文本角色，以及 Artist 专用 Qwen Image 生图链路。本文件只记录当前配置和验证方式，不包含真实 API Key。
 
----
-
-## 1. 当前业务空间信息
+## 1. 业务空间
 
 本项目使用阿里云百炼 / Model Studio 默认业务空间：
 
@@ -30,27 +27,29 @@ Qwen-Image text-to-image endpoint:
 https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation
 ```
 
-不要把真实 API Key 写入本 Markdown、README、Git 仓库或 Codex 聊天内容。
+不要把真实 API Key 写入 Markdown、README、Git 仓库或聊天内容。
 
----
+## 2. 当前模型分工
 
-## 2. 模型分工
-
-请按下面的分工配置，不要把所有能力强行塞给 `qwen3.5-omni-plus`。
-
-| 能力 | 模型 | 接口 |
+| 能力 | 当前模型/路由 | 接口 |
 |---|---|---|
-| Claude Code 开发 | `qwen3-coder-plus`，备选 `qwen3.7-plus` | Anthropic-compatible |
-| 文本理解 / 规划 / 总结 | `qwen3.5-omni-plus` | OpenAI-compatible |
-| 图片理解 / OCR / 多模态问答 | `qwen3.5-omni-plus` | OpenAI-compatible |
-| 音频 / 视频理解 | `qwen3.5-omni-plus` | OpenAI-compatible |
-| 文生图 / 中文海报 / 封面图 | `qwen-image-2.0-pro` | DashScope native Qwen-Image API |
+| manager | DeepSeek Claude Code | Claude Code CLI |
+| writer | DeepSeek Claude Code | Claude Code CLI |
+| engineer | DeepSeek Claude Code | Claude Code CLI |
+| artist 文本规划 | `qwen3.5-omni-plus` | OpenAI-compatible |
+| researcher | `qwen3.5-omni-plus` | OpenAI-compatible |
+| artist 生图 | `qwen-image-2.0-pro` | DashScope native Qwen-Image API |
 
----
+路由代码：
 
-## 3. 需要写入的环境变量
+- `src/agentruntime/provider/roles.ts`
+- `src/agentruntime/provider/qwenOpenAi.ts`
+- `src/agentruntime/provider/qwenImage.ts`
+- `src/agentruntime/mcp/artistImageMcp.ts`
 
-请在本地配置文件中写入，不要提交到 Git。
+Artist 生图只允许通过 artist-image MCP 包装器触发，普通角色不能直接调用。
+
+## 3. 本地环境变量
 
 推荐路径：
 
@@ -61,36 +60,27 @@ https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/api/v1/services/aigc/mu
 内容模板：
 
 ```bash
-# =========================
 # Qwen / Alibaba Cloud Model Studio
-# =========================
-# 请在本地填入真实 API Key，不要写入仓库。
 DASHSCOPE_API_KEY=在这里填入真实APIKey
 QWEN_API_KEY=在这里填入同一把真实APIKey
 QWEN_OPENAI_API_KEY=在这里填入同一把真实APIKey
 
-# =========================
-# Claude Code / Anthropic-compatible
-# =========================
-ANTHROPIC_AUTH_TOKEN=${DASHSCOPE_API_KEY}
-ANTHROPIC_BASE_URL=https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/apps/anthropic
-ANTHROPIC_MODEL=qwen3-coder-plus
-ANTHROPIC_DEFAULT_HAIKU_MODEL=qwen3-coder-plus
-ANTHROPIC_DEFAULT_SONNET_MODEL=qwen3-coder-plus
-ANTHROPIC_DEFAULT_OPUS_MODEL=qwen3-coder-plus
-CLAUDE_CODE_SUBAGENT_MODEL=qwen3-coder-plus
+# DeepSeek Claude Code / Anthropic-compatible
+ANTHROPIC_AUTH_TOKEN=在这里填入DeepSeek或兼容服务APIKey
+ANTHROPIC_BASE_URL=按实际 Claude Code 兼容端点填写
+ANTHROPIC_MODEL=deepseek-v4-pro[1m]
+ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-pro[1m]
+ANTHROPIC_DEFAULT_SONNET_MODEL=deepseek-v4-pro[1m]
+ANTHROPIC_DEFAULT_OPUS_MODEL=deepseek-v4-pro[1m]
+CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-pro[1m]
 
-# =========================
 # Qwen Omni / OpenAI-compatible
-# =========================
 QWEN_OPENAI_BASE_URL=https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
 QWEN_OPENAI_MODEL=qwen3.5-omni-plus
 QWEN_OMNI_MODEL=qwen3.5-omni-plus
 QWEN_MODEL=qwen3.5-omni-plus
 
-# =========================
 # Qwen Image / DashScope native
-# =========================
 QWEN_DASHSCOPE_BASE_URL=https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/api/v1
 QWEN_IMAGE_GENERATION_URL=https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation
 QWEN_IMAGE_MODEL=qwen-image-2.0-pro
@@ -103,41 +93,27 @@ CARVIS_QWEN_IMAGE_MAX_ATTEMPTS=3
 CARVIS_QWEN_IMAGE_RETRY_DELAY_MS=12000
 ```
 
-如果 shell 不支持 `${DASHSCOPE_API_KEY}` 在 env 文件内展开，请直接把同一把 Key 分别填入 `ANTHROPIC_AUTH_TOKEN`、`QWEN_API_KEY` 和 `QWEN_OPENAI_API_KEY`。
+如果 shell 不支持 `${VAR}` 在 env 文件内展开，请直接写入具体值。不要提交该 env 文件。
 
----
+## 4. Claude Code 配置
 
-## 4. Claude Code 配置文件
-
-请更新或创建：
-
-```bash
-~/.claude/settings.json
-```
-
-内容模板：
+可使用 `~/.claude/settings.json` 注入 Claude Code 兼容环境变量。示例：
 
 ```json
 {
   "env": {
     "ANTHROPIC_AUTH_TOKEN": "请从本地安全来源读取，不要硬编码到仓库",
-    "ANTHROPIC_BASE_URL": "https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/apps/anthropic",
-    "ANTHROPIC_MODEL": "qwen3-coder-plus",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "qwen3-coder-plus",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "qwen3-coder-plus",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "qwen3-coder-plus",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "qwen3-coder-plus"
+    "ANTHROPIC_BASE_URL": "按实际 Claude Code 兼容端点填写",
+    "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "deepseek-v4-pro[1m]"
   }
 }
 ```
 
-同时确认：
-
-```bash
-~/.claude.json
-```
-
-至少包含：
+同时确认 `~/.claude.json` 至少包含：
 
 ```json
 {
@@ -145,332 +121,71 @@ CARVIS_QWEN_IMAGE_RETRY_DELAY_MS=12000
 }
 ```
 
----
+## 5. Artist Image MCP 行为
 
-## 5. 需要 Codex 修改的业务路由
+流程：
 
-请把当前 Carvis / agentruntime 的模型路由改成：
+1. Artist 先用 Qwen 文本模型输出视觉规划。
+2. `artistImageMcp` 根据用户任务和 artist 输出生成短 JSON 图片计划。
+3. `qwenImage` 并发生成 1-6 张图片，默认并发由 `CARVIS_ARTIST_IMAGE_CONCURRENCY` 控制。
+4. 图片写入本次 `output/runs/<run>/assets/artist-*.png`。
+5. Engineer prompt 只允许使用本轮真实 `assets/artist-*` 图片路径，不采信 writer/researcher 虚拟资产名。
 
-```text
-manager  -> DeepSeek Claude Code
-writer   -> DeepSeek Claude Code
-engineer -> DeepSeek Claude Code
-researcher -> qwen3.5-omni-plus
-artist_understanding -> qwen3.5-omni-plus
-artist_image_generation -> qwen-image-2.0-pro
-```
+图片比例和背景规则：
 
-当前策略：Writer 负责长文本剧情/结构化文案，默认改走 DeepSeek；Qwen 保留给 Artist/Researcher，尤其不要破坏 Artist 的 Qwen Image 生图链路。
+- 角色、敌人、伙伴、单位、头像、立绘、sprite、道具等可叠加资产：必须在 prompt 中声明 `透明背景 PNG`、`无场景背景`、`抠图/立绘`、`主体完整`、`边缘干净`。
+- 背景、标题页、地图、场景：必须声明横向 16:9 或宽屏构图，并留出 UI 安全区。
+- 流程图、徽章、卡牌、按钮、图标：按用途声明横向、竖向或细长比例，不默认正方形。
+- `QWEN_IMAGE_SIZE` 仍是全局 API 参数；非正方形诉求通过每张图的 prompt 明确告诉 Qwen。后续如确认当前模型支持逐图 size 参数，再改成每资产传入 size。
 
-如果当前只有一个 `artist` 角色，请拆成两种任务：
-
-```text
-artist.mode = "understand"  -> Qwen Omni
-artist.mode = "generate_image" -> Qwen Image
-```
-
-推荐统一任务类型：
-
-```ts
-export type AiTaskType =
-  | "text"
-  | "vision"
-  | "audio"
-  | "video"
-  | "image_generation";
-```
-
----
-
-## 6. 新增 Qwen Image Provider
-
-请新增文件，例如：
+生成结果会写进 artist 输出：
 
 ```text
-src/agentruntime/provider/qwenImage.ts
+## ARTIST_IMAGE_MCP_PLAN
+## GENERATED_IMAGE_ASSETS
+## ARTIST_IMAGE_MCP_SELF_REVIEW
 ```
 
-参考实现：
+## 6. 验证命令
 
-```ts
-export type QwenImageRequest = {
-  prompt: string;
-  size?: string;
-  negativePrompt?: string;
-  n?: number;
-};
-
-export type QwenImageResult = {
-  imageUrls: string[];
-  raw: unknown;
-};
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing env: ${name}`);
-  return value;
-}
-
-function extractImageUrls(data: any): string[] {
-  const urls: string[] = [];
-  const choices = data?.output?.choices ?? [];
-
-  for (const choice of choices) {
-    const content = choice?.message?.content ?? [];
-    for (const item of content) {
-      if (typeof item?.image === "string") urls.push(item.image);
-      if (typeof item?.url === "string") urls.push(item.url);
-    }
-  }
-
-  return urls;
-}
-
-export async function callQwenImage(req: QwenImageRequest): Promise<QwenImageResult> {
-  const apiKey =
-    process.env.DASHSCOPE_API_KEY ||
-    process.env.QWEN_API_KEY ||
-    process.env.QWEN_OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("Missing DASHSCOPE_API_KEY / QWEN_API_KEY / QWEN_OPENAI_API_KEY");
-  }
-
-  const endpoint =
-    process.env.QWEN_IMAGE_GENERATION_URL ||
-    `${requireEnv("QWEN_DASHSCOPE_BASE_URL")}/services/aigc/multimodal-generation/generation`;
-
-  const model = process.env.QWEN_IMAGE_MODEL || "qwen-image-2.0-pro";
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      input: {
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                text: req.prompt,
-              },
-            ],
-          },
-        ],
-      },
-      parameters: {
-        size: req.size || process.env.QWEN_IMAGE_SIZE || "2048*2048",
-        n: req.n || Number(process.env.QWEN_IMAGE_N || 1),
-        prompt_extend: process.env.QWEN_IMAGE_PROMPT_EXTEND !== "false",
-        watermark: process.env.QWEN_IMAGE_WATERMARK === "true",
-        negative_prompt:
-          req.negativePrompt ||
-          "低清晰度，低画质，错字，文字扭曲，水印，畸形，构图混乱，多余文字",
-      },
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok || data?.code) {
-    throw new Error(data?.message || `Qwen image generation failed: ${response.status}`);
-  }
-
-  const imageUrls = extractImageUrls(data);
-
-  if (imageUrls.length === 0) {
-    throw new Error("Qwen image generation succeeded but no image URL was found in response");
-  }
-
-  return {
-    imageUrls,
-    raw: data,
-  };
-}
-```
-
-注意：生成图片返回的 URL 可能不是永久地址。业务侧应及时下载到自己的对象存储或本地文件系统，再返回稳定 URL 给前端。
-
----
-
-## 7. 新增 image smoke 测试
-
-请新增一个 smoke 脚本，例如：
-
-```text
-scripts/qwen-image-smoke.ts
-```
-
-逻辑：
-
-```ts
-import { callQwenImage } from "../src/agentruntime/provider/qwenImage";
-
-async function main() {
-  const result = await callQwenImage({
-    prompt:
-      "生成一张中文科技海报，主标题写「AI 赋能增长」，蓝白配色，现代感，适合公司发布会，无水印。",
-    size: "2048*2048",
-    n: 1,
-  });
-
-  console.log("Qwen Image smoke passed:");
-  console.log(result.imageUrls.join("\n"));
-}
-
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
-```
-
-在 `package.json` 增加：
-
-```json
-{
-  "scripts": {
-    "provider:qwen-image-smoke": "tsx scripts/qwen-image-smoke.ts"
-  }
-}
-```
-
-运行：
+本地无真实 key 时：
 
 ```bash
-set -a
-source ~/.config/carvis/agentruntime.env
-set +a
-
-npm run provider:qwen-image-smoke
+npm run build
+npm run provider:smoke
+npm run artist-image-mcp:smoke
 ```
 
----
-
-## 8. 最小 curl 测试
-
-如果 TypeScript smoke 失败，先用 curl 确认 API 是否连通：
-
-```bash
-set -a
-source ~/.config/carvis/agentruntime.env
-set +a
-
-curl -X POST "$QWEN_IMAGE_GENERATION_URL" \
-  -H "Authorization: Bearer $DASHSCOPE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "qwen-image-2.0-pro",
-    "input": {
-      "messages": [
-        {
-          "role": "user",
-          "content": [
-            {
-              "text": "生成一张中文科技海报，主标题写「AI 赋能增长」，蓝白配色，现代感，无水印。"
-            }
-          ]
-        }
-      ]
-    },
-    "parameters": {
-      "size": "2048*2048",
-      "n": 1,
-      "prompt_extend": true,
-      "watermark": false,
-      "negative_prompt": "低清晰度，低画质，错字，文字扭曲，水印，构图混乱"
-    }
-  }'
-```
-
----
-
-## 9. 统一 API 返回格式
-
-建议让业务层统一返回：
-
-```ts
-export type AiResponse =
-  | {
-      type: "text";
-      content: string;
-    }
-  | {
-      type: "image";
-      imageUrls: string[];
-      prompt: string;
-      provider: "qwen-image";
-      model: string;
-    };
-```
-
-前端只关心：
-
-```text
-POST /api/ai
-```
-
-请求例子：
-
-```json
-{
-  "task": "image_generation",
-  "prompt": "生成一张中文科技海报，主标题写「AI赋能增长」，蓝白配色，现代感",
-  "size": "2048*2048"
-}
-```
-
-返回例子：
-
-```json
-{
-  "type": "image",
-  "imageUrls": ["https://..."],
-  "prompt": "生成一张中文科技海报...",
-  "provider": "qwen-image",
-  "model": "qwen-image-2.0-pro"
-}
-```
-
----
-
-## 10. Codex 执行要求
-
-请 Codex 按以下顺序执行：
-
-1. 不要读取或输出真实 API Key。
-2. 更新 `~/.config/carvis/agentruntime.env` 示例变量，新增 Qwen Image 配置。
-3. 新增 `src/agentruntime/provider/qwenImage.ts`。
-4. 新增 image smoke 脚本。
-5. 修改 provider 路由：`image_generation` 任务走 Qwen Image。
-6. 保留 `qwen3.5-omni-plus` 作为理解模型，不要用它生图。
-7. 先运行最小 curl，再运行 `npm run provider:qwen-image-smoke`。
-8. 只有 Qwen Image smoke 成功后，再启用完整 real providers。
-9. 不要把任何密钥、CSV、`.env`、`agentruntime.env` 提交到 Git。
-
----
-
-## 11. 验收标准
-
-完成后必须满足：
+真实 Qwen 文本 smoke：
 
 ```bash
 CARVIS_QWEN_REAL_SMOKE=1 npm run provider:smoke
-npm run provider:qwen-image-smoke
-CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1 npm run provider:smoke
 ```
 
-其中：
+完整 runtime smoke：
 
-- `provider:smoke` 能验证文本 / 多模态理解链路。
-- `provider:qwen-image-smoke` 能返回至少一个图片 URL。
-- 完整 real providers 能按任务类型正确路由。
+```bash
+npm run agentruntime:smoke
+npm run workplaces:smoke
+npm run output:smoke
+```
 
----
+NixOS 服务验证：
 
-## 12. 一句话总结
+```bash
+systemctl --user is-active carvis-messagebus.service carvis-agentruntime.service carvis-electron.service
+pgrep -af providerWorker
+```
 
-当前方案要补齐生图能力，必须新增 `qwen-image-2.0-pro` 和 DashScope 原生文生图接口；`qwen3.5-omni-plus` 继续保留为多模态理解模型，不能替代文生图模型。
+## 7. Usage 记录
+
+每个角色完成后会在 workspace 写 `usage.json`：
+
+- Qwen OpenAI-compatible route 记录真实 `prompt_tokens`、`completion_tokens`、`total_tokens`。
+- DeepSeek Claude Code CLI route 当前记录 `estimated_*_tokens`，用于相对性能对比，不作为计费依据。
+
+## 8. 当前已知优化点
+
+- Writer 还需要进一步 schema 化，减少长文本输出。
+- 仓库/长文档任务需要先生成短 task card，避免每个角色重复吃超长原始输入。
+- DeepSeek route 如需真实 token usage，后续可评估绕过 Claude Code CLI，改为直接调用兼容 chat API。

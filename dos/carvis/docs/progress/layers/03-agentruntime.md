@@ -1,5 +1,25 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-03 / NixOS readback and drift fix / 开工计划
+
+### 当前目标
+
+- 以远端 NixOS 和当前 `runtime.ts` 为准，修正 agentruntime 文档漂移。
+- 当前 production flow 是 `created -> parallel_roles_working -> engineer_building -> output_ready -> retaining_agents`。
+- `manager_planning` / `manager_reviewing` 仍在类型和辅助代码中保留，用于历史记录和兼容 smoke，但不是当前常驻 production flow。
+
+### 计划改动
+
+- 更新本层当前状态、远端 systemd 状态和 provider worker 事实。
+- 把旧的“manager 二次复审 gate”说明标成历史能力，不再写成当前生产流。
+- 记录真实 provider worker 保留方式和 provider usage 写入。
+
+### 验收指标
+
+- 文档与 `src/agentruntime/runtime.ts` 当前执行顺序一致。
+- 文档与远端 `carvis-agentruntime.service` active、5 个 provider worker PID active 的事实一致。
+- `npm run typecheck` 和 `npm run build` 通过。
+
 ## 2026-07-02 / Real provider role routing / 开工计划
 
 ### 当前目标
@@ -90,21 +110,20 @@
 ### 当前事实
 
 - 常驻 `agentruntime/main.ts` 连接 remote messagebus，订阅 Electron 提交的 `command.submitted`。
-- 五角色顺序保持：manager planning -> writer/artist/researcher -> manager review -> engineer。
+- 当前 production flow 是 `created -> parallel_roles_working -> engineer_building -> output_ready -> retaining_agents`。
+- `manager`、`writer`、`artist`、`researcher` 在 `parallel_roles_working` 中并行启动；`engineer` 在四个前置角色结束后审计合并。
+- `manager_planning` 和 `manager_reviewing` 仍保留在共享类型/辅助代码中，用于历史记录和兼容测试，不代表当前常驻生产流。
 - 每个 agent 会流式发布中文公开进度和结果预览到 `agent.output`，Electron 面板追加显示最近 80 行。
-- 公开输出使用五个中文人设：制作人、叙事设计、美术指导、系统研究、玩法工程师。
-- 已有专门任务模板：
-  - 《麦克白》中文 RPG。
-  - 《被掩埋的巨人》主题启发原创 RPG，明确不复制原作角色/情节/地名/独特设定。
-  - 《绿毛水怪》主题气质启发原创 galgame，明确不复制原作角色/情节/独特表达。
-  - 原创爬塔卡牌 roguelike，明确不复制《杀戮尖塔》的名称、角色、卡牌、遗物、敌人、美术、UI 或数值表达。
+- 真实 provider 模式下五个角色由 retained `providerWorker` 执行，manager/writer/engineer 走 DeepSeek Claude Code，artist/researcher 走 Qwen OpenAI-compatible；artist 可经本地 artist-image MCP wrapper 生成图片资产。
+- 每个角色的 provider/model/usage 会写入对应 `usage.json`。
 - IPC smoke 中通过 `CARVIS_AGENTRUNTIME_STREAM_DELAY_MS=1` 和 `CARVIS_AGENTRUNTIME_PREVIEW_DELAY_MS=1` 加速测试；真实 systemd 默认保留可见流式延迟。
 
 ### 当前验证
 
-- 本地 `npm test`：通过。
+- 本地 `npm run typecheck`：通过。
 - 远端 `carvis-agentruntime.service`：active。
-- 远端已验证 `雾下余烬`、`绿潮来信`、`星炉远征` 三类任务均生成 `final-report.md` 和 `game-preview.html`。
+- 远端 `pgrep` / systemd cgroup 显示 5 个 `dist/agentruntime/provider/providerWorker.js` PID active。
+- 远端最新 `workplaces/runs/.../{manager,writer,artist,researcher,engineer}/usage.json` 存在。
 
 ## 2026-07-02 / Runtime 接入长驻 PID Agent 池 / 本次完成
 

@@ -1,5 +1,19 @@
 # 06 Workplaces Progress
 
+## 2026-07-03 / NixOS readback / 当前状态
+
+### 当前事实
+
+- 正式运行不再写 `workplaces/live/*` 作为主路径，而是每次任务写入 `workplaces/runs/<timestamp-request>/<role>/`。
+- 每个角色目录包含 `input.md`、`skill.md`、`plan.md`、`log.md`、`result.md`、`common/`、`skills/`、`task_state.json`、`handoff_to_engineer.json`、`evidence_index.json`。
+- 真实 provider 模式下，角色完成后写入 `usage.json`。
+- `manager/review.md` 和 `writeManagerReview()` 仍保留为历史 manager review gate 兼容能力，不是当前 production flow 的必经文件。
+
+### 当前验证
+
+- 远端最新 runs 下五个角色均有 `usage.json`。
+- 远端 output manifest 的五个 `sourcePath` 均指向 `workplaces/runs/<run>/<role>/result.md`。
+
 ## 2026-07-02 / Manager review artifact / 本次完成
 
 ### 本次完成

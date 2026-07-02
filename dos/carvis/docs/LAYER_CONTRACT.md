@@ -63,29 +63,38 @@ output.ready
 ## 角色契约
 
 ```text
-manager    -> 拆解任务，不产出最终产品
-writer     -> 产出文本、说明、结构
-artist     -> 产出视觉、素材、界面建议
-researcher -> 产出调研、事实、引用材料
-engineer   -> 汇总前置角色结果，生成 output
+manager    -> 与 writer/artist/researcher 并行启动，产出短任务边界、异常监控点、最小交付合同
+writer     -> 产出文本、说明、结构、可数据化内容
+artist     -> 产出视觉、素材计划，并可通过 artist-image MCP 生成本地图片资产
+researcher -> 产出调研、事实、状态字段、测试检查
+engineer   -> 审计前置角色结果，统一冲突，生成最终 output
 ```
 
 ## 文件契约
 
-每个 workplace 建议包含：
+当前正式运行中，每个 run 的每个 workplace 包含：
 
 ```text
 input.md
+common/role.md
+common/policy.md
+skills/*.md
+skills/selected.md
+skill.md
 plan.md
 log.md
 result.md
-artifacts/
+task_state.json
+handoff_to_engineer.json
+evidence_index.json
+usage.json
 ```
 
-`output/` 建议包含：
+`output/runs/<run>/` 包含：
 
 ```text
 manifest.json
 final-report.md
-artifacts/
+game-preview.html
+assets/artist-*.png
 ```

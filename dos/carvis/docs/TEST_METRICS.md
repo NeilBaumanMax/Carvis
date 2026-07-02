@@ -123,12 +123,13 @@ npm run electron:smoke
 
 验收指标：
 
-- 总管 Agent 先启动
-- 文书、美术、调研可并行
-- 技术 Agent 等待前置角色完成后启动
+- 当前 production flow 中 manager、writer、artist、researcher 可并行启动
+- 技术 Agent 等待前置四个角色完成后启动
 - PID Agent 完成子任务后进入 `retained`
 - 全部任务结束后统一 shutdown
 - 心跳包含 active/idle/retained PID 数量和 queueDepth
+- 真实 provider 模式下每个角色保留一个 `providerWorker` PID
+- 角色 provider/model/usage 写入 `usage.json`
 
 最低测试：
 
@@ -140,7 +141,7 @@ npm run agentruntime:smoke
 建议 smoke 指标：
 
 - role flow 顺序可断言
-- 并发角色数量可断言
+- 并发角色数量可断言：manager/writer/artist/researcher 并行，engineer 在后
 - shutdown 后无残留 PID
 - heartbeat 周期在配置范围内
 
@@ -177,7 +178,8 @@ npm run claudecode:smoke
 - 每个角色只能写自己的 workplace
 - engineer 可读前置角色 workplace
 - engineer 最终只能写 `output/`
-- 每个 workplace 有 `input.md`、`plan.md`、`log.md`、`result.md` 或等价结构
+- 每个正式 workplace 位于 `workplaces/runs/<run>/<role>/`
+- 每个 workplace 有 `input.md`、`skill.md`、`plan.md`、`log.md`、`result.md`、`common/`、`skills/`、`task_state.json`、`handoff_to_engineer.json`、`evidence_index.json` 或等价结构
 
 最低测试：
 
@@ -192,6 +194,8 @@ npm run workplaces:smoke
 
 - output 有 `manifest.json`
 - output 有最终报告或最终产物
+- 正式 output 位于 `output/runs/<run>/`
+- 游戏或 HTML 任务应有 `game-preview.html`
 - 生成完成后广播 `output.ready`
 - Electron 可预览或打开 output
 

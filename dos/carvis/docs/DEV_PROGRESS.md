@@ -1,5 +1,67 @@
 # Carvis Development Progress
 
+## 2026-07-03 / NixOS readback and documentation drift fix / 开工计划
+
+### 本轮目标
+
+- 通过 SSH 读取 NixOS 远端真实运行状态。
+- 修正当前文档与真实代码/远端运行形态之间的漂移。
+- 明确当前 production flow、provider routing、output/workplace 路径、systemd 状态和测试基线。
+- 不修改运行时代码，不碰 API Key。
+
+### 涉及层
+
+- `00-setup`
+- `01-electron`
+- `02-messagebus`
+- `03-agentruntime`
+- `04-claudecode`
+- `05-mcp`
+- `06-workplaces`
+- `07-output`
+- 接力文档与根 README
+
+### 计划修改
+
+- 更新 `README.md`、各层 `src/*/README.md` 和 `dos/carvis/docs/*` 中的当前状态说明。
+- 把旧的 `manager planning -> manager review -> engineer` 描述修正为当前生产流：`manager/writer/artist/researcher` 并行后进入 `engineer`。
+- 记录远端 NixOS 的 user service、五个 provider worker、`output/runs/<run>`、`workplaces/runs/<run>` 和 `usage.json` 事实。
+- 保留历史条目，但补充“历史状态/兼容代码，不代表当前生产流”的说明。
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run build`
+- 如文档之外没有代码变化，不跑完整真实 provider 任务；以 SSH 远端 readback 作为 NixOS 事实核验。
+
+### GitHub 备份计划
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 基线提交：`8210390051741ece05a1a69edb686919069ff567`
+- 远端备份分支：`origin/backup/mvp-nixos-20260702-020835`
+- 远端状态：已确认 origin 指向同一基线提交。
+
+### 回滚预案
+
+- 文档修正可用 `git revert <本轮提交>` 回滚。
+- 若测试失败，不 push 本轮提交，先修正文档或记录阻塞原因。
+
+### 本次完成
+
+- SSH 读取 NixOS 远端：`howtion@192.168.137.59`，主机名 `nixos`。
+- 确认 `carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service` active。
+- 确认 `carvis-agentruntime.service` 下保留 5 个 `providerWorker` PID。
+- 确认最新 run 使用 `workplaces/runs/<run>` 和 `output/runs/<run>`，manifest 包含 `finalReportPath`、`gamePreviewPath` 和五个 role source path。
+- 确认最新 engineer usage provider 为 `deepseek-claudecode`，artist usage provider 为 `qwen-openai`。
+- 更新入口、架构、层契约、施工计划、测试指标、分层进度、日志和接力文档，修正当前生产流与路径描述。
+
+### 当前验证
+
+- `npm run typecheck`：通过。
+- `npm run build`：通过。
+- `npm run artist-image-mcp:smoke`：通过。
+- `npm test`：通过。
+
 ## 2026-07-02
 
 ## 2026-07-02 / Real provider role routing with DeepSeek and Qwen / 开工计划

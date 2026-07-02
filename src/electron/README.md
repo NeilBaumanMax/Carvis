@@ -1,22 +1,21 @@
 # Carvis Electron Layer
 
-`src/electron` owns the local visual shell contract for Carvis.
-
-Current Phase 3 scope includes a TypeScript shell state model and a static HTML renderer snapshot. The renderer is ready to be mounted by a future Electron `BrowserWindow`, while smoke tests remain browser-free for NixOS/headless verification.
+`src/electron` owns the local visual shell for Carvis.
 
 ## Responsibilities
 
-- Show five workplace panels: `manager`, `writer`, `artist`, `researcher`, `engineer`.
+- Show five role panels: `manager`, `writer`, `artist`, `researcher`, `engineer`.
 - Keep display state for agent status, PID, heartbeat time, and latest output summary.
 - Submit user commands through messagebus as `command.submitted`.
 - Subscribe to runtime status events through messagebus.
 - Show output entries after `output.ready`.
-- Render the current shell state into an HTML workbench snapshot.
+- Open the current run's `game-preview.html` in a browser/preview path without relying on stale output folders.
+- Keep the app usable in the NixOS 1280x720 desktop, including the 1000x640 shell window.
 
 ## Boundaries
 
-- Electron does not start, stop, or retain PID Agent processes.
-- Electron does not call Claude Code CLI.
+- Electron does not start, stop, or retain provider PID workers.
+- Electron does not call Claude Code CLI or Qwen APIs.
 - Electron does not read or write role workplace files directly.
 - Electron does not call agentruntime directly; all interaction goes through messagebus.
 

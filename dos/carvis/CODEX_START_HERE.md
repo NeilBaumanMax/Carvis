@@ -5,6 +5,46 @@
 
 ---
 
+## 0. 当前接力状态（2026-07-03）
+
+本入口文档的早期 phase 描述仍保留历史施工背景。当前项目已经不是“只做施工文档脚手架”的阶段，而是可运行 MVP 后的漂移修正和质量加固阶段。
+
+当前应按以下事实接手：
+
+```text
+NixOS user services
+  -> carvis-messagebus.service active
+  -> carvis-agentruntime.service active
+      -> 5 retained providerWorker processes
+  -> carvis-electron.service active
+```
+
+当前任务流：
+
+```text
+Electron command
+  -> messagebus
+  -> agentruntime
+  -> manager / writer / artist / researcher 并行
+  -> engineer 审计合并并输出 fenced html
+  -> output/runs/<run>/game-preview.html
+  -> Electron preview/open
+```
+
+当前 provider routing：
+
+- manager/writer/engineer：DeepSeek through Claude Code CLI。
+- artist/researcher：Qwen OpenAI-compatible。
+- artist image：local artist-image MCP wrapper + Qwen Image。
+
+当前路径：
+
+- workplaces：`workplaces/runs/<timestamp-request>/<role>/`
+- output：`output/runs/<timestamp-request>/`
+- secret env：`~/.config/carvis/agentruntime.env`，不进 Git。
+
+---
+
 ## 0. 项目定位
 
 项目名：`carvis`

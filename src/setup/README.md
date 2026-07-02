@@ -1,8 +1,8 @@
 # Setup Layer
 
-`src/setup` is the NixOS startup boundary for Carvis.
+`src/setup` is the local startup boundary for Carvis.
 
-Responsibilities:
+## Responsibilities
 
 - Load local startup configuration.
 - Start core processes in this order:
@@ -10,16 +10,17 @@ Responsibilities:
   2. `agentruntime`
   3. `electron`
 - Stop startup when a required component fails.
-- Emit a simple event trail for smoke tests and future logs.
+- Emit a simple event trail for smoke tests and logs.
+- Provide smoke coverage for the NixOS systemd user-service setup.
 
-Non-responsibilities:
+## Boundaries
 
-- Does not split user tasks.
-- Does not start role PID agents.
-- Does not call Claude Code CLI.
-- Does not read or write role workplace files.
+- Setup does not split user tasks.
+- Setup does not directly start role provider workers; `agentruntime` owns provider worker prewarming and retention.
+- Setup does not call Claude Code CLI or Qwen APIs.
+- Setup does not read or write role workplace files.
 
-The first implementation supports two modes:
+## Modes
 
 - `plan`: simulate startup order without spawning child processes.
 - `spawn`: spawn configured commands.

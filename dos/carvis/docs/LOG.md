@@ -1,5 +1,84 @@
 # Carvis Construction Log
 
+## 2026-07-03 / NixOS readback and documentation drift fix
+
+### 本轮计划回放
+
+- SSH 连接 NixOS 远端，读取真实 systemd、provider worker、workplace/output 和 usage 状态。
+- 修正文档中与当前代码和远端运行事实不一致的描述。
+- 不修改运行时代码，不写入任何 API Key。
+
+### 本次修改
+
+- 更新入口文档，明确当前已是可运行 MVP 后的漂移修正阶段。
+- 更新架构、层契约、施工计划和测试指标，修正当前 production flow。
+- 更新分层进度，记录远端 active services、五个 retained `providerWorker`、`workplaces/runs/<run>`、`output/runs/<run>`、`usage.json`。
+- 保留历史 manager review gate 和 fullscreen/kiosk 记录，但新增当前状态说明，避免误读为当前生产流。
+
+### 修改文件
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/CODEX_START_HERE.md`
+- `dos/carvis/docs/ARCHITECTURE.md`
+- `dos/carvis/docs/LAYER_CONTRACT.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/*.md`
+- `README.md`
+- `src/*/README.md`
+
+### 验证结果
+
+- SSH `howtion@192.168.137.59`：通过，主机名 `nixos`。
+- 远端 `carvis-messagebus.service`：active。
+- 远端 `carvis-agentruntime.service`：active，5 个 `providerWorker` PID active。
+- 远端 `carvis-electron.service`：active。
+- 远端最新 `output/runs/.../manifest.json`：包含 `finalReportPath`、`gamePreviewPath` 和五个 role result `sourcePath`。
+- 远端最新 `workplaces/runs/.../engineer/usage.json`：provider 为 `deepseek-claudecode`。
+- 远端最新 `workplaces/runs/.../artist/usage.json`：provider 为 `qwen-openai`，usage source 为 `provider`。
+- `npm run typecheck`：通过。
+- `npm run build`：通过。
+- `npm test`：通过。
+- `npm run artist-image-mcp:smoke`：通过。
+
+### 测试日志
+
+- 第 1 次：SSH readback，通过，确认远端服务、PID、manifest、usage。
+- 第 2 次：`npm run typecheck`，通过。
+- 第 3 次：`npm run build`，通过。
+- 第 4 次：`npm run artist-image-mcp:smoke`，通过，覆盖本轮一并提交的 artist image MCP 规则改动。
+- 第 5 次：`npm test`，通过，覆盖 setup/messagebus/electron/agentruntime/pidagent/workplaces/output/claudecode/e2e/ipc/reconnect smokes。
+
+### 测试指标判断
+
+- 本轮涉及层：文档、setup、electron、messagebus、agentruntime、claudecode、mcp、workplaces、output。
+- 应执行测试：`npm run typecheck`、`npm run build`、SSH 远端 readback。
+- 实际执行测试：SSH 远端 readback、`npm run typecheck`、`npm run build`、`npm run artist-image-mcp:smoke`、`npm test`。
+- 未执行项及原因：真实 provider 新任务未执行，本轮没有运行时代码改动，且远端已有 active 服务和最新 run artifact 作为事实核验。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 基线提交：`8210390051741ece05a1a69edb686919069ff567`
+- 备份分支：`origin/backup/mvp-nixos-20260702-020835`
+- 开发前远端状态：origin 指向同一基线提交。
+- 本轮提交：`docs: reconcile nixos runtime handoff`，最终提交号以 `git log -1` 为准。
+- push 状态：已 push 到 `origin/backup/mvp-nixos-20260702-020835`。
+
+### 回滚判断
+
+- 是否需要回滚：否，当前为文档漂移修正。
+- 回滚命令：`git revert <本轮提交>`。
+- 回滚后复测：`npm run typecheck && npm run build`。
+
+### 下一步
+
+- 执行本地 typecheck/build。
+- 更新 HANDOFF 最终提交和 push 状态。
+- 已提交并 push 到当前备份分支。
+
 ## 2026-07-02 / Real provider role routing with DeepSeek and Qwen
 
 ### 目标

@@ -4,6 +4,14 @@
 
 Current scope is the real provider runtime used on NixOS. It can still run deterministic smokes, but production mode launches retained provider workers and routes roles to DeepSeek Claude Code CLI or Qwen OpenAI-compatible APIs according to `provider/roles.ts`.
 
+The active run sequence is:
+
+```text
+created -> parallel_roles_working -> engineer_building -> output_ready -> retaining_agents
+```
+
+`manager_planning` and `manager_reviewing` remain in shared types and helper code for compatibility with older run records and smokes, but the current production flow does not enter a second manager review gate.
+
 ## Responsibilities
 
 - Subscribe to `command.submitted` from messagebus.

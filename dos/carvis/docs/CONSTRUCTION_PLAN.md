@@ -2,7 +2,18 @@
 
 ## 当前目标
 
-在根目录现有 `src` 层次基础上迁移一套新的施工文档，指导后续实现 NixOS 多进程多 Agent 可视化系统。
+当前已进入可运行 MVP 后的漂移修正和质量加固阶段。根目录现有 `src` 层次已经实现 NixOS user systemd、TCP messagebus、真实 Electron BrowserWindow、常驻 agentruntime、五个 retained provider worker、按 run 隔离的 workplace/output 和 provider usage 记录。
+
+当前生产流：
+
+```text
+command.submitted
+  -> manager / writer / artist / researcher 并行
+  -> engineer 审计合并并输出最终 HTML
+  -> output/runs/<run>/final-report.md + game-preview.html + manifest.json
+```
+
+历史文档中的 `manager_reviewing` 是曾经实现过的复审 gate 和兼容类型，不是 2026-07-03 远端常驻 production flow。
 
 ## Phase 0: 文档与边界
 
@@ -81,13 +92,14 @@
 - 建立监督日志
 - 固定角色编排状态机
 
-验收标准：
+当前验收标准：
 
-- 总管先运行
-- 文书 / 美术 / 调研可并行
+- manager / writer / artist / researcher 可并行
 - 技术 Agent 等待前置角色结束后运行
 - 所有 PID 在最终阶段统一关闭
 - shutdown 后无残留 PID
+- 常驻模式下每个角色有一个 retained `providerWorker` PID
+- 角色 provider usage 写入 `usage.json`
 - agentruntime smoke test 通过
 
 ## Phase 5: Claude Code CLI PID 封装
@@ -119,9 +131,10 @@
 
 验收标准：
 
-- 每个角色目录独立
+- 每个 run 下每个角色目录独立：`workplaces/runs/<run>/<role>/`
 - agentruntime 不混写角色文件
 - 技术 Agent 能读取所有前置 workplace
+- 每个角色有 `common/`、`skills/`、`task_state.json`、`handoff_to_engineer.json`、`evidence_index.json` 和可选 `usage.json`
 - workplaces smoke test 通过
 
 ## Phase 7: output 汇总与预览
@@ -134,7 +147,7 @@
 
 验收标准：
 
-- `output/` 下出现最终文件
+- `output/runs/<run>/` 下出现最终文件
 - messagebus 广播 `output.ready`
 - Electron 可打开产物
 - output smoke test 通过

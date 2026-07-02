@@ -1,5 +1,20 @@
 # 00 Setup Progress
 
+## 2026-07-03 / NixOS readback / 当前状态
+
+### 当前事实
+
+- 远端 NixOS user units 位于 `/home/howtion/.config/systemd/user/`。
+- `carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service` 均 active。
+- `carvis-agentruntime.service` 有 drop-in：`carvis-agentruntime.service.d/override.conf`，通过 `EnvironmentFile=/home/howtion/.config/carvis/agentruntime.env` 注入本地 secret。
+- 当前 unit `WantedBy=carvis.target`，单个 service 显示 disabled 是 user target 管理下的历史安装状态，不代表服务未运行。
+- `carvis-electron.service` 入口为 `node dist/electron/runBrowserMain.js`，`CARVIS_ELECTRON_START_DELAY_MS=8000`。
+
+### 当前验证
+
+- SSH readback：通过。
+- `systemctl --user status`：三个核心 service active。
+
 ## 2026-07-02 / Electron browser systemd 模式 / 本次完成
 
 ### 本次完成
