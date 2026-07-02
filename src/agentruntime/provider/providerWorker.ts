@@ -109,7 +109,7 @@ async function runProviderTask(task: ProviderTaskInput, onProgress: (output: str
   });
   onProgress(`provider:${task.role}: qwen text finished chars=${qwenOutput.length}`);
   const imageAssets =
-    task.role === "artist"
+    task.role === "artist" && shouldGenerateArtistImages(task.commandText, qwenOutput)
       ? await callArtistImageMcp({
           role: task.role,
           commandText: task.commandText,
@@ -129,6 +129,13 @@ async function runProviderTask(task: ProviderTaskInput, onProgress: (output: str
     qwenOutput,
     imageAssets === undefined ? "" : renderArtistImageMcpAssets(imageAssets),
   ].join("\n");
+}
+
+function shouldGenerateArtistImages(commandText: string, artistOutput: string): boolean {
+  if (/不需要生图|不要生图|无需生图|禁止生图|不需要图片|不要图片/.test(commandText)) {
+    return false;
+  }
+  return true;
 }
 
 function writeMessage(message: unknown): void {

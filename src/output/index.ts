@@ -20,6 +20,7 @@ export interface WriteOutputOptions {
   outputRootPath: string;
   title: string;
   workplaceResults: OutputManifestEntryWithContent[];
+  requireEngineerHtml?: boolean;
 }
 
 export interface OutputManifestEntryWithContent extends OutputManifestEntry {
@@ -35,7 +36,14 @@ export async function writeOutput(options: WriteOutputOptions): Promise<OutputRe
   const gamePreviewPath = join(outputRootPath, "game-preview.html");
   const manifestPath = join(outputRootPath, "manifest.json");
   const finalReport = renderFinalReport(options.title, options.workplaceResults);
-  const gamePreview = extractEngineerHtml(options.workplaceResults) ?? renderGamePreviewHtml(options.title, finalReport);
+  const engineerHtml = extractEngineerHtml(options.workplaceResults);
+  if (options.requireEngineerHtml === true && engineerHtml === undefined) {
+    throw new Error("engineer did not provide a complete HTML preview");
+  }
+  const gamePreview = engineerHtml ?? renderGamePreviewHtml(options.title, finalReport);
+  if (engineerHtml !== undefined) {
+    assertRunnableHtmlScripts(engineerHtml);
+  }
   const manifest: OutputManifest = {
     generatedAt: new Date().toISOString(),
     finalReportPath,
@@ -55,6 +63,20 @@ export async function writeOutput(options: WriteOutputOptions): Promise<OutputRe
     manifestPath,
     gamePreviewPath,
   };
+}
+
+function assertRunnableHtmlScripts(html: string): void {
+  const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map((match) => match[1] ?? "");
+
+  for (const [index, script] of scripts.entries()) {
+    try {
+      new Function(script);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      throw new Error(`engineer HTML script ${index + 1} syntax check failed: ${message}`);
+    }
+  }
 }
 
 function extractEngineerHtml(entries: OutputManifestEntryWithContent[]): string | undefined {

@@ -83,15 +83,17 @@ export function renderElectronHtml(state: ElectronShellState): string {
     body {
       margin: 0;
       min-width: 320px;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
       background: var(--bg);
       color: var(--ink);
     }
 
     .app {
-      min-height: 100vh;
+      height: 100vh;
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto minmax(0, auto) minmax(0, 1fr) auto;
+      overflow: hidden;
     }
 
     .topbar,
@@ -220,21 +222,23 @@ export function renderElectronHtml(state: ElectronShellState): string {
     .workspace {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 6px;
-      padding: 8px;
+      gap: 5px;
+      padding: 7px;
       align-items: stretch;
+      min-height: 0;
     }
 
     .panel {
       min-width: 0;
-      min-height: 188px;
+      min-height: 0;
       display: grid;
-      grid-template-rows: auto auto minmax(102px, 1fr);
-      gap: 5px;
+      grid-template-rows: auto auto minmax(86px, 1fr);
+      gap: 4px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
-      padding: 7px;
+      padding: 6px;
+      overflow: hidden;
     }
 
     .panel-header {
@@ -287,6 +291,8 @@ export function renderElectronHtml(state: ElectronShellState): string {
       font-size: 10px;
       line-height: 1.18;
       min-width: 0;
+      max-height: 38px;
+      overflow: auto;
     }
 
     .meta div,
@@ -296,8 +302,8 @@ export function renderElectronHtml(state: ElectronShellState): string {
     }
 
     .latest {
-      min-height: 102px;
-      max-height: 132px;
+      min-height: 86px;
+      max-height: 112px;
       border: 2px solid #27c46a;
       border-radius: 8px;
       padding: 23px 7px 7px;
@@ -339,9 +345,10 @@ export function renderElectronHtml(state: ElectronShellState): string {
 
     .side {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+      grid-template-columns: minmax(0, 1fr) minmax(200px, 286px);
       gap: 6px;
-      padding: 0 8px 7px;
+      padding: 0 7px 6px;
+      min-height: 0;
     }
 
     .rail {
@@ -350,6 +357,8 @@ export function renderElectronHtml(state: ElectronShellState): string {
       background: #ffffff;
       padding: 7px;
       min-width: 0;
+      min-height: 0;
+      overflow: auto;
     }
 
     .rail h2 {

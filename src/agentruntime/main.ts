@@ -48,7 +48,7 @@ const runtime = createAgentRuntime(bus, {
           phase: run.phase,
           commandText,
           outputRootPath: paths.outputRoot,
-          systemPrompt: createRoleSystemPrompt(agent.role, run.phase),
+          systemPrompt: createRoleSystemPrompt(agent.role, run.phase, commandText),
           prompt: await createRoleUserPrompt(paths.workplacesRoot, agent.role, run.phase, commandText, {
             attempt: attempt ?? 1,
             previousPidOutput,
@@ -104,6 +104,7 @@ const runtime = createAgentRuntime(bus, {
     return writeOutput({
       outputRootPath: paths.outputRoot,
       title: "Carvis Live Task Output",
+      requireEngineerHtml: requiresEngineerHtml(commandText),
       workplaceResults: results.map((result) => ({
         role: result.role,
         sourcePath: result.resultPath,
@@ -199,12 +200,33 @@ function createProviderPidAgentPool(): PersistentPidAgentPool {
   });
 }
 
-function createRoleSystemPrompt(role: AgentRole, phase: string): string {
+function createRoleSystemPrompt(role: AgentRole, phase: string, commandText: string): string {
   const provider = getRoleProviderConfig(role);
+  const gameTask = isGameTask(commandText);
   const phaseLine =
     role === "manager" && phase === "manager_reviewing"
       ? "你现在是主管复审阶段。只在角色产物异常、缺失、偷懒、provider 失败或无法供 engineer 使用时输出 GATE_PASSED: false；如果只是命名、尺寸、规则等可整合差异，必须给出统一整合意见并输出 GATE_PASSED: true。"
       : "你必须按本角色 skill 和上下游材料工作。";
+  const roleLine =
+    role === "manager"
+      ? gameTask
+        ? "主管必须先写按角色任务书：writer 写剧情数据，artist 少写多产图，researcher 写机制字段，engineer 按统一契约集成。"
+        : "主管必须先写按角色任务书：writer 负责信息结构，artist 负责展示视觉规划，researcher 负责技术核验，engineer 按统一契约集成 HTML 文档。"
+      : role === "writer"
+        ? gameTask
+          ? "writer 不能偷懒：必须写具体人物、场景事件、中文对白、选择后果和结局文本，输出可直接被 engineer 数据化的内容。"
+          : "writer 不能偷懒：必须把资料整理成准确中文说明、目录职责、关键文件用途和页面文案，输出可直接被 engineer 放入 HTML 的内容。"
+        : role === "artist"
+          ? gameTask
+            ? "artist 以图片资产为主：文字要短，只写风格规则、资产清单、生成提示和自审，不要写长篇剧情。"
+            : "artist 做信息展示视觉规划并默认产图：页面布局、配色、表格、流程图和可读性规则；轻量规划 1-4 张可嵌入 HTML 的 UI/图示资产，例如背景、目录图标、架构流程图、状态徽章，不要写长篇设定。"
+          : role === "researcher"
+            ? gameTask
+              ? "researcher 必须把玩法拆成状态字段、数值表、反馈事件和可测试规则。"
+              : "researcher 必须核验技术栈、目录职责、脚手架搭建流程、关键风险和可测试检查项。"
+            : gameTask
+              ? "engineer 必须把上游材料做成可玩的浏览器 HTML，并实际使用 artist 生成的本地图片资产。"
+              : "engineer 必须把上游材料做成可浏览的中文 HTML 信息展示页，重点是结构准确、可读、可截图验收。";
 
   return [
     "你是 Carvis 多 Agent 系统中的一个真实工作进程。",
@@ -215,7 +237,10 @@ function createRoleSystemPrompt(role: AgentRole, phase: string): string {
     "不要输出隐藏思考过程；只输出可公开的工作结果、检查清单、文件方案和必要代码。",
     "你不能调用工具、不能输出 <function_calls>、不能要求用户替你执行命令；你必须直接写出本角色的最终产物正文。",
     "必须紧贴用户原始任务，不得套用与任务无关的固定模板。",
-    "如果用户要求做游戏，最终必须推动生成可打开、可玩的 HTML/JS 预览，而不是只写设定。",
+    gameTask
+      ? "这是游戏任务：最终必须推动生成可打开、可玩的 HTML/JS 预览，而不是只写设定。"
+      : "这是非游戏任务：最终必须推动生成可打开的中文 HTML 展示页，而不是套用游戏模板。",
+    roleLine,
     phaseLine,
   ].join("\n");
 }
@@ -246,11 +271,11 @@ async function createRoleUserPrompt(
       ? [
           "## 员工产物待审核",
           "### writer/result.md",
-          writerResult,
+          summarizeRoleResult("writer", writerResult),
           "### artist/result.md",
-          artistResult,
+          summarizeRoleResult("artist", artistResult),
           "### researcher/result.md",
-          researcherResult,
+          summarizeRoleResult("researcher", researcherResult),
           "",
           "## 复审输出硬要求",
           "- 逐条核对用户原始任务有没有被满足。",
@@ -264,36 +289,39 @@ async function createRoleUserPrompt(
         ? [
             "## 上游材料",
             "### manager/result.md",
-            managerResult,
+            summarizeRoleResultForEngineer("manager", managerResult, commandText),
             "### manager/review.md",
-            managerReview,
+            summarizeRoleResultForEngineer("manager", managerReview, commandText),
             "### writer/result.md",
-            writerResult,
+            summarizeRoleResultForEngineer("writer", writerResult, commandText),
             "### artist/result.md",
-            artistResult,
+            summarizeRoleResultForEngineer("artist", artistResult, commandText),
             "### researcher/result.md",
-            researcherResult,
+            summarizeRoleResultForEngineer("researcher", researcherResult, commandText),
             "",
             "## 技术产出硬要求",
-            "- 即使 manager/review.md 标记 GATE_PASSED:false，只要其中给出了统一修正指令，你也必须按该统一标准整合产物。",
-            "- manager/review.md 的统一修正指令优先级高于 writer/artist/researcher 的冲突细节。",
-            "- 必须把上游内容集成为真实可玩游戏产物，不得只写方案。",
-            "- 必须输出一个完整的单文件 HTML，使用 fenced code block：```html ... ```。",
-            "- HTML 必须可直接保存为 output/game-preview.html 并在浏览器打开。",
-            "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，必须明确实现。",
-            "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，HTML 代码内必须实现对应事件。",
-            "- 必须用 Canvas/SVG/CSS 代码生成素材或明确嵌入素材，不得只写美术氛围。",
-            "- 如果 artist/result.md 包含 GENERATED_IMAGE_ASSETS，必须在 HTML 中使用这些本地图片资产；从 output/game-preview.html 引用时使用相对路径 assets/文件名。",
+            ...createEngineerRequirements(commandText, artistResult),
           ].join("\n")
         : [
             "## 上游主管规则",
-            managerResult,
+            summarizeRoleResult("manager", managerResult),
             "",
             "## 本角色工作要求",
             "- 必须引用用户原始任务中的题材、控制方式、素材要求和交付格式。",
             "- 必须输出足够 engineer 直接实现的材料。",
+            role === "manager"
+              ? "- 必须输出按角色任务书、MVP 验收清单、版权边界、交付文件和最终浏览器截图验收标准。"
+              : "",
+            role === "writer"
+              ? "- 必须输出 scene/choice/ending 字段化材料：至少 4 个选择节点、每节点中文对白、选择后果和状态变化，故事性要强。"
+              : "",
             role === "artist"
-              ? "- 必须给出生图提示词、资产用途和构图要求；真实 provider 会把图片资产追加到 GENERATED_IMAGE_ASSETS。"
+              ? isGameTask(commandText)
+                ? "- 输出要短，重点给资产计划：2-4 个关键图片、用途、构图、UI 安全区和 prompt；真实 provider 会把图片资产追加到 GENERATED_IMAGE_ASSETS。"
+                : "- 输出要短，重点给 HTML 信息展示视觉规划：布局、配色、表格/流程图、响应式和可读性；默认写轻量 ARTIST_IMAGE_MCP_PLAN，控制在 1-4 张可嵌入 HTML 的 UI/图示资产。"
+              : "",
+            role === "researcher"
+              ? "- 必须输出状态字段、核心循环、数值表、反馈事件和 3 条 playtest 检查。"
               : "",
           ].join("\n");
   const retryBlock =
@@ -341,7 +369,7 @@ function validateRealProviderOutput({
   const output = pidOutput?.trim() ?? "";
   const normalized = output.toLowerCase();
   const isManagerReview = agent.role === "manager" && run.phase === "manager_reviewing";
-  const isGameTask = /游戏|game|rpg|galgame|杀戮尖塔|卡牌|wasd|j\/k\/l/i.test(commandText);
+  const gameTask = isGameTask(commandText);
 
   if (output.length === 0) {
     return { ok: false, reason: "输出为空" };
@@ -363,8 +391,38 @@ function validateRealProviderOutput({
   if (isManagerReview && !/gate_passed\s*:\s*(true|false)/i.test(output)) {
     return { ok: false, reason: "manager 复审缺少 GATE_PASSED 标记" };
   }
-  if (agent.role === "engineer" && isGameTask && !/```html[\s\S]*<\/html>\s*```/i.test(output)) {
+  if (agent.role === "engineer" && gameTask && !/```html[\s\S]*<\/html>\s*```/i.test(output)) {
     return { ok: false, reason: "engineer 没有输出完整 fenced HTML 游戏文件" };
+  }
+  if (agent.role === "engineer") {
+    const html = extractHtmlFromProviderOutput(output);
+    const htmlValidation = html === undefined ? { ok: false, reason: "engineer HTML 提取失败" } : validateHtmlScripts(html);
+    if (!htmlValidation.ok) {
+      return { ok: false, reason: htmlValidation.reason };
+    }
+  }
+
+  return { ok: true };
+}
+
+function extractHtmlFromProviderOutput(output: string): string | undefined {
+  const fencedMatch = /```html\s*([\s\S]*?<\/html>)\s*```/i.exec(output);
+  const rawMatch = /<!doctype html[\s\S]*<\/html>/i.exec(output) ?? /<html[\s\S]*<\/html>/i.exec(output);
+
+  return fencedMatch?.[1] ?? rawMatch?.[0];
+}
+
+function validateHtmlScripts(html: string): { ok: boolean; reason?: string } {
+  const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map((match) => match[1] ?? "");
+
+  for (const [index, script] of scripts.entries()) {
+    try {
+      new Function(script);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      return { ok: false, reason: `engineer HTML script ${index + 1} 语法错误：${message}` };
+    }
   }
 
   return { ok: true };
@@ -380,6 +438,173 @@ function parseManagerReview(output: string): { content: string; gatePassed: bool
     content: output,
     gatePassed: explicitFalse ? false : explicitTrue ? true : !hasRework,
   };
+}
+
+function isGameTask(commandText: string): boolean {
+  return /游戏|game|rpg|galgame|杀戮尖塔|卡牌|平台|关卡|wasd|j\/k\/l/i.test(commandText);
+}
+
+function requiresEngineerHtml(commandText: string): boolean {
+  return isGameTask(commandText) || /game-preview\.html|HTML|html|浏览器|展示页|预览窗口/i.test(commandText);
+}
+
+function createEngineerRequirements(commandText: string, artistResult: string): string[] {
+  const base = [
+    "- 即使 manager/review.md 标记 GATE_PASSED:false，只要其中给出了统一修正指令，你也必须按该统一标准整合产物。",
+    "- manager/review.md 的统一修正指令优先级高于 writer/artist/researcher 的冲突细节。",
+    "- 必须输出一个完整的单文件 HTML，使用 fenced code block：```html ... ```。",
+    "- HTML 必须可直接保存为 output/game-preview.html 并在浏览器打开。",
+  ];
+
+  if (!isGameTask(commandText)) {
+    return [
+      ...base,
+      "- 这是文档/分析展示任务：必须把上游材料集成为准确、可读、可截图验收的信息展示 HTML，不得套用游戏剧情、关卡、结局模板。",
+      "- 必须包含：概览、目录职责表、脚手架搭建流程、关键文件说明、数据来源说明。",
+      "- 需要使用 CSS/HTML 做清晰的信息架构；可以使用表格、时间线、流程图、目录树和筛选标签。",
+      "- 如果 artist 产物包含图片资产，可以作为装饰或图示使用；如果没有图片资产，不得伪造资产路径。",
+    ];
+  }
+
+  return [
+    ...base,
+    "- 必须把上游内容集成为真实可玩游戏产物，不得只写方案。",
+    "- 标题页和至少一个可玩场景必须明显使用 artist 生成的本地图片；如果图片加载失败才允许 CSS/Canvas fallback。",
+    "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，必须明确实现。",
+    "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，HTML 代码内必须实现对应事件。",
+    "- 必须用 Canvas/SVG/CSS 代码生成素材或明确嵌入素材，不得只写美术氛围。",
+    artistResult.includes("GENERATED_IMAGE_ASSETS")
+      ? "- 如果 artist/result.md 包含 GENERATED_IMAGE_ASSETS，必须在 HTML 中使用这些本地图片资产；从 output/game-preview.html 引用时使用相对路径 assets/文件名。"
+      : "- 如果没有 artist 图片资产，必须用 Canvas/SVG/CSS 生成明确可见的游戏画面素材。",
+  ];
+}
+
+function summarizeRoleResult(role: AgentRole, content: string): string {
+  const trimmed = content.trim();
+
+  if (trimmed.length <= 8_000) {
+    return trimmed;
+  }
+
+  const blocks = [
+    extractProviderHeader(trimmed),
+    extractMatchingLines(trimmed, [
+      /^#{1,4}\s+/,
+      /GATE_PASSED\s*:/i,
+      /GENERATED_IMAGE_ASSETS/i,
+      /ARTIST_IMAGE_MCP_SELF_REVIEW/i,
+      /state_schema/i,
+      /ending_rules/i,
+      /determineEnding/i,
+      /sceneId|choiceId|endingId|stateChanges/i,
+      /assets\/[\w.-]+\.png/i,
+      /```(?:html|javascript|js|json)?/i,
+    ]),
+    extractCodeBlocks(trimmed, role === "engineer" ? 24_000 : 10_000),
+    tail(trimmed, 2_000),
+  ].filter((part) => part.length > 0);
+
+  return [
+    `<!-- ${role} result compressed from ${trimmed.length} chars for downstream handoff -->`,
+    dedupeLines(blocks.join("\n\n")).slice(0, role === "manager" ? 6_000 : 8_000),
+  ].join("\n");
+}
+
+function summarizeRoleResultForEngineer(role: AgentRole, content: string, commandText: string): string {
+  const trimmed = content.trim();
+
+  if (trimmed.length === 0) {
+    return "";
+  }
+
+  const gameTask = isGameTask(commandText);
+  const rolePatterns: Record<AgentRole, RegExp[]> = {
+    manager: [
+      /GATE_PASSED\s*:/i,
+      /统一整合标准|最终验收|必做|阻塞|文件名|assets\/[\w.-]+\.png/i,
+      /标题页|第\s*\d+\s*关|关卡|胜利|失败|版权边界/i,
+    ],
+    writer: gameTask
+      ? [
+          /游戏名|主角|反派|同伴|第\s*\d+\s*关|关卡|目标|阻碍|对白|过关|失败|结局|ending|scene|dialogue/i,
+          /```(?:json)?/i,
+        ]
+      : [/概览|目录|文件|用途|流程|步骤|风险|表格|展示/i, /```(?:json)?/i],
+    artist: [
+      /GENERATED_IMAGE_ASSETS|ARTIST_IMAGE_MCP_SELF_REVIEW|生成数量/i,
+      /assets\/[\w.-]+\.(?:png|jpg|jpeg|webp|svg)/i,
+      /标题|背景|关卡|结局|主视觉|布局|配色|安全区|style|palette/i,
+    ],
+    researcher: gameTask
+      ? [
+          /PlayerState|GameState|EntityState|状态|字段|核心循环|数值|碰撞|胜利|失败|playtest|检查/i,
+          /移动|跳跃|互动|收集|警戒|追捕|生命|关卡钥匙/i,
+        ]
+      : [/技术栈|脚手架|目录|文件|依赖|命令|风险|检查项|搭建/i],
+    engineer: [/```html/i],
+  };
+  const maxChars: Record<AgentRole, number> = {
+    manager: 2_600,
+    writer: 3_200,
+    artist: 2_400,
+    researcher: 2_400,
+    engineer: 8_000,
+  };
+  const parts = [
+    extractProviderHeader(trimmed),
+    extractMatchingLines(trimmed, rolePatterns[role]),
+    role === "writer" ? extractCodeBlocks(trimmed, 2_200) : "",
+  ].filter((part) => part.length > 0);
+  const summary = dedupeLines(parts.join("\n\n")).slice(0, maxChars[role]);
+
+  return [
+    `<!-- ${role} engineer handoff compressed from ${trimmed.length} chars -->`,
+    summary.length > 0 ? summary : tail(trimmed, maxChars[role]),
+  ].join("\n");
+}
+
+function extractProviderHeader(content: string): string {
+  return content
+    .split("\n")
+    .filter((line) => /^(# Result|PROVIDER:|MODEL:|ROLE:|provider:)/.test(line))
+    .slice(0, 12)
+    .join("\n");
+}
+
+function extractMatchingLines(content: string, patterns: RegExp[]): string {
+  return content
+    .split("\n")
+    .filter((line) => patterns.some((pattern) => pattern.test(line)))
+    .slice(0, 120)
+    .join("\n");
+}
+
+function extractCodeBlocks(content: string, maxChars: number): string {
+  const matches = [...content.matchAll(/```[\s\S]*?```/g)].map((match) => match[0]);
+
+  return matches.join("\n\n").slice(0, maxChars);
+}
+
+function tail(content: string, maxChars: number): string {
+  return content.slice(Math.max(0, content.length - maxChars));
+}
+
+function dedupeLines(content: string): string {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  for (const line of content.split("\n")) {
+    const key = line.trim();
+    if (key.length > 0 && seen.has(key)) {
+      continue;
+    }
+    if (key.length > 0) {
+      seen.add(key);
+    }
+    lines.push(line);
+  }
+
+  return lines.join("\n");
 }
 
 async function safeRead(path: string): Promise<string> {

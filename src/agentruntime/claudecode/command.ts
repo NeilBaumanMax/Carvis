@@ -83,11 +83,15 @@ function spawnClaudeCode(
       cwd,
       env,
       stdio: ["ignore", "pipe", "pipe"],
+      detached: process.platform !== "win32",
     });
     const stdoutChunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
     const timeout = setTimeout(() => {
-      child.kill("SIGTERM");
+      terminateChildProcess(child, "SIGTERM");
+      setTimeout(() => {
+        terminateChildProcess(child, "SIGKILL");
+      }, 2_000).unref();
       reject(new Error(`claude code timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 
@@ -115,4 +119,24 @@ function spawnClaudeCode(
       });
     });
   });
+}
+
+function terminateChildProcess(child: ReturnType<typeof spawn>, signal: NodeJS.Signals): void {
+  if (child.pid === undefined) {
+    return;
+  }
+
+  try {
+    if (process.platform === "win32") {
+      child.kill(signal);
+      return;
+    }
+    process.kill(-child.pid, signal);
+  } catch {
+    try {
+      child.kill(signal);
+    } catch {
+      // Best effort. The caller also relies on the parent timeout/retry path.
+    }
+  }
 }

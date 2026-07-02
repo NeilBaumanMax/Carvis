@@ -42,7 +42,7 @@ export class PersistentPidAgentPool {
   getAgent(role: AgentRole): PersistentPidAgent {
     const existing = this.agents.get(role);
 
-    if (existing !== undefined) {
+    if (existing !== undefined && !existing.isClosed) {
       return existing;
     }
 
@@ -78,6 +78,10 @@ class LineProtocolPidAgent implements PersistentPidAgent {
   >();
   private closed = false;
   retained = false;
+
+  get isClosed(): boolean {
+    return this.closed;
+  }
 
   constructor(
     readonly role: AgentRole,
@@ -132,6 +136,11 @@ class LineProtocolPidAgent implements PersistentPidAgent {
     const output = await new Promise<string>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(taskId);
+        this.closed = true;
+        this.kill("SIGTERM");
+        setTimeout(() => {
+          this.kill("SIGKILL");
+        }, 2_000).unref();
         reject(new Error(`pid agent ${this.role} task timed out after ${task.timeoutMs ?? 10_000}ms`));
       }, task.timeoutMs ?? 10_000);
 
@@ -170,10 +179,18 @@ class LineProtocolPidAgent implements PersistentPidAgent {
       }
       setTimeout(() => {
         if (!this.closed) {
-          this.child.kill("SIGTERM");
+          this.kill("SIGTERM");
         }
       }, 1_000).unref();
     });
+  }
+
+  private kill(signal: NodeJS.Signals): void {
+    try {
+      this.child.kill(signal);
+    } catch {
+      // Best effort during shutdown/timeout.
+    }
   }
 
   private handleLine(line: string): void {

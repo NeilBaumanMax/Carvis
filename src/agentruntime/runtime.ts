@@ -119,39 +119,58 @@ export class AgentRuntime {
 
     this.currentRun = run;
 
-    await this.bus.publish<RunCreatedPayload>({
-      type: "run.created",
-      source: "agentruntime",
-      target: "electron",
-      requestId: run.requestId,
-      runId: run.runId,
-      payload: {
-        commandText: command.commandText,
-        phase: run.phase,
-      },
-    });
+    try {
+      await this.bus.publish<RunCreatedPayload>({
+        type: "run.created",
+        source: "agentruntime",
+        target: "electron",
+        requestId: run.requestId,
+        runId: run.runId,
+        payload: {
+          commandText: command.commandText,
+          phase: run.phase,
+        },
+      });
 
-    await this.publishHeartbeat();
-    await this.changePhase("manager_planning");
-    await this.runRole(MANAGER_ROLE, command.commandText);
-    await this.changePhase("parallel_roles_working");
-    await Promise.all(PARALLEL_ROLES.map((role) => this.runRole(role, command.commandText)));
-    await this.changePhase("manager_reviewing");
-    const managerReview = await this.runRole(MANAGER_ROLE, command.commandText);
-    if (managerReview?.gatePassed !== false || this.options.engineerRunsAfterFailedReview === true) {
-      await this.changePhase("engineer_building");
-      await this.runRole(ENGINEER_ROLE, command.commandText);
+      await this.publishHeartbeat();
+      await this.changePhase("manager_planning");
+      await this.runRole(MANAGER_ROLE, command.commandText);
+      await this.changePhase("parallel_roles_working");
+      await Promise.all(PARALLEL_ROLES.map((role) => this.runRole(role, command.commandText)));
+      await this.changePhase("manager_reviewing");
+      const managerReview = await this.runRole(MANAGER_ROLE, command.commandText);
+      if (managerReview?.gatePassed !== false || this.options.engineerRunsAfterFailedReview === true) {
+        await this.changePhase("engineer_building");
+        await this.runRole(ENGINEER_ROLE, command.commandText);
+      }
+      await this.changePhase("output_ready");
+      await this.publishOutputReady(command.commandText);
+      await this.changePhase("retaining_agents");
+    } catch (error) {
+      console.error(
+        `[agentruntime] run failed requestId=${run.requestId} error=${error instanceof Error ? error.message : String(error)}`,
+      );
+      await this.bus.publish<AgentOutputPayload>({
+        type: "agent.output",
+        source: "agentruntime",
+        target: "electron",
+        requestId: run.requestId,
+        runId: run.runId,
+        agentId: "manager",
+        payload: {
+          stream: "system",
+          text: `RUN_ERROR: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      });
+    } finally {
+      this.currentRun = undefined;
+      await this.publishHeartbeat();
     }
-    await this.changePhase("output_ready");
-    await this.publishOutputReady(command.commandText);
-    await this.changePhase("retaining_agents");
-    this.currentRun = undefined;
-    await this.publishHeartbeat();
   }
 
   private async runRole(role: AgentRole, commandText: string): Promise<RuntimeRoleResult | undefined> {
     const agent = this.ensureAgent(role);
-    const pidAgent = this.options.pidAgentPool?.getAgent(role);
+    let pidAgent = this.options.pidAgentPool?.getAgent(role);
     agent.retained = false;
 
     if (pidAgent !== undefined) {
@@ -196,15 +215,56 @@ export class AgentRuntime {
           });
         }, 10_000);
 
-        let result: Awaited<ReturnType<typeof pidAgent.runTask>>;
+        const activePidAgent = pidAgent;
+        if (activePidAgent === undefined) {
+          break;
+        }
+
+        let result: Awaited<ReturnType<typeof activePidAgent.runTask>>;
         try {
-          result = await pidAgent.runTask({
+          result = await activePidAgent.runTask({
             input: pidInput,
             timeoutMs: this.options.pidTaskTimeoutMs,
             onOutput: (output) => {
               void this.setAgentStatus(agent, "working", "agent.output", output);
             },
           });
+        } catch (error) {
+          pidOutput = `PROVIDER_ERROR: ${error instanceof Error ? error.message : String(error)}`;
+          await this.setAgentStatus(agent, "working", "agent.output", pidOutput);
+          const validation = this.options.pidOutputValidator?.({
+            run: this.mustCurrentRun(),
+            agent,
+            commandText,
+            pidOutput,
+            attempt,
+            previousPidOutput,
+            retryReason,
+          }) ?? { ok: false, reason: "provider 调用失败" };
+
+          if (attempt === maxAttempts) {
+            await this.setAgentStatus(
+              agent,
+              "working",
+              "agent.output",
+              `${role} quality gate still failed after ${attempt} attempts: ${validation.reason ?? "provider 调用失败"}`,
+            );
+            break;
+          }
+
+          previousPidOutput = pidOutput;
+          retryReason = validation.reason ?? "provider 调用失败";
+          await this.setAgentStatus(
+            agent,
+            "working",
+            "agent.output",
+            `${role} provider failed, retrying attempt ${attempt + 1}/${maxAttempts}: ${retryReason}`,
+          );
+          pidAgent = this.options.pidAgentPool?.getAgent(role);
+          if (pidAgent !== undefined) {
+            agent.pid = pidAgent.pid;
+          }
+          continue;
         } finally {
           clearInterval(progressTimer);
         }

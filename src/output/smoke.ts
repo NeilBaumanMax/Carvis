@@ -40,6 +40,23 @@ try {
 
   assert(gamePreview.includes("Generated Design Report"), "fallback preview should include report");
   assert(playablePreview.includes("<canvas id=\"game\"></canvas>"), "engineer HTML should become game preview");
+  await assertRejects(
+    () =>
+      writeOutput({
+        outputRootPath: rootPath,
+        title: "Broken Game Output Smoke",
+        requireEngineerHtml: true,
+        workplaceResults: [
+          {
+            role: "engineer",
+            sourcePath: "workplaces/engineer/result.md",
+            content:
+              "```html\n<html><body><canvas></canvas><script>const keys = {}; let keys = [];</script></body></html>\n```",
+          },
+        ],
+      }),
+    "broken engineer HTML should fail syntax gate",
+  );
 
   console.log("[output:smoke] ok");
 } finally {
@@ -50,4 +67,14 @@ function assert(condition: boolean, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+async function assertRejects(fn: () => Promise<unknown>, message: string): Promise<void> {
+  try {
+    await fn();
+  } catch {
+    return;
+  }
+
+  throw new Error(message);
 }

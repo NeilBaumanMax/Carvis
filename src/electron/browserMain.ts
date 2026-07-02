@@ -33,6 +33,7 @@ const bus = createRemoteMessageBus({
 });
 const shell = createElectronShell(bus);
 const rendererTargets = new Set<{ send(channel: string, state: ElectronShellState): void }>();
+const gamePreviewWindows = new Set<InstanceType<ElectronRuntimeModule["BrowserWindow"]>>();
 const openedGamePreviewPaths = new Set<string>();
 let openWindowCount = 0;
 
@@ -190,7 +191,7 @@ async function openGamePreviewPath(gamePreviewPath: string): Promise<string> {
   const browserCommand = process.env.CARVIS_GAME_PREVIEW_BROWSER_CMD;
 
   if (browserCommand === undefined || browserCommand.length === 0) {
-    return electron.shell.openPath(gamePreviewPath);
+    return openGamePreviewWindow(gamePreviewPath);
   }
 
   try {
@@ -199,6 +200,44 @@ async function openGamePreviewPath(gamePreviewPath: string): Promise<string> {
       stdio: "ignore",
     });
     child.unref();
+
+    return "";
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
+async function openGamePreviewWindow(gamePreviewPath: string): Promise<string> {
+  try {
+    const window = new electron.BrowserWindow({
+      title: "Carvis Game Preview",
+      width: 1000,
+      height: 640,
+      minWidth: 720,
+      minHeight: 480,
+      fullscreen: false,
+      kiosk: false,
+      center: true,
+      autoHideMenuBar: true,
+      show: false,
+      backgroundColor: "#000000",
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+
+    gamePreviewWindows.add(window);
+    window.on?.("closed", () => {
+      gamePreviewWindows.delete(window);
+    });
+    window.once("ready-to-show", () => {
+      window.setFullScreen?.(false);
+      window.setKiosk?.(false);
+      window.show();
+    });
+    await window.loadFile(gamePreviewPath);
 
     return "";
   } catch (error) {

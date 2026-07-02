@@ -22,8 +22,8 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
     role: "manager",
     title: "制作统筹技能包",
     consumes: ["用户任务原文", "各角色的风险和资源请求", "工程验收状态"],
-    produces: ["范围切分", "优先级", "验收清单", "员工复审核查", "跨角色依赖表"],
-    collaborationRule: "先定义共同目标和不可做边界；员工交付后必须复审，全部达标后才交给 engineer 制作。",
+    produces: ["范围切分", "优先级", "按角色任务书", "验收清单", "员工复审核查", "跨角色依赖表"],
+    collaborationRule: "先定义共同目标、不可做边界和每个角色的交付格式；员工交付后只检查异常和缺口，把统一修正意见交给 engineer。",
     skills: [
       {
         name: "Scope Producer",
@@ -31,10 +31,11 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
         playbook: [
           "列出必须出现的玩家动作、产物文件和可验收画面。",
           "把文学/玩法灵感拆成 3 个以内核心支柱。",
+          "把用户任务改写成 writer/artist/researcher/engineer 各自能执行的任务书。",
           "明确哪些内容延期，避免团队扩散到只写设定。",
         ],
-        handoff: "给 writer/researcher/artist 提供同一份 MVP 目标和裁剪边界；给 engineer 提供审核通过后的范围。",
-        qualityGate: "最终报告必须包含可玩循环、产物位置和验收步骤。",
+        handoff: "给 writer/researcher/artist 提供同一份 MVP 目标、裁剪边界和各自必填字段；给 engineer 提供审核通过后的范围。",
+        qualityGate: "最终报告必须包含可玩循环、按角色任务书、产物位置和验收步骤。",
       },
       {
         name: "Dependency Mapper",
@@ -43,6 +44,7 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
           "声明 writer 需要 researcher 的系统钩子。",
           "声明 artist 需要 writer 的场景和 engineer 的实现限制。",
           "声明 engineer 必须等 manager review gate 通过后才能整合产物。",
+          "声明 writer 输出的 scene/choice/ending 字段必须被 researcher 和 engineer 复用。",
         ],
         handoff: "输出跨角色依赖表，要求后续角色引用上游决定。",
         qualityGate: "每个角色结果至少引用一个其他角色的输入。",
@@ -53,6 +55,8 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
         playbook: [
           "定义浏览器可打开的预览、报告内容和资产清单。",
           "检查员工是否偷懒：是否只有泛泛文本、是否缺少可制作细节、是否没有引用上游输入。",
+          "重点检查 writer 是否有足够故事性：具体人物欲望、阻力、场景事件、对白和结局文本。",
+          "重点检查 artist 是否把时间花在图片资产，而不是长篇设定报告。",
           "检查版权安全、中文输出、屏幕可读性和文件完整性。",
           "把失败条件写清楚，方便返工。",
         ],
@@ -65,8 +69,8 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
     role: "writer",
     title: "叙事落地技能包",
     consumes: ["manager 的范围和版权边界", "researcher 的核心机制", "artist 的视觉母题"],
-    produces: ["故事前提", "角色弧线", "任务节点", "对白/选择样例"],
-    collaborationRule: "叙事必须能驱动玩法选择，不能只写背景介绍。",
+    produces: ["故事前提", "角色弧线", "场景数据", "对白/选择样例", "结局文本"],
+    collaborationRule: "叙事必须能驱动玩法选择，不能只写背景介绍；每个场景都要有冲突、选择、后果和可直接放进 UI 的中文文本。",
     skills: [
       {
         name: "Playable Narrative Bible",
@@ -74,6 +78,7 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
         playbook: [
           "定义主角欲望、阻力、代价和可互动目标。",
           "每个章节都写玩家要做什么，而不是只写发生了什么。",
+          "每个章节必须有一个具体角色或事件推动矛盾，避免抽象主题独白。",
           "保留主题气质，避开受保护角色、情节和独特表达。",
         ],
         handoff: "给 artist 场景/角色关键词，给 engineer 任务节点。",
@@ -85,10 +90,11 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
         playbook: [
           "每个关键选择绑定一个数值、关系或地图状态变化。",
           "对白要短，能直接放入游戏 UI。",
+          "每个场景至少写 2 句角色对白、1 句旁白和 2 个选择后果。",
           "避免只给道德说教，必须给玩家可执行选项。",
         ],
         handoff: "把选择标签交给 researcher 平衡，把文本交给 engineer 数据化。",
-        qualityGate: "至少 4 个选择节点包含条件、选项、后果。",
+        qualityGate: "至少 4 个选择节点包含条件、选项、后果，并提供可直接嵌入 HTML 的文本。",
       },
       {
         name: "Route Stitcher",
@@ -96,6 +102,7 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
         playbook: [
           "限制分支爆炸，每个分支回到共享地点或共享结算。",
           "为不同路线保留独特反馈，而不是复制同一段文本。",
+          "至少写 2 个风格明显不同的结局，不允许只改标题。",
           "把结局条件写成可检测状态。",
         ],
         handoff: "给 engineer 提供结局判定字段和回收节点。",
@@ -108,7 +115,7 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
     title: "视觉与素材技能包",
     consumes: ["writer 的角色和场景", "researcher 的机制反馈", "engineer 的 UI 尺寸限制"],
     produces: ["视觉风格", "资产清单", "生成提示词", "UI/动画规范"],
-    collaborationRule: "美术输出必须能变成资产和界面，不只写氛围词。",
+    collaborationRule: "美术输出以图片资产为主，文字只保留工程需要的信息；不要写长篇剧情和设定。",
     skills: [
       {
         name: "Art Bible Synthesizer",
@@ -116,6 +123,7 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
         playbook: [
           "定义主色、辅助色、形状语言和镜头距离。",
           "给角色、场景、UI 分别写可复用规则。",
+          "总文字保持精简，优先服务后续生图工具。",
           "说明哪些元素不能照搬已有作品。",
         ],
         handoff: "给 engineer 提供 CSS/Canvas 可执行的色彩和布局约束。",
@@ -127,6 +135,7 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
         playbook: [
           "列出背景、角色、道具、卡牌/按钮、图标和动效需求。",
           "每个资产写尺寸、用途、透明背景需求和生成提示。",
+          "优先规划 2-4 张会被最终 HTML 真实引用的关键图，除非主管明确要求更多。",
           "优先支持 MVP 中会真实显示的资产。",
         ],
         handoff: "给 engineer manifest 和预览页使用的素材规格。",
