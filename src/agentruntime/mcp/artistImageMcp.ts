@@ -142,7 +142,7 @@ async function createArtistImagePlan(request: ArtistImageMcpRequest): Promise<Ar
   });
 
   try {
-    return normalizePlan(JSON.parse(extractJson(raw)) as ArtistImagePlan, request);
+    return normalizePlan(JSON.parse(extractJson(raw.content)) as ArtistImagePlan, request);
   } catch {
     return createFallbackPlan(request);
   }

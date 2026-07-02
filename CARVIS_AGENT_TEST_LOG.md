@@ -10,6 +10,108 @@
 - 记录原则：记录可公开的流程观察、耗时、输出路径和优化判断，不记录模型隐藏思考。
 - 版本策略：每轮关键优化后提交 GitHub 备份。
 
+## 2026-07-03 任务一性能对比
+
+对比对象：王尔德《快乐王子》灵感 galgame。成功标准以最终打开本次 `output/runs/.../game-preview.html` 并截图为准。
+
+### 协同策略差异
+
+| 版本 | 协同策略 | Provider | 主要变化 | 结果 |
+|---|---|---|---|---|
+| 旧版 `20260702-142339` | manager 先规划，writer/artist/researcher 后并行，manager 复审，再 engineer | manager/writer/engineer DeepSeek，artist/researcher Qwen | 有复审门，engineer 仍吃较多上游长文 | 产出 HTML，截图通过，但题材意象有漂移 |
+| 分层压缩版 `20260702-181301` | 去掉大量上游原文，压缩 handoff，仍保留较重 writer 输出 | writer 已换 DeepSeek，artist/researcher Qwen | 真实 artist 图片过滤、engineer 首屏防黑屏提示 | 产出 HTML，真实引用本轮 4 张图片，未采集 token |
+| 常驻 PID + manager 监控版 `20260702-183229` | 5 个 provider worker 开机预热常驻；manager 只监控/定边界；writer/artist/researcher/manager 并行；engineer 负责审核+整合+生产 | manager/writer/engineer DeepSeek，artist/researcher Qwen | 删除二次 manager 复审；新增 `usage.json`；writer 限短；engineer 只收压缩 task card/handoff 和真实图片清单 | 产出 HTML，语法通过，截图通过，首屏标题/开始按钮/图片清晰 |
+
+### 用时与产物
+
+| 版本 | 起止时间 CST | 总用时 | manager | writer | artist | researcher | engineer | final HTML |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 旧版 `20260702-142339` | 22:23:39 -> 22:32:59 | 约 9m20s | 28,997 B 含 review | 16,685 B | 10,623 B | 8,806 B | 43,729 B | 38,950 B |
+| 分层压缩版 `20260702-181301` | 02:13:01 -> 02:23:18 | 约 10m17s | 5,678 B | 43,981 B | 12,096 B | 7,061 B | 46,308 B | 42,061 B |
+| 常驻 PID + 监控版 `20260702-183229` | 02:32:29 -> 02:40:06 | 约 7m37s | 5,665 B | 30,252 B | 11,403 B | 7,784 B | 46,032 B | 40,478 B |
+
+结论：新策略相对 `20260702-181301` 缩短约 2m40s，约 26%。主要收益来自去掉 manager 复审和 5 个 provider worker 预热常驻；剩余长耗时集中在 DeepSeek writer 与 engineer 的模型生成本身。writer 已从 43,981 B 降到 30,252 B，约少 31%，但仍超过 6000-9000 中文字目标，需要继续把 writer 改成更强结构化短 JSON/短表交付。
+
+### Token 消耗
+
+历史版本当时未落盘 provider usage，不能事后还原真实 token；只能用字节数/字符估算做趋势判断。`20260702-183229` 开始每个角色写 `workplaces/runs/.../<role>/usage.json`。
+
+| 角色 | `20260702-142339` | `20260702-181301` | `20260702-183229` token |
+|---|---:|---:|---:|
+| manager | 未采集 | 未采集 | DeepSeek CLI 估算：prompt 961 / completion 767 / total 1,728 |
+| writer | 未采集 | 未采集 | DeepSeek CLI 估算：prompt 973 / completion 3,528 / total 4,501 |
+| artist | 未采集 | 未采集 | Qwen provider 真实：prompt 1,820 / completion 1,793 / total 3,613 |
+| researcher | 未采集 | 未采集 | Qwen provider 真实：prompt 1,752 / completion 2,250 / total 4,002 |
+| engineer | 未采集 | 未采集 | DeepSeek CLI 估算：prompt 2,402 / completion 8,956 / total 11,358 |
+| 合计 | 未采集 | 未采集 | 估算/真实混合 total 25,202 |
+
+说明：Qwen OpenAI 兼容接口返回 `usage`，为真实 provider token。DeepSeek 通过 Claude Code CLI 调用时当前未暴露真实 token，报告中按固定估算规则记录 `estimated_*_tokens`，用于同配置相对比较，不作为计费数。
+
+### 截图与静态验证
+
+- 产物路径：`~/carvis-remote-smoke/output/runs/20260702-183229-req-layered-test1-happy-prince-galga-第二轮测试1：请五个角色使用新的-common-skills-和/game-preview.html`
+- HTML script 检查：`script_ok 1`
+- 实际引用本轮图片：`artist-bg-alley-warm-dark.png`、`artist-bg-city-high-cold.png`、`artist-bg-sacrifice-gold-light.png`、`artist-key-art.png`
+- 截图：本机 `/tmp/carvis-layered-task1-1783017149058.png`
+- 截图结论：通过。Firefox 打开的是本次 output HTML，首屏显示“云台之上”、背景图片、开始按钮，非黑屏。
+
+## 2026-07-03 四任务批次报告
+
+批次 ID：`1783017149058`
+
+运行策略：5 个 provider worker 在 `carvis-agentruntime.service` 启动时预热常驻；每个任务内部 `manager + writer + artist + researcher` 并行，`engineer` 之后统一审核、整合、生产；manager 不再做二次复审门，只做监控/边界/异常建议。
+
+### 结果总表
+
+| 测试 | run 目录时间 | output 时间 | 总用时 | HTML | 截图 | 结论 |
+|---|---:|---:|---:|---:|---:|---|
+| task1 快乐王子 galgame | 02:32:29 | 02:40:06 | 约 7m37s | 40,478 B | `/tmp/carvis-layered-task1-1783017149058.png` | 通过 |
+| task2 红拂夜奔闯关 | 02:40:06 | 02:46:15 | 约 6m09s | 45,765 B | `/tmp/carvis-layered-task2-1783017149058.png` | 通过 |
+| task3 Bazaar 类商店自动战斗 | 02:46:15 | 02:54:32 | 约 8m17s | 52,771 B | `/tmp/carvis-layered-task3-1783017149058.png` | 通过 |
+| task4 open-yachiyo 仓库文档 HTML | 02:54:32 | 03:00:26 | 约 5m54s | 42,131 B | `/tmp/carvis-layered-task4-1783017149058.png` | 通过 |
+
+### 角色输出大小
+
+| 测试 | manager | writer | artist | researcher | engineer |
+|---|---:|---:|---:|---:|---:|
+| task1 | 5,665 B | 30,252 B | 11,403 B | 7,784 B | 46,032 B |
+| task2 | 4,151 B | 26,396 B | 10,812 B | 8,367 B | 45,975 B |
+| task3 | 5,838 B | 17,991 B | 9,806 B | 10,828 B | 55,436 B |
+| task4 | 3,981 B | 21,963 B | 12,237 B | 7,503 B | 45,388 B |
+
+观察：writer 在 task1/task2 仍明显偏长，但 task3 已降到 18KB。engineer 输出稳定在 42-55KB，说明最终 HTML 规模主要由玩法复杂度决定；task3 自动战斗复杂度最高，所以 engineer 最大。
+
+### Token 消耗
+
+DeepSeek Claude Code CLI 未暴露真实 usage，记录为估算；Qwen OpenAI 兼容接口为 provider 真实 token。
+
+| 测试 | manager total | writer total | artist total | researcher total | engineer total | 合计 |
+|---|---:|---:|---:|---:|---:|---:|
+| task1 | 1,728 估算 | 4,501 估算 | 3,613 真实 | 4,002 真实 | 11,358 估算 | 25,202 |
+| task2 | 1,539 估算 | 3,877 估算 | 4,120 真实 | 4,141 真实 | 12,855 估算 | 26,532 |
+| task3 | 1,818 估算 | 3,094 估算 | 3,461 真实 | 4,986 真实 | 14,967 估算 | 28,326 |
+| task4 | 15,719 估算 | 18,945 估算 | 23,639 真实 | 22,981 真实 | 26,171 估算 | 107,455 |
+
+task4 token 明显异常高，原因是原始输入包含两个 GitHub 地址和长文档整理要求，当前仍把较长用户任务传给所有角色；后续优化应对“仓库/文档分析任务”做输入摘要层，manager 先产出短任务卡，再给 writer/artist/researcher/engineer，避免每个角色重复吃 15K+ prompt。
+
+### 静态与截图验收
+
+| 测试 | script 检查 | 图片引用 | 截图观察 |
+|---|---|---|---|
+| task1 | `script_ok 1` | 4 张本轮 artist PNG | 标题“云台之上”、开始按钮、背景图清晰 |
+| task2 | `script_ok 1` | 4 张本轮 artist PNG | 标题“墨海逃生”、玩法提示、背景和角色图可见 |
+| task3 | `script_ok 1` | 4 张本轮 artist PNG | 标题“云隐集市”、开始按钮、角色图可见 |
+| task4 | `script_ok 1` | 4 张本轮文档/架构 PNG | open-yachiyo 文档页、导航、摘要和首图可见 |
+
+补充：task4 的 `grep` 静态资产提取额外命中 `assets/</div>`，这是正则扫到文案/标签边界产生的噪声；真实图片引用为 `artist-architecture-flow-diagram.png`、`artist-react-loop-cycle.png`、`artist-repo-structure-tree.png`、`artist-status-badges-set.png`。
+
+### 下一步优化判断
+
+- writer 需要从“短交付提示”升级为“强制结构化短 schema”，例如只允许输出 `characters/scenes/choices/endings/handoff` 五个 JSON 或 Markdown 表，不允许长篇设定。
+- engineer 对复杂任务仍是主耗时，但去掉 manager 复审后没有出现质量下降，四个任务都能产出可打开 HTML。
+- task4 暴露了“长输入重复喂给所有角色”的 token 问题，需要增加任务级输入压缩层，尤其是仓库分析、长链接说明、长文档整理任务。
+- `usage.json` 已能支持后续真实/估算 token 对比；需要继续寻找 DeepSeek Claude Code CLI 是否可输出真实 usage，否则只能估算。
+
 ## 本轮测试清单
 
 | 编号 | 用户任务 | 目标类型 | 状态 |

@@ -10,6 +10,7 @@ import { createAgentRuntime } from "./index.js";
 import { PersistentPidAgentPool } from "./pidagent/index.js";
 import { getRoleProviderConfig } from "./provider/roles.js";
 import { renderAgentSkillProgressLines } from "./skills/index.js";
+import { ROLE_ORDER } from "./types.js";
 import {
   createWorkplacePaths,
   initializeWorkplaces,
@@ -26,6 +27,7 @@ const outputRoot = process.env.CARVIS_OUTPUT_ROOT ?? join("output", "runs");
 const progressDelayMs = readNonNegativeInteger(process.env.CARVIS_AGENTRUNTIME_STREAM_DELAY_MS, 260);
 const previewDelayMs = readNonNegativeInteger(process.env.CARVIS_AGENTRUNTIME_PREVIEW_DELAY_MS, 140);
 const initializedRuns = new Set<string>();
+const initializingRuns = new Map<string, Promise<void>>();
 const runPaths = new Map<string, { workplacesRoot: string; outputRoot: string }>();
 const providerPidAgentPool = isRealProviderMode() ? createProviderPidAgentPool() : undefined;
 const runtime = createAgentRuntime(bus, {
@@ -38,10 +40,7 @@ const runtime = createAgentRuntime(bus, {
   pidTaskInputBuilder: isRealProviderMode()
     ? async ({ run, agent, commandText, attempt, previousPidOutput, retryReason }) => {
         const paths = getRunPaths(run, commandText);
-        if (!initializedRuns.has(run.runId)) {
-          await initializeWorkplaces(paths.workplacesRoot, commandText);
-          initializedRuns.add(run.runId);
-        }
+        await ensureRunInitialized(run.runId, paths.workplacesRoot, commandText);
 
         return JSON.stringify({
           role: agent.role,
@@ -57,12 +56,9 @@ const runtime = createAgentRuntime(bus, {
         });
       }
     : undefined,
-  roleRunner: async ({ run, agent, commandText, pidOutput }) => {
+  roleRunner: async ({ run, agent, commandText, pidOutput, pidMetadata }) => {
     const paths = getRunPaths(run, commandText);
-    if (!initializedRuns.has(run.runId)) {
-      await initializeWorkplaces(paths.workplacesRoot, commandText);
-      initializedRuns.add(run.runId);
-    }
+    await ensureRunInitialized(run.runId, paths.workplacesRoot, commandText);
 
     const isManagerReview = agent.role === "manager" && run.phase === "manager_reviewing";
     const managerReview = isManagerReview
@@ -81,7 +77,7 @@ const runtime = createAgentRuntime(bus, {
       await writeManagerReview(paths.workplacesRoot, roleResult);
       await writeLayeredContextFiles(paths.workplacesRoot, agent.role, commandText, roleResult, "manager_review");
     } else {
-      await writeWorkplaceResult(paths.workplacesRoot, agent.role, roleResult);
+      await writeWorkplaceResult(paths.workplacesRoot, agent.role, roleResult, pidMetadata);
       await writeLayeredContextFiles(paths.workplacesRoot, agent.role, commandText, roleResult, run.phase);
     }
     await streamRoleResultPreview(run.requestId, run.runId, agent.agentId, agent.role, roleResult);
@@ -133,6 +129,29 @@ function getRunPaths(run: { runId: string; requestId: string; createdAt: string 
   return paths;
 }
 
+async function ensureRunInitialized(runId: string, rootPath: string, commandText: string): Promise<void> {
+  if (initializedRuns.has(runId)) {
+    return;
+  }
+
+  const existing = initializingRuns.get(runId);
+  if (existing !== undefined) {
+    await existing;
+    return;
+  }
+
+  const initializing = initializeWorkplaces(rootPath, commandText)
+    .then(() => {
+      initializedRuns.add(runId);
+    })
+    .finally(() => {
+      initializingRuns.delete(runId);
+    });
+
+  initializingRuns.set(runId, initializing);
+  await initializing;
+}
+
 function createRunSlug(createdAt: string, requestId: string, commandText: string): string {
   const timestamp = createdAt
     .replace(/[-:]/g, "")
@@ -154,6 +173,7 @@ function safePathPart(value: string): string {
 await runComponentMain({
   name: "agentruntime",
   onStart: () => {
+    providerPidAgentPool?.prewarm(ROLE_ORDER);
     runtime.start();
     console.log("[agentruntime] connected to messagebus");
   },
@@ -207,17 +227,17 @@ function createRoleSystemPrompt(role: AgentRole, phase: string, commandText: str
   const gameTask = isGameTask(commandText);
   const phaseLine =
     role === "manager" && phase === "manager_reviewing"
-      ? "你现在是主管复审阶段。只在角色产物异常、缺失、偷懒、provider 失败或无法供 engineer 使用时输出 GATE_PASSED: false；如果只是命名、尺寸、规则等可整合差异，必须给出统一整合意见并输出 GATE_PASSED: true。"
+      ? "你现在是主管复审阶段。输出控制在 900 字内。只检查异常和阻塞；如果只是命名、尺寸、规则等可整合差异，给出极短统一意见并输出 GATE_PASSED: true。"
       : "你必须按本角色 skill 和上下游材料工作。";
   const roleLine =
     role === "manager"
       ? gameTask
-        ? "主管必须先写按角色任务书：writer 写剧情数据，artist 少写多产图，researcher 写机制字段，engineer 按统一契约集成。"
-        : "主管必须先写按角色任务书：writer 负责信息结构，artist 负责展示视觉规划，researcher 负责技术核验，engineer 按统一契约集成 HTML 文档。"
-      : role === "writer"
-        ? gameTask
-          ? "writer 不能偷懒：必须写具体人物、场景事件、中文对白、选择后果和结局文本，输出可直接被 engineer 数据化的内容。"
-          : "writer 不能偷懒：必须把资料整理成准确中文说明、目录职责、关键文件用途和页面文案，输出可直接被 engineer 放入 HTML 的内容。"
+        ? "manager 只写短任务合同和监控点，不超过 900 字：标明异常标准、PID/provider 失败恢复建议、writer/artist/researcher/engineer 的最小交付。不要做长篇复审。"
+        : "manager 只写短任务合同和监控点，不超过 900 字：标明异常标准、PID/provider 失败恢复建议、信息结构/视觉/技术核验/HTML 集成的最小交付。不要做长篇复审。"
+        : role === "writer"
+          ? gameTask
+          ? "writer 不能偷懒，但必须短交付：控制在 6000-9000 中文字以内，写具体人物、场景事件、中文对白、选择后果和结局文本，输出可直接被 engineer 数据化的内容，不写长篇设定书。"
+          : "writer 不能偷懒，但必须短交付：控制在 6000-9000 中文字以内，把资料整理成准确中文说明、目录职责、关键文件用途和页面文案，输出可直接被 engineer 放入 HTML 的内容。"
         : role === "artist"
           ? gameTask
             ? "artist 以图片资产为主：文字要短，只写风格规则、资产清单、生成提示和自审，不要写长篇剧情。"
@@ -264,7 +284,6 @@ async function createRoleUserPrompt(
   const commonRole = await safeRead(workplace.commonRolePath);
   const commonPolicy = await safeRead(workplace.commonPolicyPath);
   const selectedSkill = await safeRead(workplace.selectedSkillPath);
-  const taskState = await safeRead(workplace.taskStatePath);
   const managerResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "manager").resultPath);
   const managerReview = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "manager").reviewPath);
   const writerResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "writer").resultPath);
@@ -284,13 +303,16 @@ async function createRoleUserPrompt(
   const upstream =
     role === "manager" && phase === "manager_reviewing"
       ? [
-          "## 员工产物待审核",
-          "### writer/result.md",
-          summarizeRoleResult("writer", writerResult),
-          "### artist/result.md",
-          summarizeRoleResult("artist", artistResult),
-          "### researcher/result.md",
-          summarizeRoleResult("researcher", researcherResult),
+          "## 员工产物待审核（压缩 handoff）",
+          "### writer/handoff_to_engineer.json",
+          compactHandoffForPrompt(writerHandoff),
+          "### artist/handoff_to_engineer.json",
+          compactHandoffForPrompt(artistHandoff),
+          "### researcher/handoff_to_engineer.json",
+          compactHandoffForPrompt(researcherHandoff),
+          "",
+          "## Artist 实际资产",
+          ...createEngineerAssetLines(artistResult, [artistHandoff]),
           "",
           "## 复审输出硬要求",
           "- 逐条核对用户原始任务有没有被满足。",
@@ -305,27 +327,21 @@ async function createRoleUserPrompt(
             "## Engineer implementation brief",
             ...createEngineerImplementationBrief(commandText, artistResult),
             "",
-            "## 分层上下文 task_state.json",
-            JSON.stringify(combinedTaskState, null, 2),
+            "## Engineer task card（短上下文执行卡）",
+            ...createEngineerTaskCard(commandText, combinedTaskState, artistResult),
             "",
-            "## 分层 handoff_to_engineer.json",
+            "## 本轮真实图片资产",
+            ...createEngineerAssetLines(artistResult, [managerHandoff, writerHandoff, artistHandoff, researcherHandoff]),
+            "",
+            "## 分层 handoff_to_engineer.json（硬预算版）",
             "### manager",
-            compactJsonText(managerHandoff, 2_000),
+            compactHandoffForPrompt(managerHandoff),
             "### writer",
-            compactJsonText(writerHandoff, 2_400),
+            compactHandoffForPrompt(writerHandoff),
             "### artist",
-            compactJsonText(artistHandoff, 2_000),
+            compactHandoffForPrompt(artistHandoff),
             "### researcher",
-            compactJsonText(researcherHandoff, 2_400),
-            "",
-            "## 上游材料",
-            ...createEngineerManagerSections(managerResult, managerReview, commandText),
-            "### writer/result.md",
-            summarizeRoleResultForEngineer("writer", writerResult, commandText),
-            "### artist/result.md",
-            summarizeRoleResultForEngineer("artist", artistResult, commandText),
-            "### researcher/result.md",
-            summarizeRoleResultForEngineer("researcher", researcherResult, commandText),
+            compactHandoffForPrompt(researcherHandoff),
             "",
             "## 技术产出硬要求",
             ...createEngineerRequirements(commandText, artistResult),
@@ -338,10 +354,10 @@ async function createRoleUserPrompt(
             "- 必须引用用户原始任务中的题材、控制方式、素材要求和交付格式。",
             "- 必须输出足够 engineer 直接实现的材料。",
             role === "manager"
-              ? "- 必须输出按角色任务书、MVP 验收清单、版权边界、交付文件和最终浏览器截图验收标准。"
+              ? "- 输出必须短：只写 task_type、版权边界、四个角色合同、MVP 验收清单、handoff_to_next；不要写长篇解释。"
               : "",
             role === "writer"
-              ? "- 必须输出 scene/choice/ending 字段化材料：至少 4 个选择节点、每节点中文对白、选择后果和状态变化，故事性要强。"
+              ? "- 必须短交付：控制在 6000-9000 中文字以内；输出 scene/choice/ending 字段化材料，至少 4 个选择节点、每节点中文对白、选择后果和状态变化，故事性要强。"
               : "",
             role === "artist"
               ? isGameTask(commandText)
@@ -423,12 +439,12 @@ function createRoleHandoff(role: AgentRole, result: string, commandText: string,
     role,
     phase,
     task_type: taskType,
-    facts: compactLines([...headings, ...facts], 32),
-    decisions: compactLines(decisions, 20),
+    facts: compactLines([...headings, ...facts], 24),
+    decisions: compactLines(decisions, 16),
     assets,
-    constraints: compactLines(constraints, 20),
-    open_risks: compactLines(risks, 12),
-    handoff_to_engineer: compactLines([...facts, ...decisions, ...assets.map((asset) => `asset:${asset}`)], 36),
+    constraints: compactLines(constraints, 14),
+    open_risks: compactLines(risks, 8),
+    handoff_to_engineer: compactLines([...facts, ...decisions, ...assets.map((asset) => `asset:${asset}`)], 24),
   };
 }
 
@@ -531,7 +547,23 @@ function extractAssetRefs(content: string): string[] {
   return compactLines([...content.matchAll(/assets\/[\w.-]+\.(?:png|jpg|jpeg|webp|svg)/gi)].map((match) => match[0]), 24);
 }
 
+function extractActualArtistAssetRefs(content: string): string[] {
+  const refs = [...content.matchAll(/(?:output\/runs\/[^\s`"'<>]+\/)?assets\/(artist-[\w.-]+\.(?:png|jpg|jpeg|webp))/gi)]
+    .map((match) => `assets/${match[1]}`)
+    .filter((asset) => !/assets\/(?:title|scene|city|rooftop|level|ending)[\w.-]*\.(?:png|jpg|jpeg|webp)$/i.test(asset));
+
+  return compactLines(refs, 24);
+}
+
 function compactLines(lines: string[], limit: number): string[] {
+  return compactLinesWithMaxChars(lines, limit, 220);
+}
+
+function compactLinesForPrompt(lines: string[], limit: number): string[] {
+  return compactLinesWithMaxChars(lines, limit, 150);
+}
+
+function compactLinesWithMaxChars(lines: string[], limit: number, maxChars: number): string[] {
   const seen = new Set<string>();
   const output: string[] = [];
 
@@ -541,7 +573,7 @@ function compactLines(lines: string[], limit: number): string[] {
       continue;
     }
     seen.add(key);
-    output.push(key.length > 280 ? `${key.slice(0, 277)}...` : key);
+    output.push(key.length > maxChars ? `${key.slice(0, maxChars - 3)}...` : key);
     if (output.length >= limit) {
       break;
     }
@@ -575,12 +607,12 @@ function createCombinedTaskState(commandText: string, handoffTexts: string[]): R
   return {
     task_type: classifyRuntimeTask(commandText),
     source: "combined_layered_handoff",
-    facts: mergeArrayFields(parsed, "facts", 48),
-    decisions: mergeArrayFields(parsed, "decisions", 32),
-    assets: mergeArrayFields(parsed, "assets", 32),
-    constraints: mergeArrayFields(parsed, "constraints", 32),
-    open_risks: mergeArrayFields(parsed, "open_risks", 24),
-    handoff_to_engineer: mergeArrayFields(parsed, "handoff_to_engineer", 64),
+    facts: mergeArrayFieldsForPrompt(parsed, "facts", 6),
+    decisions: mergeArrayFieldsForPrompt(parsed, "decisions", 5),
+    assets: mergeArrayFieldsForPrompt(parsed, "assets", 12),
+    constraints: mergeArrayFieldsForPrompt(parsed, "constraints", 4),
+    open_risks: mergeArrayFieldsForPrompt(parsed, "open_risks", 2),
+    handoff_to_engineer: mergeArrayFieldsForPrompt(parsed, "handoff_to_engineer", 10),
   };
 }
 
@@ -598,6 +630,17 @@ function parseJsonObject(content: string): Record<string, unknown> | undefined {
 
 function mergeArrayFields(objects: Record<string, unknown>[], field: string, limit: number): string[] {
   return compactLines(
+    objects.flatMap((object) => {
+      const value = object[field];
+
+      return Array.isArray(value) ? value.map((item) => String(item)) : [];
+    }),
+    limit,
+  );
+}
+
+function mergeArrayFieldsForPrompt(objects: Record<string, unknown>[], field: string, limit: number): string[] {
+  return compactLinesForPrompt(
     objects.flatMap((object) => {
       const value = object[field];
 
@@ -636,7 +679,7 @@ function validateRealProviderOutput({
     return { ok: false, reason: "缺少 provider 标记，输出协议异常" };
   }
 
-  const minLength = isManagerReview ? 900 : agent.role === "manager" ? 1_500 : agent.role === "engineer" ? 2_500 : 1_800;
+  const minLength = isManagerReview ? 500 : agent.role === "manager" ? 700 : agent.role === "engineer" ? 2_500 : 1_800;
   if (output.length < minLength) {
     return { ok: false, reason: `产物过短：${output.length} 字节，低于 ${minLength}` };
   }
@@ -700,10 +743,102 @@ function requiresEngineerHtml(commandText: string): boolean {
   return isGameTask(commandText) || /game-preview\.html|HTML|html|浏览器|展示页|预览窗口/i.test(commandText);
 }
 
+function createEngineerAssetLines(artistResult: string, handoffTexts: string[]): string[] {
+  const assets = compactLinesForPrompt(
+    [
+      ...extractActualArtistAssetRefs(artistResult),
+      ...handoffTexts.flatMap((text) => extractActualArtistAssetRefs(text)),
+    ].map((asset) => `- ${asset}`),
+    12,
+  );
+
+  return assets.length > 0
+    ? [
+        "- 下列路径来自本轮 Artist 实际生成记录，HTML 必须至少引用其中 2 个；标题页和一个可玩场景都要明显显示图片。",
+        "- 禁止引用未列入此清单的虚拟图片名，例如 assets/title-bg.png、assets/scene-city.png、assets/scene-rooftop.png。",
+        ...assets,
+      ]
+    : [
+        "- 未发现本轮 Artist 图片路径；HTML 必须用 CSS/Canvas/SVG 生成可见画面，并提供图片缺失 fallback。",
+    ];
+}
+
+function createEngineerTaskCard(
+  commandText: string,
+  combinedTaskState: Record<string, unknown>,
+  artistResult: string,
+): string[] {
+  const taskType = String(combinedTaskState.task_type ?? classifyRuntimeTask(commandText));
+  const assets = compactLinesForPrompt(extractActualArtistAssetRefs(artistResult), 8);
+  const decisions = Array.isArray(combinedTaskState.decisions)
+    ? compactLinesForPrompt(combinedTaskState.decisions.map(String), 5)
+    : [];
+  const handoff = Array.isArray(combinedTaskState.handoff_to_engineer)
+    ? compactLinesForPrompt(combinedTaskState.handoff_to_engineer.map(String), 8)
+    : [];
+
+  return [
+    `- task_type: ${taskType}`,
+    "- 目标：直接输出一个完整 fenced HTML，能保存为本轮 output/runs/.../game-preview.html 并在浏览器打开。",
+    isGameTask(commandText)
+      ? "- 游戏最小切片：标题页、状态栏、4 个选择节点、即时状态变化、3 个结局、重开按钮。"
+      : "- 文档最小切片：概览、结构图、目录职责表、脚手架流程、关键风险、数据来源说明。",
+    "- 叙事/内容不足时：基于用户原始任务和 handoff 自行补齐短文本，不要等待更多上游材料。",
+            "- 冲突处理：Engineer 自己做集成审核；优先用户原始任务，其次 manager 监控摘要、researcher 数值、writer 文案、artist 实际资产。",
+    "- 资产处理：只允许使用下方 asset 行列出的本轮真实图片路径，不要使用 writer/researcher 建议的虚拟文件名。",
+    ...decisions.map((line) => `- decision: ${line}`),
+    ...handoff.map((line) => `- handoff: ${line}`),
+    ...assets.map((asset) => `- asset: ${asset}`),
+  ];
+}
+
+function compactHandoffForPrompt(content: string): string {
+  const parsed = parseJsonObject(content);
+
+  if (parsed === undefined) {
+    return compactJsonText(content, 700);
+  }
+
+  const promptHandoff = {
+    role: parsed.role,
+    task_type: parsed.task_type,
+    decisions: Array.isArray(parsed.decisions) ? compactLinesForPrompt(parsed.decisions.map(String), 3) : [],
+    assets: compactLinesForPrompt(extractActualArtistAssetRefs(content), 6),
+    constraints: Array.isArray(parsed.constraints) ? compactLinesForPrompt(parsed.constraints.map(String), 2) : [],
+    handoff_to_engineer: Array.isArray(parsed.handoff_to_engineer)
+      ? compactLinesForPrompt(parsed.handoff_to_engineer.map(String), 5)
+      : [],
+  };
+
+  return JSON.stringify(promptHandoff, null, 2);
+}
+
+function createEngineerFallbackExcerpt(
+  managerResult: string,
+  managerReview: string,
+  writerResult: string,
+  artistResult: string,
+  researcherResult: string,
+  commandText: string,
+): string {
+  const managerSections = createEngineerManagerSections(managerResult, managerReview, commandText).join("\n").slice(0, 900);
+  const excerpts = [
+    managerSections,
+    "### writer essentials",
+    summarizeRoleResultForEngineer("writer", writerResult, commandText).slice(0, 1_000),
+    "### artist essentials",
+    summarizeRoleResultForEngineer("artist", artistResult, commandText).slice(0, 700),
+    "### researcher essentials",
+    summarizeRoleResultForEngineer("researcher", researcherResult, commandText).slice(0, 1_000),
+  ];
+
+  return excerpts.join("\n");
+}
+
 function createEngineerRequirements(commandText: string, artistResult: string): string[] {
   const base = [
-    "- 即使 manager/review.md 标记 GATE_PASSED:false，只要其中给出了统一修正指令，你也必须按该统一标准整合产物。",
-    "- manager/review.md 的统一修正指令优先级高于 writer/artist/researcher 的冲突细节。",
+    "- 你必须自己完成集成审核：只要 writer/artist/researcher 有实质产物，就整合可用部分继续生产；不要等待 manager 复审。",
+    "- 如果上游命名、数值、资产建议冲突，按用户任务和本轮真实 artist assets 统一，不要打回。",
     "- 必须输出一个完整的单文件 HTML，使用 fenced code block：```html ... ```。",
     "- HTML 必须可直接保存为 output/game-preview.html 并在浏览器打开。",
   ];
@@ -722,6 +857,7 @@ function createEngineerRequirements(commandText: string, artistResult: string): 
     ...base,
     "- 必须把上游内容集成为真实可玩游戏产物，不得只写方案。",
     "- 标题页和至少一个可玩场景必须明显使用 artist 生成的本地图片；如果图片加载失败才允许 CSS/Canvas fallback。",
+    "- 首屏截图不得是黑屏：标题文字、开始按钮/提示、背景图三者必须同时可见。",
     "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，必须明确实现。",
     "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，HTML 代码内必须实现对应事件。",
     "- 必须用 Canvas/SVG/CSS 代码生成素材或明确嵌入素材，不得只写美术氛围。",
@@ -736,6 +872,8 @@ function createEngineerImplementationBrief(commandText: string, artistResult: st
     "- 先做最小完整可玩 HTML，再补视觉和文案；不要复述上游报告。",
     "- 所有数据优先写成短数组/对象，所有交互必须能在一个浏览器页面内完成。",
     "- 页面必须避免黑屏：图片加载失败时也要有 CSS/Canvas fallback 和可点击按钮。",
+    "- 首屏必须肉眼可见：显示标题、开始按钮/提示、至少一张本轮图片；不要只渲染黑色背景和状态栏。",
+    "- 图片优先用 `<img>` 绝对铺底或可验证的背景层，设置 `object-fit: cover`、明确 z-index，并确保遮罩透明度不会盖黑画面。",
     "- 脚本放在一个闭包或模块化对象里，避免全局变量重复声明。",
   ];
 

@@ -18,9 +18,9 @@ export const ROLE_PROVIDER_CONFIG: Record<AgentRole, RoleProviderConfig> = {
   },
   writer: {
     role: "writer",
-    provider: "qwen-openai",
-    modelEnvKey: "QWEN_OMNI_MODEL",
-    defaultModel: "qwen3.5-omni-plus",
+    provider: "deepseek-claudecode",
+    modelEnvKey: "CARVIS_DEEPSEEK_WRITER_MODEL",
+    defaultModel: "deepseek-v4-pro[1m]",
   },
   artist: {
     role: "artist",
@@ -49,9 +49,20 @@ export function getRoleProviderConfig(role: AgentRole, env: NodeJS.ProcessEnv = 
     return {
       role,
       provider: "deepseek-claudecode",
-      modelEnvKey: role === "engineer" ? "CARVIS_DEEPSEEK_ENGINEER_MODEL" : "CARVIS_DEEPSEEK_MANAGER_MODEL",
+      modelEnvKey:
+        role === "engineer"
+          ? "CARVIS_DEEPSEEK_ENGINEER_MODEL"
+          : role === "writer"
+            ? "CARVIS_DEEPSEEK_WRITER_MODEL"
+            : "CARVIS_DEEPSEEK_MANAGER_MODEL",
       defaultModel:
-        env[role === "engineer" ? "CARVIS_DEEPSEEK_ENGINEER_MODEL" : "CARVIS_DEEPSEEK_MANAGER_MODEL"] ??
+        env[
+          role === "engineer"
+            ? "CARVIS_DEEPSEEK_ENGINEER_MODEL"
+            : role === "writer"
+              ? "CARVIS_DEEPSEEK_WRITER_MODEL"
+              : "CARVIS_DEEPSEEK_MANAGER_MODEL"
+        ] ??
         "deepseek-v4-pro[1m]",
     };
   }

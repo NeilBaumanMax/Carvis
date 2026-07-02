@@ -152,13 +152,15 @@ CARVIS_QWEN_IMAGE_RETRY_DELAY_MS=12000
 请把当前 Carvis / agentruntime 的模型路由改成：
 
 ```text
-manager  -> DeepSeek Claude Code 或现有模型
-engineer -> DeepSeek Claude Code 或现有模型
-writer   -> qwen3.5-omni-plus
+manager  -> DeepSeek Claude Code
+writer   -> DeepSeek Claude Code
+engineer -> DeepSeek Claude Code
 researcher -> qwen3.5-omni-plus
 artist_understanding -> qwen3.5-omni-plus
 artist_image_generation -> qwen-image-2.0-pro
 ```
+
+当前策略：Writer 负责长文本剧情/结构化文案，默认改走 DeepSeek；Qwen 保留给 Artist/Researcher，尤其不要破坏 Artist 的 Qwen Image 生图链路。
 
 如果当前只有一个 `artist` 角色，请拆成两种任务：
 

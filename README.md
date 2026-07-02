@@ -5,10 +5,11 @@ Carvis is a local multi-agent Electron workflow for generating a playable output
 ## Current Runtime Shape
 
 - `manager`: DeepSeek through Claude Code CLI
-- `writer`: Qwen OpenAI-compatible route by default
+- `writer`: DeepSeek through Claude Code CLI
 - `artist`: Qwen OpenAI-compatible route by default
 - `researcher`: Qwen OpenAI-compatible route by default
 - `engineer`: DeepSeek through Claude Code CLI
+- `artist` image generation: Qwen Image through the local artist-image MCP wrapper
 
 For NixOS testing while Qwen real auth is unresolved, set:
 
@@ -20,16 +21,16 @@ This keeps the same five-role collaboration flow while routing every role throug
 
 ## Collaboration Rules
 
-The manager review gate is intentionally not a product-perfection blocker.
+The manager is a monitor/scope role, not a second review gate.
 
-- Block only abnormal output: empty files, `PROVIDER_ERROR`, fake tool calls, obvious laziness, missing role-critical material, or unrelated output.
-- If the roles disagree on names, dimensions, enemy counts, values, or scope, the manager should write a unified integration standard and pass the task to engineer.
-- Engineer consumes the manager review as the highest-priority integration contract and must produce a complete fenced `html` block for playable game tasks.
+- `manager`, `writer`, `artist`, and `researcher` start in parallel after a command is submitted.
+- Manager writes a short task boundary and abnormal-output watch list: empty files, `PROVIDER_ERROR`, fake tool calls, obvious laziness, missing role-critical material, or unrelated output.
+- Engineer performs audit, conflict merge, and production together. If the roles disagree on names, dimensions, values, or scope, engineer unifies them and produces the final fenced `html` block.
 
 The runtime supports this with:
 
 - PID worker quality validation and retry (`CARVIS_REAL_PROVIDER_MAX_ATTEMPTS`)
-- optional engineer continuation after a failed review (`CARVIS_ENGINEER_RUNS_AFTER_FAILED_REVIEW`)
+- one prewarmed provider worker per role
 - extraction of engineer fenced HTML into `output/game-preview.html`
 
 ## NixOS Verified
@@ -43,7 +44,8 @@ Remote test path:
 Verified on NixOS:
 
 - systemd user services active: `carvis-messagebus`, `carvis-agentruntime`, `carvis-electron`
-- real DeepSeek Claude Code route works
+- real DeepSeek Claude Code route works for manager, writer, and engineer
+- Qwen remains active for artist/researcher text and artist image generation
 - five-role all-DeepSeek run produced:
   - `workplaces/live/manager/result.md`
   - `workplaces/live/writer/result.md`

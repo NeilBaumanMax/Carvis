@@ -14,6 +14,7 @@ export interface RuntimeRoleContext {
   agent: AgentRuntimeState;
   commandText: string;
   pidOutput?: string;
+  pidMetadata?: unknown;
   attempt?: number;
   previousPidOutput?: string;
   retryReason?: string;

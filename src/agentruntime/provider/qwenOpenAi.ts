@@ -8,7 +8,25 @@ export interface QwenTextOptions {
   timeoutMs?: number;
 }
 
-export async function runQwenOpenAiText(options: QwenTextOptions): Promise<string> {
+export interface ProviderUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  estimated_prompt_tokens?: number;
+  estimated_completion_tokens?: number;
+  estimated_total_tokens?: number;
+  prompt_chars: number;
+  completion_chars: number;
+  total_chars: number;
+  source: "provider" | "estimated";
+}
+
+export interface QwenTextResult {
+  content: string;
+  usage: ProviderUsage;
+}
+
+export async function runQwenOpenAiText(options: QwenTextOptions): Promise<QwenTextResult> {
   const env = loadQwenEnvironment(options.env ?? process.env);
   const apiKey = env.DASHSCOPE_API_KEY ?? env.QWEN_API_KEY ?? env.QWEN_OPENAI_API_KEY;
   const baseUrl = normalizeBaseUrl(env.QWEN_OPENAI_BASE_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1");
@@ -57,13 +75,18 @@ export async function runQwenOpenAiText(options: QwenTextOptions): Promise<strin
       throw new Error(`Qwen request failed status=${response.status} body=${text.slice(0, 800)}`);
     }
 
-    const content = parseQwenResponseContent(text);
+    const result = parseQwenResponseContent(text);
+    const content = result?.content;
 
     if (content === undefined || content.trim().length === 0) {
       throw new Error(`Qwen response did not contain message content: ${text.slice(0, 800)}`);
     }
 
-    return content.trim();
+    const trimmed = content.trim();
+    return {
+      content: trimmed,
+      usage: createProviderUsage(options.systemPrompt, options.userPrompt, trimmed, result?.usage),
+    };
   } finally {
     clearTimeout(timeout);
   }
@@ -119,24 +142,33 @@ function parseEnvFile(content: string): Record<string, string> {
   return result;
 }
 
-function parseQwenResponseContent(text: string): string | undefined {
+function parseQwenResponseContent(text: string): { content: string; usage?: OpenAiUsage } | undefined {
   if (text.trimStart().startsWith("data:")) {
     return parseQwenStreamContent(text);
   }
 
   const data = JSON.parse(text) as {
+    usage?: OpenAiUsage;
     choices?: Array<{
       message?: {
         content?: string;
       };
     }>;
   };
+  const content = data.choices?.[0]?.message?.content;
 
-  return data.choices?.[0]?.message?.content;
+  return content === undefined ? undefined : { content, usage: data.usage };
 }
 
-function parseQwenStreamContent(text: string): string | undefined {
+interface OpenAiUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+}
+
+function parseQwenStreamContent(text: string): { content: string; usage?: OpenAiUsage } | undefined {
   let content = "";
+  let usage: OpenAiUsage | undefined;
 
   for (const line of text.split(/\r?\n/)) {
     const trimmed = line.trim();
@@ -152,6 +184,7 @@ function parseQwenStreamContent(text: string): string | undefined {
     }
 
     const data = JSON.parse(payload) as {
+      usage?: OpenAiUsage;
       choices?: Array<{
         delta?: {
           content?: string;
@@ -162,8 +195,52 @@ function parseQwenStreamContent(text: string): string | undefined {
       }>;
     };
 
+    if (data.usage !== undefined) {
+      usage = data.usage;
+    }
     content += data.choices?.[0]?.delta?.content ?? data.choices?.[0]?.message?.content ?? "";
   }
 
-  return content.length === 0 ? undefined : content;
+  return content.length === 0 ? undefined : { content, usage };
+}
+
+export function createProviderUsage(
+  systemPrompt: string,
+  userPrompt: string,
+  completion: string,
+  providerUsage?: OpenAiUsage,
+): ProviderUsage {
+  const promptChars = systemPrompt.length + userPrompt.length;
+  const completionChars = completion.length;
+  const estimatedPromptTokens = estimateTokens(promptChars);
+  const estimatedCompletionTokens = estimateTokens(completionChars);
+
+  if (providerUsage?.total_tokens !== undefined) {
+    return {
+      prompt_tokens: providerUsage.prompt_tokens,
+      completion_tokens: providerUsage.completion_tokens,
+      total_tokens: providerUsage.total_tokens,
+      estimated_prompt_tokens: estimatedPromptTokens,
+      estimated_completion_tokens: estimatedCompletionTokens,
+      estimated_total_tokens: estimatedPromptTokens + estimatedCompletionTokens,
+      prompt_chars: promptChars,
+      completion_chars: completionChars,
+      total_chars: promptChars + completionChars,
+      source: "provider",
+    };
+  }
+
+  return {
+    estimated_prompt_tokens: estimatedPromptTokens,
+    estimated_completion_tokens: estimatedCompletionTokens,
+    estimated_total_tokens: estimatedPromptTokens + estimatedCompletionTokens,
+    prompt_chars: promptChars,
+    completion_chars: completionChars,
+    total_chars: promptChars + completionChars,
+    source: "estimated",
+  };
+}
+
+function estimateTokens(chars: number): number {
+  return Math.max(1, Math.ceil(chars / 4));
 }

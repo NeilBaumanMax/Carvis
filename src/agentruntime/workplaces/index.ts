@@ -25,6 +25,7 @@ export interface WorkplacePaths {
   logPath: string;
   reviewPath: string;
   resultPath: string;
+  usagePath: string;
   commonRootPath: string;
   commonRolePath: string;
   commonPolicyPath: string;
@@ -86,11 +87,15 @@ export async function writeWorkplaceResult(
   rootPath: string,
   role: AgentRole,
   result: string,
+  metadata?: unknown,
 ): Promise<WorkplaceResult> {
   const workplace = createWorkplacePaths(rootPath, role);
   await mkdir(workplace.rootPath, { recursive: true });
   await writeFile(workplace.resultPath, `# Result\n\n${result}\n`, "utf8");
   await writeFile(workplace.logPath, `# Log\n\nCompleted ${role} result.\n`, "utf8");
+  if (metadata !== undefined) {
+    await writeFile(workplace.usagePath, `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
+  }
 
   return {
     role,
@@ -161,6 +166,7 @@ export function createWorkplacePaths(rootPath: string, role: AgentRole): Workpla
     logPath: join(roleRoot, "log.md"),
     reviewPath: join(roleRoot, "review.md"),
     resultPath: join(roleRoot, "result.md"),
+    usagePath: join(roleRoot, "usage.json"),
     commonRootPath: commonRoot,
     commonRolePath: join(commonRoot, "role.md"),
     commonPolicyPath: join(commonRoot, "policy.md"),

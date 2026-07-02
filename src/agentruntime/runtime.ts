@@ -133,16 +133,10 @@ export class AgentRuntime {
       });
 
       await this.publishHeartbeat();
-      await this.changePhase("manager_planning");
-      await this.runRole(MANAGER_ROLE, command.commandText);
       await this.changePhase("parallel_roles_working");
-      await Promise.all(PARALLEL_ROLES.map((role) => this.runRole(role, command.commandText)));
-      await this.changePhase("manager_reviewing");
-      const managerReview = await this.runRole(MANAGER_ROLE, command.commandText);
-      if (managerReview?.gatePassed !== false || this.options.engineerRunsAfterFailedReview === true) {
-        await this.changePhase("engineer_building");
-        await this.runRole(ENGINEER_ROLE, command.commandText);
-      }
+      await Promise.all([MANAGER_ROLE, ...PARALLEL_ROLES].map((role) => this.runRole(role, command.commandText)));
+      await this.changePhase("engineer_building");
+      await this.runRole(ENGINEER_ROLE, command.commandText);
       await this.changePhase("output_ready");
       await this.publishOutputReady(command.commandText);
       await this.changePhase("retaining_agents");
@@ -181,6 +175,7 @@ export class AgentRuntime {
     await this.setAgentStatus(agent, "ready", "agent.ready");
     await this.setAgentStatus(agent, "working", "agent.output", `${role} working`);
     let pidOutput: string | undefined;
+    let pidMetadata: unknown;
     if (pidAgent !== undefined) {
       const maxAttempts = Math.max(1, this.options.pidTaskMaxAttempts ?? 1);
       let previousPidOutput: string | undefined;
@@ -271,6 +266,7 @@ export class AgentRuntime {
 
         agent.pid = result.pid;
         pidOutput = result.output;
+        pidMetadata = result.metadata;
         await this.setAgentStatus(agent, "working", "agent.output", result.output);
 
         const validation = this.options.pidOutputValidator?.({
@@ -310,6 +306,7 @@ export class AgentRuntime {
       agent,
       commandText,
       pidOutput,
+      pidMetadata,
     });
     await this.setAgentStatus(agent, "done", "agent.done");
     agent.retained = true;

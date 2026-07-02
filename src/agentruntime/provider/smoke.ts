@@ -3,7 +3,7 @@ import { runQwenOpenAiText } from "./qwenOpenAi.js";
 
 assert(getRoleProviderConfig("manager").provider === "deepseek-claudecode", "manager should use DeepSeek");
 assert(getRoleProviderConfig("engineer").provider === "deepseek-claudecode", "engineer should use DeepSeek");
-assert(getRoleProviderConfig("writer").provider === "qwen-openai", "writer should use Qwen");
+assert(getRoleProviderConfig("writer").provider === "deepseek-claudecode", "writer should use DeepSeek");
 assert(getRoleProviderConfig("artist").provider === "qwen-openai", "artist should use Qwen");
 assert(getRoleProviderConfig("researcher").provider === "qwen-openai", "researcher should use Qwen");
 
@@ -21,7 +21,7 @@ if (process.env.CARVIS_QWEN_REAL_SMOKE === "1") {
     timeoutMs: 120_000,
   });
 
-  assert(output.includes("qwen real smoke ok"), `unexpected qwen output: ${output}`);
+  assert(output.content.includes("qwen real smoke ok"), `unexpected qwen output: ${output.content}`);
   console.log("[provider:smoke] qwen real ok");
 }
 

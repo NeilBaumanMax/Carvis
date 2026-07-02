@@ -27,48 +27,45 @@ export type TaskSkillId =
 export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
   manager: {
     role: "manager",
-    title: "制作统筹技能包",
-    consumes: ["用户任务原文", "各角色的风险和资源请求", "工程验收状态"],
-    produces: ["范围切分", "优先级", "按角色任务书", "验收清单", "员工复审核查", "跨角色依赖表"],
-    collaborationRule: "先定义共同目标、不可做边界和每个角色的交付格式；员工交付后只检查异常和缺口，把统一修正意见交给 engineer。",
+    title: "运行监控技能包",
+    consumes: ["用户任务原文", "各角色运行状态", "provider/PID 异常", "输出路径"],
+    produces: ["短任务边界", "异常监控摘要", "恢复建议", "交给 engineer 的风险清单"],
+    collaborationRule: "manager 只做短任务边界和运行监控，不做长篇复审；发现异常时标记问题和恢复建议，正常差异交给 engineer 合并。",
     skills: [
       {
-        name: "Scope Producer",
-        purpose: "把开放任务压缩成能在本轮交付的可玩 MVP，并定义员工审核标准。",
+        name: "Monitor Scope Card",
+        purpose: "把开放任务压缩成一张短任务卡，方便其他角色立刻并行启动。",
         playbook: [
           "列出必须出现的玩家动作、产物文件和可验收画面。",
           "把文学/玩法灵感拆成 3 个以内核心支柱。",
-          "把用户任务改写成 writer/artist/researcher/engineer 各自能执行的任务书。",
+          "用极短字段写出 writer/artist/researcher/engineer 的执行边界。",
           "明确哪些内容延期，避免团队扩散到只写设定。",
         ],
-        handoff: "给 writer/researcher/artist 提供同一份 MVP 目标、裁剪边界和各自必填字段；给 engineer 提供审核通过后的范围。",
-        qualityGate: "最终报告必须包含可玩循环、按角色任务书、产物位置和验收步骤。",
+        handoff: "给 engineer 提供任务边界、硬性验收和异常风险，不阻塞其他角色并行工作。",
+        qualityGate: "输出控制在短结构化合同内，不能写长篇复审。",
       },
       {
-        name: "Dependency Mapper",
-        purpose: "让五个角色形成上下游关系，而不是并排独白。",
+        name: "Runtime Watcher",
+        purpose: "监控角色是否空输出、超时、provider 失败或资产缺失。",
         playbook: [
-          "声明 writer 需要 researcher 的系统钩子。",
-          "声明 artist 需要 writer 的场景和 engineer 的实现限制。",
-          "声明 engineer 必须等 manager review gate 通过后才能整合产物。",
-          "声明 writer 输出的 scene/choice/ending 字段必须被 researcher 和 engineer 复用。",
+          "只把 PROVIDER_ERROR、空文件、伪工具调用、明显偷懒列为异常。",
+          "命名、数值、路径建议等可整合差异不打回，由 engineer 统一。",
+          "如果 PID 超时或 provider 失败，记录需要 runtime 重试/复活 worker。",
+          "如果 artist 资产缺失，提醒 engineer 使用可见 fallback，但不伪造路径。",
         ],
-        handoff: "输出跨角色依赖表，要求后续角色引用上游决定。",
-        qualityGate: "每个角色结果至少引用一个其他角色的输入。",
+        handoff: "输出异常摘要和恢复建议，供 engineer 决定是否继续集成。",
+        qualityGate: "必须区分阻塞异常和可整合差异。",
       },
       {
-        name: "Acceptance Director",
-        purpose: "把任务完成标准转成员工审核、测试和交付清单。",
+        name: "Recovery Reporter",
+        purpose: "把坏掉的角色或 PID 恢复要求写清楚。",
         playbook: [
-          "定义浏览器可打开的预览、报告内容和资产清单。",
-          "检查员工是否偷懒：是否只有泛泛文本、是否缺少可制作细节、是否没有引用上游输入。",
-          "重点检查 writer 是否有足够故事性：具体人物欲望、阻力、场景事件、对白和结局文本。",
-          "重点检查 artist 是否把时间花在图片资产，而不是长篇设定报告。",
-          "检查版权安全、中文输出、屏幕可读性和文件完整性。",
-          "把失败条件写清楚，方便返工。",
+          "记录哪个角色坏了、坏在哪里、engineer 是否还能继续。",
+          "写清楚复活/重试后的最小补救要求。",
+          "不重复 writer/artist/researcher 的完整正文。",
         ],
-        handoff: "把复审结论和验收清单交给 engineer 作为最后集成标准。",
-        qualityGate: "writer/artist/researcher 未经复审通过时，engineer 不得开始最终制作。",
+        handoff: "给 engineer 一份短恢复摘要；最终审核和生产由 engineer 合并执行。",
+        qualityGate: "不得输出第二份长审核报告。",
       },
     ],
   },
@@ -205,10 +202,10 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
   },
   engineer: {
     role: "engineer",
-    title: "实现与集成技能包",
-    consumes: ["manager 的初始规则", "manager 的复审结论", "writer 的任务数据", "artist 的资产规格", "researcher 的状态机"],
+    title: "审核集成与实现技能包",
+    consumes: ["manager 的监控摘要", "writer 的任务数据", "artist 的真实资产", "researcher 的状态机"],
     produces: ["数据结构", "实现切片", "预览文件", "测试命令"],
-    collaborationRule: "工程输出只能在 manager review gate 通过后开始，把通过审核的角色成果集成成可打开产物。",
+    collaborationRule: "engineer 同时负责审核、冲突合并和最终生产；只在上游为空、provider 失败或缺少关键产物时拒绝集成。",
     skills: [
       {
         name: "Vertical Slice Builder",
@@ -427,11 +424,11 @@ function roleTaskGuidance(role: AgentRole, skillId: TaskSkillId): string[] {
     ],
   };
   const byRole: Record<AgentRole, string> = {
-    manager: "把任务拆成 role contract、版权边界、MVP 范围、验收清单和输出格式。",
+    manager: "输出短任务边界、异常监控点和恢复建议，不做长篇复审。",
     writer: "输出能直接进 UI 的中文文本、角色动机、事件、选择后果和失败/胜利反馈。",
     artist: "少写长文，优先规划并生成会被最终 HTML 真实引用的图片资产。",
     researcher: "把任务翻译成状态字段、数据表、循环、平衡和可测试规则。",
-    engineer: "只整合通过复审的结构化材料，输出可打开的单文件 HTML，避免黑屏。",
+    engineer: "合并审核、冲突统一和最终生产，输出可打开的单文件 HTML，避免黑屏。",
   };
 
   return [byRole[role], ...shared[skillId]];
@@ -458,7 +455,7 @@ function taskSkillFields(role: AgentRole, skillId: TaskSkillId): string[] {
       : ["`characters`", "`scenes_or_levels`", "`choices_or_events`", "`endings_or_feedback`", "`handoff_to_engineer`"];
   }
 
-  return ["`task_type`", "`role_contracts`", "`acceptance_gates`", "`handoff_policy`"];
+  return ["`task_type`", "`monitoring_points`", "`blocking_risks`", "`handoff_to_engineer`"];
 }
 
 function taskSkillGates(role: AgentRole, skillId: TaskSkillId): string[] {

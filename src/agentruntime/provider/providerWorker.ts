@@ -4,7 +4,7 @@ import type { AgentRole } from "../../shared/types/agent.js";
 import { runClaudeCodePrint } from "../claudecode/command.js";
 import { callArtistImageMcp, renderArtistImageMcpAssets } from "../mcp/artistImageMcp.js";
 import { getRoleProviderConfig } from "./roles.js";
-import { runQwenOpenAiText } from "./qwenOpenAi.js";
+import { createProviderUsage, runQwenOpenAiText, type ProviderUsage } from "./qwenOpenAi.js";
 
 interface ProviderTaskInput {
   role: AgentRole;
@@ -13,6 +13,16 @@ interface ProviderTaskInput {
   prompt: string;
   systemPrompt: string;
   outputRootPath?: string;
+}
+
+interface ProviderTaskResult {
+  output: string;
+  metadata: {
+    provider: string;
+    model: string;
+    role: AgentRole;
+    usage: ProviderUsage;
+  };
 }
 
 const input = createInterface({
@@ -49,7 +59,11 @@ async function handleLine(line: string): Promise<void> {
 
     writeMessage({
       taskId: message.taskId,
-      output: result,
+      output: result.output,
+    });
+    writeMessage({
+      taskId: message.taskId,
+      metadata: result.metadata,
     });
     writeMessage({
       taskId: message.taskId,
@@ -67,7 +81,7 @@ async function handleLine(line: string): Promise<void> {
   }
 }
 
-async function runProviderTask(task: ProviderTaskInput, onProgress: (output: string) => void): Promise<string> {
+async function runProviderTask(task: ProviderTaskInput, onProgress: (output: string) => void): Promise<ProviderTaskResult> {
   const config = getRoleProviderConfig(task.role);
 
   if (config.provider === "deepseek-claudecode") {
@@ -92,28 +106,38 @@ async function runProviderTask(task: ProviderTaskInput, onProgress: (output: str
       );
     }
 
-    return [
+    const usage = createProviderUsage(task.systemPrompt, task.prompt, output);
+
+    return {
+      output: [
       `PROVIDER: ${config.provider}`,
       `MODEL: ${config.defaultModel}`,
       `ROLE: ${task.role}`,
       "",
       output,
-    ].join("\n");
+      ].join("\n"),
+      metadata: {
+        provider: config.provider,
+        model: config.defaultModel,
+        role: task.role,
+        usage,
+      },
+    };
   }
 
   onProgress(`provider:${task.role}: qwen text started model=${config.defaultModel}`);
-  const qwenOutput = await runQwenOpenAiText({
+  const qwenResult = await runQwenOpenAiText({
     model: config.defaultModel,
     systemPrompt: task.systemPrompt,
     userPrompt: task.prompt,
   });
-  onProgress(`provider:${task.role}: qwen text finished chars=${qwenOutput.length}`);
+  onProgress(`provider:${task.role}: qwen text finished chars=${qwenResult.content.length}`);
   const imageAssets =
-    task.role === "artist" && shouldGenerateArtistImages(task.commandText, qwenOutput)
+    task.role === "artist" && shouldGenerateArtistImages(task.commandText, qwenResult.content)
       ? await callArtistImageMcp({
           role: task.role,
           commandText: task.commandText,
-          artistOutput: qwenOutput,
+          artistOutput: qwenResult.content,
           outputRootPath: task.outputRootPath,
           onProgress: (message) => {
             onProgress(`provider:${task.role}: ${message}`);
@@ -121,14 +145,29 @@ async function runProviderTask(task: ProviderTaskInput, onProgress: (output: str
         })
       : undefined;
 
-  return [
+  const renderedAssets = imageAssets === undefined ? "" : renderArtistImageMcpAssets(imageAssets);
+  const output = [
     `PROVIDER: ${config.provider}`,
     `MODEL: ${config.defaultModel}`,
     `ROLE: ${task.role}`,
     "",
-    qwenOutput,
-    imageAssets === undefined ? "" : renderArtistImageMcpAssets(imageAssets),
+    qwenResult.content,
+    renderedAssets,
   ].join("\n");
+
+  return {
+    output,
+    metadata: {
+      provider: config.provider,
+      model: config.defaultModel,
+      role: task.role,
+      usage: {
+        ...qwenResult.usage,
+        completion_chars: qwenResult.usage.completion_chars + renderedAssets.length,
+        total_chars: qwenResult.usage.total_chars + renderedAssets.length,
+      },
+    },
+  };
 }
 
 function shouldGenerateArtistImages(commandText: string, artistOutput: string): boolean {

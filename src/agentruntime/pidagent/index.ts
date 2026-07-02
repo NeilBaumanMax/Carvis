@@ -20,6 +20,7 @@ export interface PersistentPidAgentTask {
 export interface PersistentPidAgentTaskResult {
   pid: number;
   output: string;
+  metadata?: unknown;
 }
 
 export interface PersistentPidAgent {
@@ -57,6 +58,10 @@ export class PersistentPidAgentPool {
     return [...this.agents.values()];
   }
 
+  prewarm(roles: AgentRole[]): PersistentPidAgent[] {
+    return roles.map((role) => this.getAgent(role));
+  }
+
   async shutdown(): Promise<void> {
     await Promise.all([...this.agents.values()].map((agent) => agent.shutdown()));
     this.agents.clear();
@@ -70,6 +75,7 @@ class LineProtocolPidAgent implements PersistentPidAgent {
     string,
     {
       output: string[];
+      metadata?: unknown;
       resolve: (output: string) => void;
       reject: (error: Error) => void;
       timeout: NodeJS.Timeout;
@@ -158,6 +164,7 @@ class LineProtocolPidAgent implements PersistentPidAgent {
     return {
       pid: this.pid,
       output,
+      metadata: this.lastMetadata,
     };
   }
 
@@ -201,6 +208,7 @@ class LineProtocolPidAgent implements PersistentPidAgent {
     const message = JSON.parse(line) as {
       taskId?: string;
       output?: string;
+      metadata?: unknown;
       done?: boolean;
     };
 
@@ -219,10 +227,17 @@ class LineProtocolPidAgent implements PersistentPidAgent {
       pending.onOutput?.(message.output);
     }
 
+    if (message.metadata !== undefined) {
+      pending.metadata = message.metadata;
+    }
+
     if (message.done === true) {
       clearTimeout(pending.timeout);
       this.pending.delete(message.taskId);
+      this.lastMetadata = pending.metadata;
       pending.resolve(pending.output.join("\n"));
     }
   }
+
+  private lastMetadata: unknown;
 }
