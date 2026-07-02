@@ -152,7 +152,9 @@ function createPublicProgressLines(role: string, commandText: string): string[] 
       ? "受主题启发的原创 RPG；不得复制受保护角色、情节、地名和独特设定"
       : isGreenWaterMonsterTask(commandText)
         ? "受主题气质启发的原创 galgame；不得复制受保护角色、情节和独特表达"
-        : "文学 RPG 改编；执行版权安全检查";
+        : isDeckTowerTask(commandText)
+          ? "原创爬塔卡牌 roguelike；不得复制既有游戏角色、卡牌、遗物、美术和 UI"
+          : "文学 RPG 改编；执行版权安全检查";
 
   return [
     `${prefix} 人设=${profile.name}`,
@@ -186,6 +188,9 @@ function renderRoleResult(role: string, commandText: string): string {
   }
   if (isGreenWaterMonsterTask(commandText)) {
     return renderGreenWaterMonsterInspiredRoleResult(role, commandText);
+  }
+  if (isDeckTowerTask(commandText)) {
+    return renderDeckTowerRoleResult(role, commandText);
   }
   if (isMacbethTask(commandText)) {
     return renderMacbethRoleResult(role, commandText);
@@ -274,6 +279,12 @@ function isGreenWaterMonsterTask(commandText: string): boolean {
   const normalized = commandText.toLowerCase();
 
   return normalized.includes("绿毛水怪") || normalized.includes("王小波") || normalized.includes("galgame");
+}
+
+function isDeckTowerTask(commandText: string): boolean {
+  const normalized = commandText.toLowerCase();
+
+  return normalized.includes("杀戮尖塔") || normalized.includes("slay") || normalized.includes("爬塔") || normalized.includes("卡牌");
 }
 
 function roleProfile(role: string): { name: string; specialty: string; voice: string } {
@@ -765,6 +776,127 @@ function renderGreenWaterMonsterInspiredRoleResult(role: string, commandText: st
         "- 第 2 周：信件系统、地图节点、路线状态。",
         "- 第 3 周：三角色 MVP 路线和 CG 占位。",
         "- 第 4 周：game-preview.html、音乐音效、结局树和演示打磨。",
+      ].join("\n");
+    default:
+      return `Completed ${role}: ${commandText}`;
+  }
+}
+
+function renderDeckTowerRoleResult(role: string, commandText: string): string {
+  switch (role) {
+    case "manager":
+      return [
+        "## 制作人方案",
+        "",
+        `Task: ${commandText}`,
+        "",
+        "人设：制作人林，负责把“爬塔卡牌 roguelike”做成原创项目范围。",
+        "",
+        "版权边界：本项目只参考卡牌构筑、路线爬塔、随机事件、遗物协同这类玩法类型，不复制《杀戮尖塔》的名称、角色、卡牌、遗物、敌人、美术、UI 或数值表达。",
+        "",
+        "工作标题：星炉远征。",
+        "",
+        "产品承诺：一款原创科幻炼金风爬塔卡牌游戏。玩家驾驶移动星炉穿过破碎轨道，用卡牌驱动引擎、护盾、无人机和炼金反应，在每层路线中选择战斗、事件、商店、维修和精英挑战。",
+        "",
+        "核心支柱：",
+        "- 三职业首发：炉心骑士、星图术士、废料机师。",
+        "- 卡组不是技能列表，而是飞船系统：热量、护盾、电荷、无人机、裂变反应互相联动。",
+        "- 路线选择强调风险：短路层、陨石雨、黑市港、遗迹信标、精英巡逻。",
+        "- 素材全部原创生成：卡面图标、敌人剪影、遗物徽章、地图节点和背景都用项目内生成规则描述。",
+        "",
+        "MVP 范围：",
+        "- 1 个职业、45 张卡、18 个敌人、20 个遗物、12 个事件、3 层地图、1 个最终 Boss。",
+      ].join("\n");
+    case "writer":
+      return [
+        "## 叙事设计",
+        "",
+        "人设：叙事设计乔，负责把爬塔路线包装成有世界观的远征。",
+        "",
+        "世界观：",
+        "旧帝国把恒星碎片封进移动炉心，结果整片轨道带变成漂浮迷宫。玩家所属的星炉远征队要穿过三层废轨，抵达“冷太阳”核心，决定重启星炉、熄灭它，或把它拆成自由城邦的能源。",
+        "",
+        "三层结构：",
+        "1. 锈环外带：教学层，敌人是巡逻艇、寄生矿机和走私哨兵。",
+        "2. 静电教区：机制层，敌人会干扰抽牌、锁卡和制造过载。",
+        "3. 冷太阳内核：高风险层，事件会改变最终 Boss 形态。",
+        "",
+        "角色职业：",
+        "- 炉心骑士：用热量换爆发，靠护盾防止自燃。",
+        "- 星图术士：预知抽牌、折叠回合、改写路线奖励。",
+        "- 废料机师：召唤无人机，牺牲零件换临时卡和遗物触发。",
+        "",
+        "结局：",
+        "- 重启星炉：获得秩序，代价是轨道居民重新被统一管制。",
+        "- 熄灭冷太阳：结束灾难，世界进入漫长能源寒冬。",
+        "- 拆炉分光：最难真结局，把能源分给各城邦，路线要求高声望和低污染。",
+      ].join("\n");
+    case "artist":
+      return [
+        "## 美术与素材生成",
+        "",
+        "人设：美术指导维加，负责原创素材规则，不借用任何既有卡牌游戏视觉。",
+        "",
+        "整体视觉：科幻炼金、粗颗粒像素叠加手绘金属纹理；主色为炉心橙、深空蓝、氧化铜绿、警报红。",
+        "",
+        "素材生成规则：",
+        "- 卡牌图标：用几何符号组合生成，热量=三角火芯，护盾=六边形壳，电荷=断裂圆环，无人机=小型十字机翼。",
+        "- 敌人剪影：每个敌人由“船体形状 + 推进器数量 + 破损部位 + 发光核心”四个参数生成。",
+        "- 遗物徽章：圆形底座、金属裂纹、单色发光符号，避免写实器物过多。",
+        "- 地图节点：战斗=小爆点，事件=问号星尘，商店=轨道摊位，维修=扳手环，精英=双层警戒框。",
+        "",
+        "首批素材清单：",
+        "- 12 张攻击卡卡面、12 张技能卡卡面、8 张反应卡卡面、5 个 Boss 阶段背景。",
+        "- 敌人：锈蚀巡逻艇、裂解修士、空壳矿机、黑市炮台、冷太阳化身。",
+      ].join("\n");
+    case "researcher":
+      return [
+        "## 系统研究",
+        "",
+        "人设：系统研究员沈，负责卡牌、遗物、路线和战斗循环。",
+        "",
+        "主机制：热量与反应",
+        "- 热量是资源也是风险：高热提高伤害，回合结束若过载会烧毁手牌或损血。",
+        "- 反应牌需要满足条件，例如“本回合获得 8 点护盾后触发电弧”。",
+        "- 遗物不只是数值加成，要改变卡组目标，例如把过载伤害转成护盾。",
+        "",
+        "战斗循环：",
+        "- 抽 5 张牌 -> 分配能量 -> 攻击/防御/反应 -> 敌人意图结算 -> 热量衰减或过载。",
+        "- 敌人意图公开，但部分敌人会伪装意图，需要侦测卡揭露。",
+        "",
+        "路线循环：",
+        "- 每层 12 到 15 个节点，玩家选择风险收益。",
+        "- 精英给强遗物但提高污染值；污染会改变事件和最终 Boss 技能。",
+        "",
+        "样例卡：",
+        "- 炉刃斩：1 能量，造成 7 伤害；若热量大于 6，追加 4 伤害。",
+        "- 冷却阀：1 能量，获得 8 护盾，热量 -3。",
+        "- 星图折返：0 能量，查看抽牌堆顶 3 张，选择 1 张置入手牌。",
+      ].join("\n");
+    case "engineer":
+      return [
+        "## 玩法工程清单",
+        "",
+        "人设：玩法工程师任，负责实现切片和可运行预览。",
+        "",
+        "MVP 架构：",
+        "- CardDef：id、名称、类型、费用、标签、效果脚本、生成素材参数。",
+        "- RelicDef：id、触发时机、条件、效果、徽章参数。",
+        "- EnemyDef：血量、意图表、行动权重、剪影参数。",
+        "- MapNode：层数、类型、奖励、风险、连接节点。",
+        "- RunState：牌组、弃牌堆、抽牌堆、遗物、金币、污染、路线历史。",
+        "",
+        "第一可玩切片：",
+        "1. 牌组战斗：抽牌、出牌、弃牌、敌人意图、胜负结算。",
+        "2. 炉心骑士 15 张卡，6 个敌人，5 个遗物。",
+        "3. 单层 10 节点地图，含战斗、事件、商店、精英和 Boss。",
+        "4. 生成素材预览：用 CSS/SVG 规则生成卡牌图标、敌人剪影和遗物徽章。",
+        "",
+        "实现清单：",
+        "- 第 1 周：战斗状态机和卡牌效果解释器。",
+        "- 第 2 周：地图生成、奖励选择、遗物触发。",
+        "- 第 3 周：原创素材生成器和 game-preview.html 演示。",
+        "- 第 4 周：平衡、存档、动画和音效占位。",
       ].join("\n");
     default:
       return `Completed ${role}: ${commandText}`;

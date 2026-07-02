@@ -49,6 +49,10 @@
 - `src/output/index.ts` 新增 `绿潮来信 Galgame Preview`。
 - 远端通过 messagebus 提交“绿毛水怪 galgame”任务，生成 `绿潮来信` 中文报告和 `game-preview.html`。
 - 远端截图 `/tmp/carvis-green-water-galgame.png`：五个 agent 框中文输出可见，Output 区显示产物文件夹预览。
+- `src/agentruntime/main.ts` 新增原创爬塔卡牌 roguelike 模板，五个 agent 输出制作人、叙事、美术素材生成、系统、工程方案。
+- `src/output/index.ts` 新增 `星炉远征 Card Roguelike Preview`。
+- 远端通过 messagebus 提交“原创爬塔卡牌 roguelike，素材自己生成”任务，生成 `星炉远征` 中文报告和 `game-preview.html`。
+- 远端截图 `/tmp/carvis-deck-tower.png`：五个 agent 框中文输出可见，Output 区显示产物文件夹预览。
 
 ### 结论
 

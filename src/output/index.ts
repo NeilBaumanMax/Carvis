@@ -199,6 +199,21 @@ function createGamePreviewContent(finalReport: string): {
     };
   }
 
+  if (finalReport.includes("星炉远征") || finalReport.includes("爬塔卡牌") || finalReport.includes("炉心骑士")) {
+    return {
+      heading: "星炉远征 Card Roguelike Preview",
+      primaryStat: "热量",
+      sceneTitle: "锈环外带",
+      sceneText: "移动星炉驶入破碎轨道。敌方巡逻艇锁定你的炉心，手牌里同时出现过热攻击、冷却阀和星图折返。",
+      buttons: ["打出炉刃斩", "启动冷却阀", "生成素材预览"],
+      scenes: {
+        charge: ["炉刃斩", "你消耗 1 点能量斩开巡逻艇外壳。热量超过阈值，追加伤害触发。", { chivalry: 14, reality: -3, reputation: 4 }],
+        inspect: ["冷却阀", "你压低炉心温度并展开护盾。过载风险下降，下一回合可以安全蓄热。", { chivalry: -5, reality: 12, reputation: 6 }],
+        appeal: ["素材生成", "系统根据几何参数生成卡牌图标、敌人剪影和遗物徽章，没有调用任何既有游戏素材。", { chivalry: 6, reality: 8, reputation: 10 }],
+      },
+    };
+  }
+
   return {
     heading: "堂吉诃德 RPG Preview",
     primaryStat: "Chivalry",

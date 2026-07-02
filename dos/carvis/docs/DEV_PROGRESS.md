@@ -40,6 +40,9 @@
 - 新增《绿毛水怪》主题气质安全原创 galgame 模板：不复制王小波原作角色、情节、独特表达或可识别桥段。
 - 远端提交“绿毛水怪 galgame”任务：通过，`final-report.md` 包含 `工作标题：绿潮来信`、`主机制：信件与理解度`，`game-preview.html` 包含 `绿潮来信 Galgame Preview`。
 - 远端截图 `/tmp/carvis-green-water-galgame.png`：五个 agent 框均有中文 galgame 输出，Output 区显示产物预览。
+- 新增原创爬塔卡牌 roguelike 模板：只参考卡牌构筑、路线爬塔、随机事件、遗物协同等玩法类型，不复制《杀戮尖塔》的名称、角色、卡牌、遗物、敌人、美术、UI 或数值表达。
+- 远端提交“原创爬塔卡牌 roguelike，素材自己生成”任务：通过，`final-report.md` 包含 `工作标题：星炉远征`、`主机制：热量与反应`，`game-preview.html` 包含 `星炉远征 Card Roguelike Preview`。
+- 远端截图 `/tmp/carvis-deck-tower.png`：五个 agent 框均有中文卡牌爬塔输出，Output 区显示产物预览。
 
 ## 2026-07-02 / Electron live renderer IPC
 
