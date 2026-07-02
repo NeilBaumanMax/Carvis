@@ -3,7 +3,11 @@ import type { OutputReadyPayload } from "../shared/types/events.js";
 import type { RunState } from "../shared/types/run.js";
 import type { PersistentPidAgentPool } from "./pidagent/index.js";
 
-export type RuntimeRoleRunner = (context: RuntimeRoleContext) => void | Promise<void>;
+export type RuntimeRoleRunner = (context: RuntimeRoleContext) => RuntimeRoleResult | void | Promise<RuntimeRoleResult | void>;
+
+export interface RuntimeRoleResult {
+  gatePassed?: boolean;
+}
 
 export interface RuntimeRoleContext {
   run: RunState;

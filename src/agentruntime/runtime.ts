@@ -16,6 +16,7 @@ import type {
   AgentRuntimeOptions,
   RuntimePidAgent,
   RuntimeQueuedCommand,
+  RuntimeRoleResult,
   RuntimeSnapshot,
 } from "./types.js";
 import { ENGINEER_ROLE, MANAGER_ROLE, PARALLEL_ROLES, ROLE_ORDER } from "./types.js";
@@ -135,8 +136,12 @@ export class AgentRuntime {
     await this.runRole(MANAGER_ROLE, command.commandText);
     await this.changePhase("parallel_roles_working");
     await Promise.all(PARALLEL_ROLES.map((role) => this.runRole(role, command.commandText)));
-    await this.changePhase("engineer_building");
-    await this.runRole(ENGINEER_ROLE, command.commandText);
+    await this.changePhase("manager_reviewing");
+    const managerReview = await this.runRole(MANAGER_ROLE, command.commandText);
+    if (managerReview?.gatePassed !== false) {
+      await this.changePhase("engineer_building");
+      await this.runRole(ENGINEER_ROLE, command.commandText);
+    }
     await this.changePhase("output_ready");
     await this.publishOutputReady();
     await this.changePhase("retaining_agents");
@@ -146,9 +151,10 @@ export class AgentRuntime {
     await this.publishHeartbeat();
   }
 
-  private async runRole(role: AgentRole, commandText: string): Promise<void> {
+  private async runRole(role: AgentRole, commandText: string): Promise<RuntimeRoleResult | undefined> {
     const agent = this.ensureAgent(role);
     const pidAgent = this.options.pidAgentPool?.getAgent(role);
+    agent.retained = false;
 
     if (pidAgent !== undefined) {
       agent.pid = pidAgent.pid;
@@ -166,7 +172,7 @@ export class AgentRuntime {
       agent.pid = result.pid;
       await this.setAgentStatus(agent, "working", "agent.output", result.output);
     }
-    await this.options.roleRunner?.({
+    const roleResult = await this.options.roleRunner?.({
       run: this.mustCurrentRun(),
       agent,
       commandText,
@@ -174,6 +180,8 @@ export class AgentRuntime {
     await this.setAgentStatus(agent, "done", "agent.done");
     agent.retained = true;
     await this.setAgentStatus(agent, "retained", "agent.retained");
+
+    return roleResult ?? undefined;
   }
 
   private ensureAgent(role: AgentRole): RuntimePidAgent {

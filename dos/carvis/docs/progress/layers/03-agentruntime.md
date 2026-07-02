@@ -1,5 +1,29 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-02 / Manager review gate / 本次完成
+
+### 本次完成
+
+- 新增 run phase：`manager_reviewing`。
+- Runtime 编排升级为 `manager planning -> writer/artist/researcher -> manager review -> engineer -> output`。
+- manager 会在员工并行产出后第二次启动，执行复审 gate。
+- engineer 只有在 manager review 结束后才启动。
+- manager review 返回 `gatePassed: false` 时，runtime 会跳过 `engineer_building`，engineer 不启动。
+- manager review 阶段的公开输出明确显示“主管复审”和“未达标不得交给 engineer 制作”。
+
+### 测试基线
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run agentruntime:smoke`：通过，断言 manager 启动两次且第二次早于 engineer，并覆盖 review fail 时跳过 engineer。
+- 本地 `npm run workplaces:smoke`：通过，断言 manager review 文件和 result 追加。
+- 本地 `npm test`：通过。
+- 远端 NixOS 主管复审测试任务：通过。
+
+### 剩余风险
+
+- 当前复审是规则化静态审核；后续接入真实 Claude Code 时，应把员工 result 和 manager skill 一起注入 manager review prompt。
+- 未通过时已经能阻断 engineer，但还没有自动返工循环。
+
 ## 2026-07-02 / Agent role skills pack / 本次完成
 
 ### 本次完成
@@ -25,7 +49,7 @@
 ### 当前事实
 
 - 常驻 `agentruntime/main.ts` 连接 remote messagebus，订阅 Electron 提交的 `command.submitted`。
-- 五角色顺序保持：manager -> writer/artist/researcher -> engineer。
+- 五角色顺序保持：manager planning -> writer/artist/researcher -> manager review -> engineer。
 - 每个 agent 会流式发布中文公开进度和结果预览到 `agent.output`，Electron 面板追加显示最近 80 行。
 - 公开输出使用五个中文人设：制作人、叙事设计、美术指导、系统研究、玩法工程师。
 - 已有专门任务模板：
@@ -78,7 +102,7 @@
 - 新增 `npm run agentruntime:smoke`
 - Runtime 可订阅 `command.submitted`
 - Runtime 可发布 `run.created`、`run.phase.changed`、Agent lifecycle、`runtime.heartbeat`、`output.ready`
-- 固定角色顺序：manager -> writer/artist/researcher -> engineer
+- 固定角色顺序：manager planning -> writer/artist/researcher -> manager review -> engineer
 - 模拟 PID Agent 在角色完成后进入 retained，最终统一 shutdown
 
 ### 测试基线

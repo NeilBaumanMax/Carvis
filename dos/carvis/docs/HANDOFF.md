@@ -60,6 +60,71 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / Manager review gate before engineering / 接力记录
+
+### 当前状态
+
+- Runtime 编排已升级为 `manager planning -> writer/artist/researcher -> manager review -> engineer -> output`。
+- manager 现在运行两次：第一次定规则分任务，第二次复审员工产物。
+- 新 phase：`manager_reviewing`。
+- manager review 会读取 writer/artist/researcher 的 workplace result，检查是否有可制作细节、是否过短、是否像偷懒。
+- 复审产物写入 `manager/review.md`，并追加到 `manager/result.md` 的 `Manager Review Gate`。
+- engineer 的 skill 已明确要求：只能在 manager review gate 通过后开始制作集成。
+- runtime 已实现硬 gate：manager review 返回 `gatePassed: false` 时跳过 `engineer_building`，engineer 不启动。
+- NixOS 已验证通过 gate 后才生成 engineer 结果，`output/final-report.md` 包含 `Manager Review Gate` 和 `Engineer MVP Build List`。
+
+### 本轮完成
+
+- 修改 `src/agentruntime/runtime.ts` 编排，在并行员工之后、engineer 之前插入 manager review。
+- 修改 `src/agentruntime/main.ts`，让 manager review 阶段生成中文复审报告，并写入 review artifact。
+- 修改 `src/agentruntime/workplaces/index.ts`，新增 `reviewPath` 和 `writeManagerReview()`。
+- 更新 `src/agentruntime/smoke.ts` 和 `src/agentruntime/workplaces/smoke.ts`，覆盖主管二次运行和复审文件。
+- `src/agentruntime/smoke.ts` 额外覆盖 review fail：engineer phase 和 engineer start 都不得出现。
+
+### 未完成
+
+- 当前复审是规则化静态审核；真实 Claude Code 模式下还需要把员工 result 注入 manager review prompt。
+- 当前未实现未通过后的自动返工循环；现阶段已经能阻断 engineer，但不会自动重新派工。
+
+### 下次优先任务
+
+1. 在真实 Claude Code role runner 中把 `manager/review.md` 和员工 result 作为 engineer 的上下文。
+2. 如果 manager review 判定返工，增加 retry/rework phase，而不是继续 engineer。
+3. Electron 面板增加固定展示“主管复审通过/返工”的 badge。
+
+### 关键文件
+
+- `src/shared/types/run.ts`
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/main.ts`
+- `src/agentruntime/workplaces/index.ts`
+- `src/agentruntime/smoke.ts`
+- `src/agentruntime/workplaces/smoke.ts`
+
+### 测试基线
+
+- `npm run build`：通过。
+- `npm run agentruntime:smoke`：通过。
+- `npm run workplaces:smoke`：通过。
+- `npm run e2e:smoke`：通过。
+- `npm run ipc:smoke`：通过。
+- `npm run runtime-pidagent:smoke`：通过。
+- `npm test`：通过。
+- 远端 NixOS `npm run build`：通过。
+- 远端 NixOS 主管复审测试任务：通过。
+- 远端截图：`/tmp/carvis-manager-review-gate.png`。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：待本轮提交。
+- 已 push：待本轮 push。
+
+### 风险提醒
+
+- manager review 是可公开的审核摘要，不是隐藏思考链。
+- 目前尚未实现“未通过自动返工”，不要把 gate 误写成完整返工系统。
+
 ## 2026-07-02 / Agent role skills pack / 接力记录
 
 ### 当前状态

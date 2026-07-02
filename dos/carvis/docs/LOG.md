@@ -1,5 +1,53 @@
 # Carvis Construction Log
 
+## 2026-07-02 / Manager review gate before engineering
+
+### 目标
+
+- 按用户新目标，把主管职责从“一开始定规则分任务”升级为“员工完成后审核”。
+- writer/artist/researcher 做出的东西必须先由主管检查有没有不达标、有没有偷懒。
+- 全部通过后再传给 engineer 做最终制作。
+
+### 实际修改
+
+- `RunPhase` 新增 `manager_reviewing`。
+- `AgentRuntime.executeRun()` 编排改为：
+  - `manager_planning`
+  - `parallel_roles_working`
+  - `manager_reviewing`
+  - `engineer_building`
+  - `output_ready`
+- manager agent 会运行两次：第一次规划，第二次复审。
+- manager 二次运行时读取 writer/artist/researcher 的 workplace 结果，生成复审结论。
+- 新增 `writeManagerReview()`：
+  - 写入 `workplaces/live/manager/review.md`
+  - 追加 `Manager Review Gate` 到 `workplaces/live/manager/result.md`
+- manager review 通过才进入 engineer；如果 role runner 返回 `gatePassed: false`，runtime 会跳过 `engineer_building`。
+- engineer 的 skill 协作规则更新为：只能在 `manager review gate` 通过后开始集成制作。
+- 公开流式输出增加主管复审提示：未达标或偷懒不得交给 engineer 制作。
+
+### 验证结果
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run agentruntime:smoke`：通过，断言 manager 启动两次且第二次早于 engineer。
+- 本地 `npm run workplaces:smoke`：通过，断言 `manager/review.md` 和 `Manager Review Gate` 追加。
+- 本地 `npm run e2e:smoke`：通过。
+- 本地 `npm run ipc:smoke`：通过。
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm run build`：通过。
+- 远端 NixOS `carvis-agentruntime.service` / `carvis-electron.service`：active。
+- 远端提交主管复审测试任务：通过。
+- 远端 `workplaces/live/manager/review.md` 包含 `Gate 结论：全部通过，交给 engineer 进入制作集成`。
+- 远端 `output/final-report.md` 包含 `Manager Review Gate` 和 `Engineer MVP Build List`。
+- 远端截图 `/tmp/carvis-manager-review-gate.png` 显示 Manager 面板写入 review gate。
+
+### 结论
+
+- 主管现在具备前置规划和后置复审两段职责。
+- engineer 已被放到主管复审之后，符合“都做成功通过了以后再传给技术制作”的目标。
+- 本轮还补了失败 gate 的 smoke：主管复审不通过时 engineer 不会启动。
+
 ## 2026-07-02 / Agent role skills pack
 
 ### 目标

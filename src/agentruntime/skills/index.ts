@@ -22,18 +22,18 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
     role: "manager",
     title: "制作统筹技能包",
     consumes: ["用户任务原文", "各角色的风险和资源请求", "工程验收状态"],
-    produces: ["范围切分", "优先级", "验收清单", "跨角色依赖表"],
-    collaborationRule: "先定义共同目标和不可做边界，再把每个角色的产物连成同一个可玩版本。",
+    produces: ["范围切分", "优先级", "验收清单", "员工复审核查", "跨角色依赖表"],
+    collaborationRule: "先定义共同目标和不可做边界；员工交付后必须复审，全部达标后才交给 engineer 制作。",
     skills: [
       {
         name: "Scope Producer",
-        purpose: "把开放任务压缩成能在本轮交付的可玩 MVP。",
+        purpose: "把开放任务压缩成能在本轮交付的可玩 MVP，并定义员工审核标准。",
         playbook: [
           "列出必须出现的玩家动作、产物文件和可验收画面。",
           "把文学/玩法灵感拆成 3 个以内核心支柱。",
           "明确哪些内容延期，避免团队扩散到只写设定。",
         ],
-        handoff: "给 writer/researcher/engineer 提供同一份 MVP 目标和裁剪边界。",
+        handoff: "给 writer/researcher/artist 提供同一份 MVP 目标和裁剪边界；给 engineer 提供审核通过后的范围。",
         qualityGate: "最终报告必须包含可玩循环、产物位置和验收步骤。",
       },
       {
@@ -42,21 +42,22 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
         playbook: [
           "声明 writer 需要 researcher 的系统钩子。",
           "声明 artist 需要 writer 的场景和 engineer 的实现限制。",
-          "声明 engineer 必须整合所有角色输出成一个文件夹产物。",
+          "声明 engineer 必须等 manager review gate 通过后才能整合产物。",
         ],
         handoff: "输出跨角色依赖表，要求后续角色引用上游决定。",
         qualityGate: "每个角色结果至少引用一个其他角色的输入。",
       },
       {
         name: "Acceptance Director",
-        purpose: "把任务完成标准转成测试和交付清单。",
+        purpose: "把任务完成标准转成员工审核、测试和交付清单。",
         playbook: [
           "定义浏览器可打开的预览、报告内容和资产清单。",
+          "检查员工是否偷懒：是否只有泛泛文本、是否缺少可制作细节、是否没有引用上游输入。",
           "检查版权安全、中文输出、屏幕可读性和文件完整性。",
           "把失败条件写清楚，方便返工。",
         ],
-        handoff: "把验收清单交给 engineer 作为最后集成标准。",
-        qualityGate: "没有预览 HTML、manifest、角色结果或测试记录时不得标记完成。",
+        handoff: "把复审结论和验收清单交给 engineer 作为最后集成标准。",
+        qualityGate: "writer/artist/researcher 未经复审通过时，engineer 不得开始最终制作。",
       },
     ],
   },
@@ -189,9 +190,9 @@ export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
   engineer: {
     role: "engineer",
     title: "实现与集成技能包",
-    consumes: ["manager 的验收清单", "writer 的任务数据", "artist 的资产规格", "researcher 的状态机"],
+    consumes: ["manager 的初始规则", "manager 的复审结论", "writer 的任务数据", "artist 的资产规格", "researcher 的状态机"],
     produces: ["数据结构", "实现切片", "预览文件", "测试命令"],
-    collaborationRule: "工程输出要把其他角色成果集成成可打开的产物，而不是另写一份设定。",
+    collaborationRule: "工程输出只能在 manager review gate 通过后开始，把通过审核的角色成果集成成可打开产物。",
     skills: [
       {
         name: "Vertical Slice Builder",

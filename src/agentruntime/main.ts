@@ -9,6 +9,7 @@ import { renderAgentSkillProgressLines } from "./skills/index.js";
 import {
   initializeWorkplaces,
   readWorkplaceResults,
+  writeManagerReview,
   writeWorkplaceResult,
 } from "./workplaces/index.js";
 
@@ -27,17 +28,30 @@ const runtime = createAgentRuntime(bus, {
       initializedRuns.add(run.runId);
     }
 
-    const roleResult = renderRoleResult(agent.role, commandText);
+    const isManagerReview = agent.role === "manager" && run.phase === "manager_reviewing";
+    const managerReview = isManagerReview ? await renderManagerReviewResult(commandText) : undefined;
+    const roleResult = managerReview?.content ?? renderRoleResult(agent.role, commandText);
 
-    await streamRoleProgress(run.requestId, run.runId, agent.agentId, agent.role, commandText);
-    await writeWorkplaceResult(workplacesRoot, agent.role, roleResult);
+    await streamRoleProgress(run.requestId, run.runId, agent.agentId, agent.role, commandText, run.phase);
+    if (isManagerReview) {
+      await writeManagerReview(workplacesRoot, roleResult);
+    } else {
+      await writeWorkplaceResult(workplacesRoot, agent.role, roleResult);
+    }
     await streamRoleResultPreview(run.requestId, run.runId, agent.agentId, agent.role, roleResult);
     await publishRoleOutput(
       run.requestId,
       run.runId,
       agent.agentId,
-      `Claude Code CLI public output: ${agent.role} result written to ${join(workplacesRoot, agent.role, "result.md")}`,
+      isManagerReview
+        ? `Claude Code CLI public output: manager review gate written to ${join(workplacesRoot, "manager", "review.md")}`
+        : `Claude Code CLI public output: ${agent.role} result written to ${join(workplacesRoot, agent.role, "result.md")}`,
     );
+    if (managerReview !== undefined) {
+      return {
+        gatePassed: managerReview.gatePassed,
+      };
+    }
   },
   outputWriter: async () => {
     const results = await readWorkplaceResults(workplacesRoot);
@@ -96,8 +110,9 @@ async function streamRoleProgress(
   agentId: string,
   role: string,
   commandText: string,
+  phase: string,
 ): Promise<void> {
-  for (const line of createPublicProgressLines(role, commandText)) {
+  for (const line of createPublicProgressLines(role, commandText, phase)) {
     await publishRoleOutput(requestId, runId, agentId, line);
     await sleep(progressDelayMs);
   }
@@ -144,9 +159,10 @@ async function publishRoleOutput(
   });
 }
 
-function createPublicProgressLines(role: string, commandText: string): string[] {
+function createPublicProgressLines(role: string, commandText: string, phase: string): string[] {
   const prefix = `>>> LIVE CLI STREAM [${role.toUpperCase()}]`;
   const profile = roleProfile(role);
+  const isManagerReview = role === "manager" && phase === "manager_reviewing";
   const skillLines = isKnownRole(role)
     ? renderAgentSkillProgressLines(role).map((line) => `${prefix} ${line}`)
     : [];
@@ -165,6 +181,12 @@ function createPublicProgressLines(role: string, commandText: string): string[] 
     `${prefix} 分工=${profile.specialty}`,
     `${prefix} 口吻约束=${profile.voice}`,
     `${prefix} 输出语言=中文；除必要文件名/技术名词外不要输出英文说明`,
+    ...(isManagerReview
+      ? [
+          `${prefix} 当前阶段=主管复审；正在检查 writer/artist/researcher 是否达标`,
+          `${prefix} 审核规则=未达标或偷懒不得交给 engineer 制作`,
+        ]
+      : []),
     ...skillLines,
     `${prefix} 已收到 Electron 输入框任务`,
     `${prefix} 改编模式=${adaptationMode}`,
@@ -265,6 +287,67 @@ function renderRoleResult(role: string, commandText: string): string {
     default:
       return `Completed ${role}: ${commandText}`;
   }
+}
+
+async function renderManagerReviewResult(commandText: string): Promise<{ content: string; gatePassed: boolean }> {
+  const results = await readWorkplaceResults(workplacesRoot);
+  const employeeRoles = ["writer", "artist", "researcher"] as const;
+  const employeeResults = employeeRoles.map((role) => {
+    const result = results.find((item) => item.role === role);
+    return {
+      role,
+      content: result?.result ?? "",
+    };
+  });
+  const auditRows = employeeResults.map(({ role, content }) => {
+    const visibleContent = content.replace(/^# Result\s*/i, "").trim();
+    const lowerContent = visibleContent.toLowerCase();
+    const hasRoleDetail =
+      role === "writer"
+        ? /任务|章节|选择|后果|结局|quest|choice|ending|chapter/.test(lowerContent)
+        : role === "artist"
+          ? /资产|视觉|ui|场景|角色|色彩|asset|visual|scene|palette|animation/.test(lowerContent)
+          : /机制|循环|数值|状态|战斗|平衡|loop|meter|combat|balance|system/.test(lowerContent);
+    const hasEnoughWork = visibleContent.length >= 240;
+    const status = hasRoleDetail && hasEnoughWork ? "通过" : "返工";
+    const reason = status === "通过" ? "内容具备可交付细节" : "内容过短或缺少玩法/任务/资产等可制作细节";
+
+    return `- ${role}: ${status}。${reason}。`;
+  });
+  const hasAnyRework = auditRows.some((row) => row.includes("返工"));
+  const gateStatus = hasAnyRework ? "暂缓交给 engineer，先返工未达标角色" : "全部通过，交给 engineer 进入制作集成";
+
+  const content = [
+    "## 主管复审",
+    "",
+    `任务：${commandText}`,
+    "",
+    "主管职责升级：不只在开头定规则分任务，还要在员工交付后进行质量审核，检查是否偷懒、是否缺少可制作细节、是否满足协作标准。",
+    "",
+    "### 审核对象",
+    "",
+    "- writer：检查是否给出可玩的章节、选择和后果，而不是只写故事背景。",
+    "- artist：检查是否给出可生成/可实现的资产清单、UI 约束和视觉规则，而不是只写氛围。",
+    "- researcher：检查是否把主题转成机制、数值、状态字段和 playtest 风险，而不是只写分析。",
+    "",
+    "### 审核结果",
+    "",
+    ...auditRows,
+    "",
+    `### Gate 结论：${gateStatus}`,
+    "",
+    "### 交给 engineer 的制作要求",
+    "",
+    "- 必须读取 manager 的初始规则和本次 review gate。",
+    "- 只能把通过审核的员工产物纳入最终制作清单。",
+    "- 最终 output 必须包含可打开预览、manifest、角色结果路径和测试说明。",
+    "- 如果后续接入真实 Claude Code，要把未通过审核的角色重新派工，而不是直接让 engineer 粗糙拼接。",
+  ].join("\n");
+
+  return {
+    content,
+    gatePassed: !hasAnyRework,
+  };
 }
 
 function isDonQuixoteTask(commandText: string): boolean {

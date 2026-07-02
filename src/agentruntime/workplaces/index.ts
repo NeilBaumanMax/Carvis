@@ -14,6 +14,7 @@ export interface WorkplacePaths {
   skillPath: string;
   planPath: string;
   logPath: string;
+  reviewPath: string;
   resultPath: string;
 }
 
@@ -61,6 +62,37 @@ export async function writeWorkplaceResult(
   };
 }
 
+export async function writeManagerReview(rootPath: string, review: string): Promise<WorkplaceResult> {
+  const workplace = createWorkplacePaths(rootPath, "manager");
+  await mkdir(workplace.rootPath, { recursive: true });
+
+  let existingResult = "";
+  try {
+    existingResult = await readFile(workplace.resultPath, "utf8");
+  } catch {
+    existingResult = "# Result\n";
+  }
+
+  const combinedResult = [
+    existingResult.trimEnd(),
+    "",
+    "## Manager Review Gate",
+    "",
+    review.trim(),
+    "",
+  ].join("\n");
+
+  await writeFile(workplace.reviewPath, `# Manager Review Gate\n\n${review.trim()}\n`, "utf8");
+  await writeFile(workplace.resultPath, `${combinedResult}\n`, "utf8");
+  await writeFile(workplace.logPath, "# Log\n\nCompleted manager review gate.\n", "utf8");
+
+  return {
+    role: "manager",
+    result: combinedResult,
+    resultPath: workplace.resultPath,
+  };
+}
+
 export async function readWorkplaceResults(rootPath: string): Promise<WorkplaceResult[]> {
   const results: WorkplaceResult[] = [];
 
@@ -88,6 +120,7 @@ export function createWorkplacePaths(rootPath: string, role: AgentRole): Workpla
     skillPath: join(roleRoot, "skill.md"),
     planPath: join(roleRoot, "plan.md"),
     logPath: join(roleRoot, "log.md"),
+    reviewPath: join(roleRoot, "review.md"),
     resultPath: join(roleRoot, "result.md"),
   };
 }

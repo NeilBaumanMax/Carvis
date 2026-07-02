@@ -2,6 +2,53 @@
 
 ## 2026-07-02
 
+## 2026-07-02 / Manager review gate before engineering
+
+### 本轮计划
+
+- 目标：把主管从“开头定规则分任务”升级为“员工交付后复审”，员工都达标后再交给 engineer 制作。
+- 涉及层：`03-agentruntime`、`06-workplaces`、文档接力层。
+- 计划修改：
+  - runtime 编排从 `manager -> writer/artist/researcher -> engineer` 改为 `manager planning -> writer/artist/researcher -> manager review -> engineer`。
+  - 新增 `manager_reviewing` run phase。
+  - manager 二次运行时读取 writer/artist/researcher 的 workplace 结果，生成审核结论。
+  - manager 审核写入 `workplaces/live/manager/review.md`，并追加到 `manager/result.md`，使最终 output 能带着审核 gate 给 engineer。
+  - smoke 测试确认 manager 会运行两次，且 engineer 必须在 manager review 之后启动。
+- 测试计划：
+  - 本地 `npm run build`
+  - 本地 `npm run agentruntime:smoke`
+  - 本地 `npm run workplaces:smoke`
+  - 本地 `npm test`
+  - NixOS 同步后 `npm run build` 和 `npm run workplaces:smoke`
+  - NixOS 提交任务确认 `manager/review.md` 与 `output/final-report.md` 包含主管复审。
+- GitHub 备份计划：测试通过后提交并 push 到当前备份分支。
+- 回滚预案：回滚 `manager_reviewing` phase、runtime 二次 manager 执行、`writeManagerReview()` 和相关 smoke 断言。
+
+### 本次完成
+
+- `RunPhase` 新增 `manager_reviewing`。
+- Runtime 编排升级为 `manager planning -> writer/artist/researcher -> manager review -> engineer -> output`。
+- manager 会二次运行：第一次规划，第二次读取 writer/artist/researcher 的 result 做复审。
+- manager review 写入 `manager/review.md`，并追加到 `manager/result.md` 的 `Manager Review Gate`。
+- manager review 通过时才进入 `engineer_building`；如果 role runner 返回 `gatePassed: false`，engineer phase 会被跳过。
+- manager/engineer skill 更新为：员工复审通过后才交给 engineer 制作。
+
+### 当前验证
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run agentruntime:smoke`：通过，覆盖 manager 二次运行、engineer 在 review 后启动，以及 review fail 时跳过 engineer。
+- 本地 `npm run workplaces:smoke`：通过，覆盖 `manager/review.md` 和 `Manager Review Gate` 追加。
+- 本地 `npm run e2e:smoke`：通过。
+- 本地 `npm run ipc:smoke`：通过。
+- 本地 `npm run runtime-pidagent:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS 同步后 `npm run build`：通过。
+- 远端 NixOS `carvis-agentruntime.service` / `carvis-electron.service`：active。
+- 远端提交“writer/artist/researcher 做完后先交给主管审核，通过后再让 engineer 制作最终预览”任务：通过。
+- 远端 `workplaces/live/manager/review.md` 包含 `Gate 结论：全部通过，交给 engineer 进入制作集成`。
+- 远端 `output/final-report.md` 同时包含 `Manager Review Gate` 和 `Engineer MVP Build List`。
+- 远端截图 `/tmp/carvis-manager-review-gate.png`：Manager 面板显示 review gate 写入 `manager/review.md`，Output 文件夹预览正常。
+
 ## 2026-07-02 / Agent role skills pack
 
 ### 本轮计划

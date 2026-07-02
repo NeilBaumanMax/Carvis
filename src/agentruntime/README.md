@@ -8,7 +8,7 @@ Current Phase 4 scope is a deterministic runtime core with a simulated PID pool.
 
 - Subscribe to `command.submitted` from messagebus.
 - Create run state and a task queue.
-- Run roles in the fixed order: `manager` first, `writer` / `artist` / `researcher` in parallel, then `engineer`.
+- Run roles in the fixed order: `manager` planning first, `writer` / `artist` / `researcher` in parallel, `manager` review gate, then `engineer`.
 - Retain simulated PID Agents after each role finishes.
 - Publish heartbeat and lifecycle events through messagebus.
 - Shutdown all retained PID Agents at the end of a run.
@@ -26,6 +26,7 @@ Current Phase 4 scope is a deterministic runtime core with a simulated PID pool.
 
 - Electron-style `command.submitted` starts one run;
 - manager starts before the parallel roles;
-- engineer starts only after writer, artist, and researcher are done;
+- manager runs a second review gate after writer, artist, and researcher are done;
+- engineer starts only after the manager review gate is done;
 - heartbeat contains PID pool counts and queue depth;
 - all retained PID Agents are shutdown at final cleanup.

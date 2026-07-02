@@ -2,6 +2,7 @@ export type RunPhase =
   | "created"
   | "manager_planning"
   | "parallel_roles_working"
+  | "manager_reviewing"
   | "engineer_building"
   | "output_ready"
   | "retaining_agents"

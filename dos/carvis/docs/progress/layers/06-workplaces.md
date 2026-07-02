@@ -1,5 +1,25 @@
 # 06 Workplaces Progress
 
+## 2026-07-02 / Manager review artifact / 本次完成
+
+### 本次完成
+
+- `WorkplacePaths` 新增 `reviewPath`。
+- 新增 `writeManagerReview()`，把主管复审写入 `manager/review.md`，并追加到 `manager/result.md`。
+- 最终 output 读取 manager result 时会带上复审 gate，engineer 可据此消费通过审核的员工产物。
+- `workplaces:smoke` 断言 `manager/review.md` 包含审核结论，且 `manager/result.md` 包含 `Manager Review Gate`。
+
+### 测试基线
+
+- 本地 `npm run workplaces:smoke`：通过。
+- 本地 `npm run build`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `manager/review.md` 已验证包含 `Gate 结论：全部通过，交给 engineer 进入制作集成`。
+
+### 剩余风险
+
+- 当前只有 manager 使用 `review.md`；如果未来要多级审核，需要把 review artifact 从 manager 专用扩展成通用 gate 文件。
+
 ## 2026-07-02 / Role skill files / 本次完成
 
 ### 本次完成
