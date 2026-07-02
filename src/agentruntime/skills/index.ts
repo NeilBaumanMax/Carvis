@@ -17,6 +17,13 @@ export interface AgentSkillProfile {
   collaborationRule: string;
 }
 
+export type TaskSkillId =
+  | "galgame"
+  | "platformer"
+  | "shop-autobattler"
+  | "repo-doc"
+  | "generic-game";
+
 export const AGENT_SKILL_PROFILES: Record<AgentRole, AgentSkillProfile> = {
   manager: {
     role: "manager",
@@ -282,6 +289,203 @@ export function renderAgentSkillMarkdown(role: AgentRole): string {
   ].join("\n");
 }
 
+export function renderAgentCommonMarkdown(role: AgentRole): string {
+  const profile = getAgentSkillProfile(role);
+
+  return [
+    `# ${profile.title} Common`,
+    "",
+    "## 通用强制约束",
+    "",
+    "- 输出语言必须是中文，技术文件名和必要 API 名可以保留英文。",
+    "- 不输出隐藏思考过程，只输出可公开的工作结果、检查清单、文件方案和必要代码。",
+    "- 不要求用户替你执行命令；本角色必须直接给出可交付正文。",
+    "- 必须紧贴用户任务，不得套用与任务无关的固定模板。",
+    "- 必须显式引用本轮任务的题材、产物类型、素材要求和验收标准。",
+    "",
+    "## 角色设定",
+    "",
+    `Role: ${profile.role}`,
+    `Title: ${profile.title}`,
+    `Collaboration Rule: ${profile.collaborationRule}`,
+    "",
+    "## 消费输入",
+    "",
+    ...profile.consumes.map((item) => `- ${item}`),
+    "",
+    "## 必须产出",
+    "",
+    ...profile.produces.map((item) => `- ${item}`),
+    "",
+    "## Skills 使用规则",
+    "",
+    "- `skills/` 中每个 md 是一个特定任务类型的思维文件。",
+    "- 先根据用户任务选择最贴近的 task skill，再结合 common 约束输出。",
+    "- 如果任务类型不匹配，使用 `generic-game.md` 或 manager 给出的 task_type，不要强行套模板。",
+    "- 输出必须包含给下游角色使用的 `handoff_to_next` 或等价结构化小节。",
+    "",
+  ].join("\n");
+}
+
+export function renderTaskSkillMarkdown(role: AgentRole, skillId: TaskSkillId): string {
+  const heading = taskSkillTitle(skillId);
+  const roleLine = roleTaskGuidance(role, skillId);
+
+  return [
+    `# ${heading}`,
+    "",
+    `Role: ${role}`,
+    "",
+    "## 任务识别",
+    "",
+    taskSkillDetection(skillId),
+    "",
+    "## 本角色工作重点",
+    "",
+    ...roleLine.map((line) => `- ${line}`),
+    "",
+    "## 结构化交付字段",
+    "",
+    ...taskSkillFields(role, skillId).map((line) => `- ${line}`),
+    "",
+    "## 质量门禁",
+    "",
+    ...taskSkillGates(role, skillId).map((line) => `- ${line}`),
+    "",
+  ].join("\n");
+}
+
+export function renderSelectedTaskSkillMarkdown(role: AgentRole, commandText: string): string {
+  return renderTaskSkillMarkdown(role, classifyTaskSkill(commandText));
+}
+
+export function classifyTaskSkill(commandText: string): TaskSkillId {
+  if (/galgame|视觉小说|分支|选择|结局/i.test(commandText)) {
+    return "galgame";
+  }
+  if (/闯关|平台|platform|跳跃|碰撞|wasd|方向键/i.test(commandText)) {
+    return "platformer";
+  }
+  if (/bazaar|商店|自动战斗|物品组合|roguelike|构筑/i.test(commandText)) {
+    return "shop-autobattler";
+  }
+  if (/github|仓库|脚手架|目录|文件用途|repo|README/i.test(commandText)) {
+    return "repo-doc";
+  }
+  if (/游戏|game|rpg|卡牌/i.test(commandText)) {
+    return "generic-game";
+  }
+
+  return "repo-doc";
+}
+
+function taskSkillTitle(skillId: TaskSkillId): string {
+  const titles: Record<TaskSkillId, string> = {
+    galgame: "Galgame / 视觉小说任务 skill",
+    platformer: "冒险闯关 / 平台动作任务 skill",
+    "shop-autobattler": "商店构筑 / 自动战斗任务 skill",
+    "repo-doc": "仓库分析 / HTML 文档展示任务 skill",
+    "generic-game": "通用游戏原型任务 skill",
+  };
+
+  return titles[skillId];
+}
+
+function taskSkillDetection(skillId: TaskSkillId): string {
+  const detections: Record<TaskSkillId, string> = {
+    galgame: "用户要求 galgame、视觉小说、选择分支、结局、文学作品改编或强剧情互动。",
+    platformer: "用户要求冒险闯关、平台跳跃、键盘移动、碰撞、收集、敌人巡逻或关卡。",
+    "shop-autobattler": "用户要求商店经营、物品组合、自动战斗、经济抉择、roguelike 成长或 The Bazaar 类玩法。",
+    "repo-doc": "用户要求整理 GitHub 仓库、脚手架、目录结构、文件用途、安装命令并用 HTML 展示。",
+    "generic-game": "用户要求游戏但没有明确子类型，优先做一个最小可玩的浏览器原型。",
+  };
+
+  return detections[skillId];
+}
+
+function roleTaskGuidance(role: AgentRole, skillId: TaskSkillId): string[] {
+  const shared: Record<TaskSkillId, string[]> = {
+    galgame: [
+      "保留原题材核心意象，换成原创人物、地点和表达，禁止只换成无关科幻/赛博外壳。",
+      "必须服务选择、状态和结局，而不是只写设定。",
+    ],
+    platformer: [
+      "优先定义玩家能执行的移动、跳跃、收集、躲避、重试和通关反馈。",
+      "关卡必须短小可玩，避免只写故事报告。",
+    ],
+    "shop-autobattler": [
+      "优先形成商店购买、物品槽位、经济刷新、自动战斗、胜负结算的闭环。",
+      "不得复制 The Bazaar 的角色、物品名、图标风格、UI 布局或数值表。",
+    ],
+    "repo-doc": [
+      "只做准确文档展示，不得套用游戏剧情、关卡、结局模板。",
+      "必须说明数据来源、目录职责、脚手架流程和关键文件用途。",
+    ],
+    "generic-game": [
+      "先做最小可玩循环，再扩展故事和美术。",
+      "必须有清晰开始、交互、反馈、结束或重开。",
+    ],
+  };
+  const byRole: Record<AgentRole, string> = {
+    manager: "把任务拆成 role contract、版权边界、MVP 范围、验收清单和输出格式。",
+    writer: "输出能直接进 UI 的中文文本、角色动机、事件、选择后果和失败/胜利反馈。",
+    artist: "少写长文，优先规划并生成会被最终 HTML 真实引用的图片资产。",
+    researcher: "把任务翻译成状态字段、数据表、循环、平衡和可测试规则。",
+    engineer: "只整合通过复审的结构化材料，输出可打开的单文件 HTML，避免黑屏。",
+  };
+
+  return [byRole[role], ...shared[skillId]];
+}
+
+function taskSkillFields(role: AgentRole, skillId: TaskSkillId): string[] {
+  if (role === "engineer") {
+    return [
+      "`implementation_plan`: 最小可运行切片",
+      "`asset_refs`: 实际使用的 assets 相对路径",
+      "`state_model`: JS 状态字段",
+      "`acceptance_notes`: 如何验证 HTML 可玩/可读",
+    ];
+  }
+  if (role === "artist") {
+    return ["`asset_plan`", "`generated_or_expected_assets`", "`style_rules`", "`self_review`"];
+  }
+  if (role === "researcher") {
+    return ["`state_schema`", "`core_loop`", "`data_tables`", "`playtest_checks`"];
+  }
+  if (role === "writer") {
+    return skillId === "repo-doc"
+      ? ["`page_sections`", "`explanatory_copy`", "`terminology`", "`handoff_to_engineer`"]
+      : ["`characters`", "`scenes_or_levels`", "`choices_or_events`", "`endings_or_feedback`", "`handoff_to_engineer`"];
+  }
+
+  return ["`task_type`", "`role_contracts`", "`acceptance_gates`", "`handoff_policy`"];
+}
+
+function taskSkillGates(role: AgentRole, skillId: TaskSkillId): string[] {
+  const gates = [
+    "必须输出足够下游角色执行的具体字段，不得只有泛泛建议。",
+    "必须保留用户任务的题材和交付格式。",
+  ];
+
+  if (skillId === "shop-autobattler") {
+    gates.push("必须包含商店、物品、敌人、经济、自动战斗和结算闭环。");
+  }
+  if (skillId === "platformer") {
+    gates.push("必须包含键盘控制、碰撞/收集、关卡目标、失败和重试。");
+  }
+  if (skillId === "galgame") {
+    gates.push("必须包含选择节点、状态变化、结局条件和足够中文对白。");
+  }
+  if (skillId === "repo-doc") {
+    gates.push("必须包含目录结构、文件用途、脚手架命令、风险和数据来源。");
+  }
+  if (role === "engineer") {
+    gates.push("最终必须输出 fenced HTML，且 JS 语法可检查。");
+  }
+
+  return gates;
+}
+
 export function renderAgentPlanMarkdown(role: AgentRole): string {
   const profile = getAgentSkillProfile(role);
 
@@ -292,10 +496,11 @@ export function renderAgentPlanMarkdown(role: AgentRole): string {
     "",
     "## 本轮执行顺序",
     "",
-    "1. 读取 `input.md` 和本文件同目录的 `skill.md`。",
+    "1. 读取 `input.md`、`common/*.md` 和匹配任务类型的 `skills/*.md`。",
     "2. 先引用上游角色输入，再写本角色产物。",
-    "3. 使用 3 个已安装 skill 逐项检查结果。",
+    "3. 使用 common 约束和 task skill 逐项检查结果。",
     "4. 把可交付内容写入 `result.md`，不要只写状态。",
+    "5. 产物末尾写 `handoff_to_next`，方便分层压缩和下游集成。",
     "",
     "## 已安装 Skills",
     "",

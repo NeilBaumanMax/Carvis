@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { createRemoteMessageBus } from "../messagebus/index.js";
@@ -79,8 +79,10 @@ const runtime = createAgentRuntime(bus, {
     }
     if (isManagerReview) {
       await writeManagerReview(paths.workplacesRoot, roleResult);
+      await writeLayeredContextFiles(paths.workplacesRoot, agent.role, commandText, roleResult, "manager_review");
     } else {
       await writeWorkplaceResult(paths.workplacesRoot, agent.role, roleResult);
+      await writeLayeredContextFiles(paths.workplacesRoot, agent.role, commandText, roleResult, run.phase);
     }
     await streamRoleResultPreview(run.requestId, run.runId, agent.agentId, agent.role, roleResult);
     await publishRoleOutput(
@@ -260,11 +262,25 @@ async function createRoleUserPrompt(
   const input = await safeRead(workplace.inputPath);
   const skill = await safeRead(workplace.skillPath);
   const plan = await safeRead(workplace.planPath);
+  const commonRole = await safeRead(workplace.commonRolePath);
+  const commonPolicy = await safeRead(workplace.commonPolicyPath);
+  const selectedSkill = await safeRead(workplace.selectedSkillPath);
+  const taskState = await safeRead(workplace.taskStatePath);
   const managerResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "manager").resultPath);
   const managerReview = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "manager").reviewPath);
   const writerResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "writer").resultPath);
   const artistResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "artist").resultPath);
   const researcherResult = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "researcher").resultPath);
+  const managerHandoff = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "manager").handoffPath);
+  const writerHandoff = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "writer").handoffPath);
+  const artistHandoff = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "artist").handoffPath);
+  const researcherHandoff = await safeRead(createWorkplacePaths(currentWorkplacesRoot, "researcher").handoffPath);
+  const combinedTaskState = createCombinedTaskState(commandText, [
+    managerHandoff,
+    writerHandoff,
+    artistHandoff,
+    researcherHandoff,
+  ]);
 
   const upstream =
     role === "manager" && phase === "manager_reviewing"
@@ -289,6 +305,19 @@ async function createRoleUserPrompt(
         ? [
             "## Engineer implementation brief",
             ...createEngineerImplementationBrief(commandText, artistResult),
+            "",
+            "## 分层上下文 task_state.json",
+            JSON.stringify(combinedTaskState, null, 2),
+            "",
+            "## 分层 handoff_to_engineer.json",
+            "### manager",
+            compactJsonText(managerHandoff, 2_000),
+            "### writer",
+            compactJsonText(writerHandoff, 2_400),
+            "### artist",
+            compactJsonText(artistHandoff, 2_000),
+            "### researcher",
+            compactJsonText(researcherHandoff, 2_400),
             "",
             "## 上游材料",
             ...createEngineerManagerSections(managerResult, managerReview, commandText),
@@ -348,11 +377,238 @@ async function createRoleUserPrompt(
     "# 本角色 skill.md",
     skill,
     "",
+    "# 本角色 common/role.md",
+    commonRole,
+    "",
+    "# 本角色 common/policy.md",
+    commonPolicy,
+    "",
+    "# 本角色 selected task skill",
+    selectedSkill,
+    "",
     "# 本角色 plan.md",
     plan,
     "",
     upstream,
   ].join("\n");
+}
+
+async function writeLayeredContextFiles(
+  rootPath: string,
+  role: AgentRole,
+  commandText: string,
+  result: string,
+  phase: string,
+): Promise<void> {
+  const workplace = createWorkplacePaths(rootPath, role);
+  const handoff = createRoleHandoff(role, result, commandText, phase);
+  const evidence = createEvidenceIndex(role, result);
+  const taskState = createTaskStateSnapshot(role, commandText, result, handoff);
+
+  await writeFile(workplace.handoffPath, `${JSON.stringify(handoff, null, 2)}\n`, "utf8");
+  await writeFile(workplace.evidenceIndexPath, `${JSON.stringify(evidence, null, 2)}\n`, "utf8");
+  await writeFile(workplace.taskStatePath, `${JSON.stringify(taskState, null, 2)}\n`, "utf8");
+}
+
+function createRoleHandoff(role: AgentRole, result: string, commandText: string, phase: string): Record<string, unknown> {
+  const taskType = classifyRuntimeTask(commandText);
+  const lines = result
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const assets = extractAssetRefs(result);
+  const headings = lines.filter((line) => /^#{1,4}\s+/.test(line)).slice(0, 24);
+  const facts = extractRelevantLines(result, roleFactPatterns(role, taskType), 24);
+  const decisions = extractRelevantLines(result, [/GATE_PASSED\s*:/i, /必须|统一|采用|范围|MVP|验收|结论|版权/i], 18);
+  const constraints = extractRelevantLines(result, [/不得|禁止|不能|版权|边界|必须|验收|fallback|黑屏/i], 18);
+  const risks = extractRelevantLines(result, [/风险|问题|失败|超时|缺失|不通过|待确认|冲突/i], 12);
+
+  return {
+    role,
+    phase,
+    task_type: taskType,
+    facts: compactLines([...headings, ...facts], 32),
+    decisions: compactLines(decisions, 20),
+    assets,
+    constraints: compactLines(constraints, 20),
+    open_risks: compactLines(risks, 12),
+    handoff_to_engineer: compactLines([...facts, ...decisions, ...assets.map((asset) => `asset:${asset}`)], 36),
+  };
+}
+
+function createEvidenceIndex(role: AgentRole, result: string): Record<string, unknown> {
+  const lines = result.split("\n");
+  const entries = lines
+    .map((line, index) => ({ line: index + 1, text: line.trim() }))
+    .filter((entry) =>
+      /GATE_PASSED|assets\/|```html|状态|字段|物品|敌人|关卡|选择|结局|目录|文件|安装|启动/i.test(entry.text),
+    )
+    .slice(0, 80);
+
+  return {
+    role,
+    entries,
+  };
+}
+
+function createTaskStateSnapshot(
+  role: AgentRole,
+  commandText: string,
+  result: string,
+  handoff: Record<string, unknown>,
+): Record<string, unknown> {
+  const taskType = classifyRuntimeTask(commandText);
+
+  return {
+    task_type: taskType,
+    source: `${role}/result.md`,
+    must_have: extractRelevantLines(result, [/必须|至少|包含|验收|成功标准/i], 18),
+    assets: extractAssetRefs(result),
+    mechanics: extractRelevantLines(result, taskMechanicPatterns(taskType), 24),
+    acceptance: extractRelevantLines(result, [/验收|检查|playtest|截图|浏览器|HTML|game-preview/i], 18),
+    risks: extractRelevantLines(result, [/风险|失败|超时|黑屏|漂移|问题|冲突/i], 12),
+    updated_by: [role],
+    handoff_preview: handoff.handoff_to_engineer,
+  };
+}
+
+function classifyRuntimeTask(commandText: string): string {
+  if (/galgame|视觉小说|分支|选择|结局/i.test(commandText)) {
+    return "galgame";
+  }
+  if (/闯关|平台|platform|跳跃|碰撞|wasd|方向键/i.test(commandText)) {
+    return "platformer";
+  }
+  if (/bazaar|商店|自动战斗|物品组合|roguelike|构筑/i.test(commandText)) {
+    return "shop-autobattler";
+  }
+  if (/github|仓库|脚手架|目录|文件用途|repo|README/i.test(commandText)) {
+    return "repo-doc";
+  }
+  if (isGameTask(commandText)) {
+    return "generic-game";
+  }
+
+  return "repo-doc";
+}
+
+function roleFactPatterns(role: AgentRole, taskType: string): RegExp[] {
+  const rolePatterns: Record<AgentRole, RegExp[]> = {
+    manager: [/task_type|任务|角色|验收|MVP|版权|边界|GATE_PASSED|统一/i],
+    writer: [/角色|主角|场景|关卡|选择|对白|结局|物品|敌人|文案|章节|目录|页面/i],
+    artist: [/assets\/|GENERATED_IMAGE_ASSETS|图片|标题|背景|角色|图标|配色|布局|安全区/i],
+    researcher: [/状态|字段|循环|数值|物品|敌人|经济|战斗|碰撞|检查|命令|风险/i],
+    engineer: [/```html|实现|文件|入口|测试|浏览器|game-preview|assets\//i],
+  };
+
+  return [...rolePatterns[role], ...taskMechanicPatterns(taskType)];
+}
+
+function taskMechanicPatterns(taskType: string): RegExp[] {
+  if (taskType === "shop-autobattler") {
+    return [/金币|商店|刷新|购买|出售|升级|合成|物品|敌人|自动战斗|战斗日志|声望|耐久|回合/i];
+  }
+  if (taskType === "platformer") {
+    return [/移动|跳跃|碰撞|收集|敌人|巡逻|追捕|关卡|生命|重试|WASD|方向键/i];
+  }
+  if (taskType === "galgame") {
+    return [/选择|场景|对白|结局|好感|状态|分支|旁白|角色/i];
+  }
+  if (taskType === "repo-doc") {
+    return [/目录|文件|脚手架|安装|启动|依赖|架构|README|命令|风险/i];
+  }
+
+  return [/状态|循环|反馈|胜利|失败|素材|交互/i];
+}
+
+function extractRelevantLines(content: string, patterns: RegExp[], limit: number): string[] {
+  return compactLines(
+    content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && patterns.some((pattern) => pattern.test(line))),
+    limit,
+  );
+}
+
+function extractAssetRefs(content: string): string[] {
+  return compactLines([...content.matchAll(/assets\/[\w.-]+\.(?:png|jpg|jpeg|webp|svg)/gi)].map((match) => match[0]), 24);
+}
+
+function compactLines(lines: string[], limit: number): string[] {
+  const seen = new Set<string>();
+  const output: string[] = [];
+
+  for (const line of lines) {
+    const key = line.trim();
+    if (key.length === 0 || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    output.push(key.length > 280 ? `${key.slice(0, 277)}...` : key);
+    if (output.length >= limit) {
+      break;
+    }
+  }
+
+  return output;
+}
+
+function compactJsonText(content: string, maxChars: number): string {
+  const trimmed = content.trim();
+
+  if (trimmed.length <= maxChars) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    const compact = JSON.stringify(parsed, null, 2);
+
+    return compact.slice(0, maxChars);
+  } catch {
+    return trimmed.slice(0, maxChars);
+  }
+}
+
+function createCombinedTaskState(commandText: string, handoffTexts: string[]): Record<string, unknown> {
+  const parsed = handoffTexts
+    .map((text) => parseJsonObject(text))
+    .filter((value): value is Record<string, unknown> => value !== undefined);
+
+  return {
+    task_type: classifyRuntimeTask(commandText),
+    source: "combined_layered_handoff",
+    facts: mergeArrayFields(parsed, "facts", 48),
+    decisions: mergeArrayFields(parsed, "decisions", 32),
+    assets: mergeArrayFields(parsed, "assets", 32),
+    constraints: mergeArrayFields(parsed, "constraints", 32),
+    open_risks: mergeArrayFields(parsed, "open_risks", 24),
+    handoff_to_engineer: mergeArrayFields(parsed, "handoff_to_engineer", 64),
+  };
+}
+
+function parseJsonObject(content: string): Record<string, unknown> | undefined {
+  try {
+    const value = JSON.parse(content);
+
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function mergeArrayFields(objects: Record<string, unknown>[], field: string, limit: number): string[] {
+  return compactLines(
+    objects.flatMap((object) => {
+      const value = object[field];
+
+      return Array.isArray(value) ? value.map((item) => String(item)) : [];
+    }),
+    limit,
+  );
 }
 
 function validateRealProviderOutput({

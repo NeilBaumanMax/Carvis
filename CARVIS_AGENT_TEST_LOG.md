@@ -363,3 +363,38 @@
 - engineer 输入必须压缩：复杂任务只给 manager 复审结论、关键资产路径、玩法状态字段和最小实现 brief，避免全量上游长文造成 Claude Code 超时。
 - 输出门禁必须保留：游戏/HTML 任务没有真实 fenced HTML 不发布成功预览；HTML 内 `<script>` 必须通过 `new Function(script)` 语法检查，避免黑屏。
 - Electron 预览必须使用内部 BrowserWindow 并按 `screen.workArea` 定位；NixOS 上不依赖 xdg-open，避免打开旧产物或被任务栏遮挡。
+
+## 第二轮：common/skills prompt 架构与分层压缩
+
+### 目标
+
+- Prompt 架构从平面 `skill.md` 升级为每个角色目录下的 `common/` + `skills/`。
+- `common/` 放通用强制约束、角色设定、协作规则和 skills 使用说明。
+- `skills/` 放特定任务类型思维文件：`galgame.md`、`platformer.md`、`shop-autobattler.md`、`repo-doc.md`、`generic-game.md`，并生成 `selected.md`。
+- 上下文压缩从纯文本摘关键词升级为分层上下文：raw result 保留作证据，下游优先读 `task_state.json`、`handoff_to_engineer.json`、`evidence_index.json`。
+
+### 本地实现记录
+
+- 修改 `src/agentruntime/skills/index.ts`：
+  - 新增 task skill 分类和渲染：`galgame`、`platformer`、`shop-autobattler`、`repo-doc`、`generic-game`。
+  - 新增 role common prompt 渲染，包含通用强制约束、角色设定、输入/产出和 skills 使用规则。
+- 修改 `src/agentruntime/workplaces/index.ts`：
+  - 初始化每个角色时新增 `common/role.md`、`common/policy.md`。
+  - 初始化 `skills/*.md` 和 `skills/selected.md`。
+  - 初始化 `task_state.json`、`handoff_to_engineer.json`、`evidence_index.json`。
+- 修改 `src/agentruntime/main.ts`：
+  - prompt 构造阶段读取 common 和 selected task skill。
+  - 每个角色完成后写出分层上下文文件。
+  - engineer 阶段优先读取合并后的 layered task state 和各角色 handoff，再读必要的压缩原文。
+- 修改 `src/agentruntime/workplaces/smoke.ts`：
+  - 增加对 common、skills、task_state、handoff、evidence_index 的生成断言。
+
+### 本地验证
+
+- 2026-07-03 00:30 左右：`npm run build` 通过。
+- 2026-07-03 00:31 左右：`npm run workplaces:smoke` 通过。
+- 2026-07-03 00:32 左右：完整 `npm test` 通过。
+
+### 第二轮四测试重跑记录
+
+待 NixOS 同步后开始记录。
