@@ -1,5 +1,25 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-02 / Agent role skills pack / 本次完成
+
+### 本次完成
+
+- 新增 `src/agentruntime/skills/index.ts`，为 manager、writer、artist、researcher、engineer 各定义 3 个本地 skill。
+- 每个 skill 包含 purpose、playbook、handoff、quality gate，用于约束角色产出和跨角色交接。
+- `agentruntime/main.ts` 的公开流式输出新增 skill 加载、协作规则、消费输入、必须产出和验收门槛。
+- 继续保持边界：不显示隐藏思考链，只显示可公开进度、技能加载和结果预览。
+
+### 测试基线
+
+- 本地 `npm run build`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm run build`：通过。
+- 远端 NixOS 提交原创爬塔卡牌任务：通过，五角色结果汇总到 `output/final-report.md`。
+
+### 剩余风险
+
+- 当前 skill 包是本地静态指令；真实 Claude Code 长驻 PID 如果后续接入，需要把 `skill.md` 作为 system/context 文件传给对应 PID。
+
 ## 2026-07-02 / Current live role templates / 当前状态
 
 ### 当前事实

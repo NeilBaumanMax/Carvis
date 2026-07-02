@@ -1,5 +1,25 @@
 # 06 Workplaces Progress
 
+## 2026-07-02 / Role skill files / 本次完成
+
+### 本次完成
+
+- 每个角色 workplace 新增 `skill.md`，由 `initializeWorkplaces()` 初始化写入。
+- `plan.md` 不再是占位文本，改为包含本角色已安装 3 个 skill、协作输入、必须产出和质量门槛。
+- `WORKPLACE_FILES` 更新为 `input.md`、`skill.md`、`plan.md`、`log.md`、`result.md`。
+- `workplaces:smoke` 增加断言，确保五个角色都安装了 skill 文件且每个角色恰好 3 个 skill。
+
+### 测试基线
+
+- 本地 `npm run workplaces:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm run workplaces:smoke`：通过。
+- 远端 `workplaces/live/*/skill.md` 已验证存在。
+
+### 剩余风险
+
+- 当前仍未做 OS 级权限隔离；skill 文件是协作约束，不是沙箱边界。
+
 ## 2026-07-02 / Local MVP smoke / 本次完成
 
 ### 当前目标

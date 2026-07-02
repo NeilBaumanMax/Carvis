@@ -2,14 +2,16 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { AgentRole } from "../../shared/types/agent.js";
+import { renderAgentPlanMarkdown, renderAgentSkillMarkdown } from "../skills/index.js";
 
 export const WORKPLACE_ROLES: AgentRole[] = ["manager", "writer", "artist", "researcher", "engineer"];
-export const WORKPLACE_FILES = ["input.md", "plan.md", "log.md", "result.md"] as const;
+export const WORKPLACE_FILES = ["input.md", "skill.md", "plan.md", "log.md", "result.md"] as const;
 
 export interface WorkplacePaths {
   role: AgentRole;
   rootPath: string;
   inputPath: string;
+  skillPath: string;
   planPath: string;
   logPath: string;
   resultPath: string;
@@ -29,8 +31,13 @@ export async function initializeWorkplaces(rootPath: string, commandText: string
   for (const workplace of workplaces) {
     await mkdir(workplace.rootPath, { recursive: true });
     await writeFile(workplace.inputPath, `# Input\n\n${commandText}\n`, "utf8");
-    await writeFile(workplace.planPath, `# Plan\n\nPending plan for ${workplace.role}.\n`, "utf8");
-    await writeFile(workplace.logPath, `# Log\n\nInitialized ${workplace.role} workplace.\n`, "utf8");
+    await writeFile(workplace.skillPath, `${renderAgentSkillMarkdown(workplace.role)}\n`, "utf8");
+    await writeFile(workplace.planPath, renderAgentPlanMarkdown(workplace.role), "utf8");
+    await writeFile(
+      workplace.logPath,
+      `# Log\n\nInitialized ${workplace.role} workplace with 3 installed skills.\n`,
+      "utf8",
+    );
     await writeFile(workplace.resultPath, `# Result\n\nPending result for ${workplace.role}.\n`, "utf8");
   }
 
@@ -78,6 +85,7 @@ export function createWorkplacePaths(rootPath: string, role: AgentRole): Workpla
     role,
     rootPath: roleRoot,
     inputPath: join(roleRoot, "input.md"),
+    skillPath: join(roleRoot, "skill.md"),
     planPath: join(roleRoot, "plan.md"),
     logPath: join(roleRoot, "log.md"),
     resultPath: join(roleRoot, "result.md"),

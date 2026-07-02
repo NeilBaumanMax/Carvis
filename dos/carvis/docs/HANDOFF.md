@@ -60,6 +60,71 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / Agent role skills pack / 接力记录
+
+### 当前状态
+
+- 五个角色都已安装 3 个项目内本地 skill，定义在 `src/agentruntime/skills/index.ts`。
+- 每个角色 workplace 初始化时会生成 `skill.md`，并在 `plan.md` 中写明已安装 skill、协作输入、必须产出和质量门槛。
+- Electron 面板的公开流式输出会显示 skill 加载、协作规则、消费输入、必须产出和验收门槛。
+- 本轮没有直接安装网上第三方 skill 仓库，避免远程执行不可信代码。
+- NixOS 远端已同步并重启 `carvis-agentruntime.service` / `carvis-electron.service`。
+
+### 本轮完成
+
+- 新增 manager/writer/artist/researcher/engineer 五套 skill profile，每套 3 个 skill。
+- `workplaces:smoke` 增加 skill 文件和数量断言。
+- 远端通过 messagebus 提交原创爬塔卡牌测试任务，生成 `output/final-report.md` 和 `output/game-preview.html`。
+- 远端截图 `/tmp/carvis-agent-skills.png` 可见五个 agent 面板和 Output 产物预览。
+
+### 未完成
+
+- 当前真实 Claude Code 长驻 PID 尚未把 `skill.md` 作为上下文注入；常驻 runtime 先使用本地模板和公开进度流展示技能协作。
+- Electron 面板保留最近 80 行，任务结束后底部主要显示 result preview，早期 skill 加载日志可能滚到上方。
+
+### 下次优先任务
+
+1. 把 `skill.md` 注入真实 Claude Code role runner 的 system/context prompt，确保真实模型调用也按本地 skill 执行。
+2. 在 Electron agent 面板增加固定的 skill badge 或 collapsed summary，避免完成后技能加载日志被结果预览挤走。
+3. 让 engineer 角色真正基于其他四个 workplace 生成更完整的可玩 HTML/JS 产物，而不只是报告预览。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+- `dos/carvis/docs/progress/layers/06-workplaces.md`
+
+### 关键文件
+
+- `src/agentruntime/skills/index.ts`
+- `src/agentruntime/main.ts`
+- `src/agentruntime/workplaces/index.ts`
+- `src/agentruntime/workplaces/smoke.ts`
+
+### 测试基线
+
+- `npm run build`：通过。
+- `npm run workplaces:smoke`：通过。
+- `npm run electron:ui-smoke`：通过。
+- `npm test`：通过。
+- 远端 NixOS `npm run build`：通过。
+- 远端 NixOS `npm run workplaces:smoke`：通过。
+- 远端 NixOS 原创爬塔卡牌任务：通过，`output/final-report.md` 和 `output/game-preview.html` 已生成。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：`backup: add role skill packs`。
+- 已 push：是。
+- 备份分支：`backup/mvp-nixos-20260702-020835`
+
+### 风险提醒
+
+- 不要把网上下载的 skill 仓库直接在 NixOS 上执行；需要先审计内容和脚本。
+- 不要向用户承诺能显示隐藏思考链；当前只能显示公开进度、技能加载和结果摘要。
+
 ## 2026-07-02 / 1000x640 centered Electron + Chinese agent output + game preview / 接力记录
 
 ### 当前状态

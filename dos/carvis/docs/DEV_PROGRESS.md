@@ -2,6 +2,47 @@
 
 ## 2026-07-02
 
+## 2026-07-02 / Agent role skills pack
+
+### 本轮计划
+
+- 目标：给五个 agent 角色各安装 3 个本地 skill，提升协作分工，避免每个角色只各自写文本。
+- 涉及层：`03-agentruntime`、`06-workplaces`、文档接力层。
+- 计划修改：
+  - 新增 agent skill 定义模块，按 manager/writer/artist/researcher/engineer 各提供 3 个中文 skill。
+  - workspace 初始化时为每个角色写入 `skill.md`，并让 `plan.md` 带上本角色技能和上下游协作输入。
+  - 实时输出流显示 skill 加载、协作输入和验收标准，让 Electron 五个面板能看出角色差异。
+  - smoke 测试确认每个 workplace 都有 skill 文件且结果仍能读取。
+- 测试计划：
+  - 本地 `npm run build`
+  - 本地 `npm run workplaces:smoke`
+  - 本地 `npm run electron:ui-smoke`
+  - NixOS 同步后 `npm run build`
+  - NixOS 通过 messagebus 提交原创爬塔卡牌任务，确认五个角色输出含 skill 流和产物文件夹预览。
+- GitHub 备份计划：测试通过后提交并 push 到当前备份分支。
+- 回滚预案：回滚本轮新增 `skills` 模块、workspace `skill.md` 写入和实时输出改动。
+
+### 本次完成
+
+- 新增 `src/agentruntime/skills/index.ts`，按 manager/writer/artist/researcher/engineer 五个角色各定义 3 个本地 skill。
+- 每个 skill 包含 purpose、playbook、handoff、quality gate，明确本角色要消费哪些上游输入、产出哪些下游材料。
+- `initializeWorkplaces()` 现在会给每个角色写入 `skill.md`，并把 `plan.md` 改为技能驱动计划。
+- `createPublicProgressLines()` 现在会把 skill 加载、协作规则、消费输入、必须产出和验收门槛流式输出到 Electron agent 面板。
+- `workplaces:smoke` 增加断言：每个角色 workplace 必须有 `skill.md`，且恰好包含 3 个 installed skills。
+
+### 当前验证
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run workplaces:smoke`：通过。
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS 同步后 `npm run build`：通过。
+- 远端 NixOS `carvis-agentruntime.service` / `carvis-electron.service`：active。
+- 远端 NixOS `npm run workplaces:smoke`：通过。
+- 远端通过 messagebus 提交“原创爬塔卡牌 roguelike，素材自己生成，要求五个 agent 按各自 skills 协作”任务：通过，`output/final-report.md` 和 `output/game-preview.html` 已生成。
+- 远端 `workplaces/live/*/skill.md`：五个角色均存在，包含 `Scope Producer`、`Asset Generation Brief`、`Vertical Slice Builder` 等角色 skill。
+- 远端截图 `/tmp/carvis-agent-skills.png`：Electron 1000x640 窗口可见五个 agent 面板、Output 文件夹预览和本轮生成产物。
+
 ## 2026-07-02 / 1000x640 centered Electron + Chinese agent output + game preview
 
 ### 本次完成

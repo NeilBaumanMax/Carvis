@@ -1,5 +1,47 @@
 # Carvis Construction Log
 
+## 2026-07-02 / Agent role skills pack
+
+### 目标
+
+- 按用户要求给每个角色先装 3 个 skills。
+- 提升五个 agent 的协作质量，避免只各自写文本设定。
+- 在 NixOS 上跑通并保留 GitHub 备份。
+
+### 实际修改
+
+- 新增 `src/agentruntime/skills/index.ts`：
+  - manager：`Scope Producer`、`Dependency Mapper`、`Acceptance Director`
+  - writer：`Playable Narrative Bible`、`Choice Writer`、`Route Stitcher`
+  - artist：`Art Bible Synthesizer`、`Asset Generation Brief`、`Readable Screen Director`
+  - researcher：`Mechanic Translator`、`Balance Table Maker`、`Playtest Heuristic`
+  - engineer：`Vertical Slice Builder`、`Integration Contract`、`Smoke Harness`
+- `initializeWorkplaces()` 现在为每个角色写入 `skill.md`，并把 `plan.md` 改为技能驱动计划。
+- `WorkplacePaths` 增加 `skillPath`，`WORKPLACE_FILES` 增加 `skill.md`。
+- `agentruntime/main.ts` 的公开流式输出新增 skill 加载、协作规则、消费输入、必须产出和质量门槛。
+- `workplaces:smoke` 新增断言：每个角色必须存在 `skill.md` 且恰好 3 个 skill。
+- 没有直接安装网上第三方 skill 仓库；本轮采用项目内本地 skill，避免远程执行不可信脚本。
+
+### 验证结果
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run workplaces:smoke`：通过。
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `npm run build`：通过。
+- 远端 NixOS `carvis-agentruntime.service` / `carvis-electron.service`：active。
+- 远端 NixOS `npm run workplaces:smoke`：通过。
+- 远端通过 messagebus 提交原创爬塔卡牌任务：通过。
+- 远端 `output/final-report.md` 包含 `星炉远征`，`output/game-preview.html` 已生成。
+- 远端五个角色 `workplaces/live/*/skill.md` 均存在，并包含对应角色 skill。
+- 远端截图 `/tmp/carvis-agent-skills.png`：1000x640 Electron 窗口可见五个 agent 面板和 Output 产物预览。
+
+### 结论
+
+- 每个角色已安装 3 个本地 skill。
+- NixOS 上已完成构建、服务重启、workspace smoke 和真实任务验证。
+- 当前仍是公开进度流与结果预览，不显示隐藏思考链。
+
 ## 2026-07-02 / 1000x640 centered Electron + Chinese agent output + game preview
 
 ### 目标

@@ -4,4 +4,5 @@ dist/
 .env.*
 logs/
 /output/
+/workplaces/
 .carvis-real-mvp-*/

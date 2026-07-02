@@ -5,6 +5,7 @@ import { writeOutput } from "../output/index.js";
 import { runComponentMain } from "../shared/componentMain.js";
 import type { AgentOutputPayload } from "../shared/types/events.js";
 import { createAgentRuntime } from "./index.js";
+import { renderAgentSkillProgressLines } from "./skills/index.js";
 import {
   initializeWorkplaces,
   readWorkplaceResults,
@@ -146,6 +147,9 @@ async function publishRoleOutput(
 function createPublicProgressLines(role: string, commandText: string): string[] {
   const prefix = `>>> LIVE CLI STREAM [${role.toUpperCase()}]`;
   const profile = roleProfile(role);
+  const skillLines = isKnownRole(role)
+    ? renderAgentSkillProgressLines(role).map((line) => `${prefix} ${line}`)
+    : [];
   const adaptationMode = isDonQuixoteTask(commandText)
     ? "公版作品改编"
     : isBuriedGiantTask(commandText)
@@ -161,16 +165,22 @@ function createPublicProgressLines(role: string, commandText: string): string[] 
     `${prefix} 分工=${profile.specialty}`,
     `${prefix} 口吻约束=${profile.voice}`,
     `${prefix} 输出语言=中文；除必要文件名/技术名词外不要输出英文说明`,
+    ...skillLines,
     `${prefix} 已收到 Electron 输入框任务`,
     `${prefix} 改编模式=${adaptationMode}`,
     `${prefix} 正在阅读任务：${commandText.slice(0, 96)}`,
     `${prefix} 正在建立本角色检查清单`,
-    `${prefix} 需要输出具体游戏设计，不只输出状态`,
+    `${prefix} 正在读取本角色 workplace/skill.md 和 plan.md`,
+    `${prefix} 需要引用其他角色输入，输出具体游戏设计，不只输出状态`,
     `${prefix} 正在为 ${role} 生成中文 RPG 内容`,
     `${prefix} 正在补充章节、机制、循环和 MVP 任务`,
     `${prefix} 正在写入 workplace/result.md`,
     `${prefix} 正在把生成结果预览流式写回本面板`,
   ];
+}
+
+function isKnownRole(role: string): role is "manager" | "writer" | "artist" | "researcher" | "engineer" {
+  return ["manager", "writer", "artist", "researcher", "engineer"].includes(role);
 }
 
 function sleep(ms: number): Promise<void> {

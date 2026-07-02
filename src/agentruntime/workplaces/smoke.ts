@@ -1,8 +1,9 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  createWorkplacePaths,
   initializeWorkplaces,
   readWorkplaceResults,
   writeWorkplaceResult,
@@ -15,6 +16,13 @@ try {
   await initializeWorkplaces(rootPath, "build a workplace smoke");
 
   for (const role of WORKPLACE_ROLES) {
+    const workplace = createWorkplacePaths(rootPath, role);
+    const skill = await readFile(workplace.skillPath, "utf8");
+    const installedSkillCount = (skill.match(/^### /gm) ?? []).length;
+
+    assert(skill.includes("## Installed Skills"), `${role} should have an installed skill file`);
+    assert(installedSkillCount === 3, `${role} should have exactly 3 installed skills`);
+
     await writeWorkplaceResult(rootPath, role, `${role} smoke result`);
   }
 
