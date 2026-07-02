@@ -2,6 +2,39 @@
 
 ## 2026-07-02
 
+## 2026-07-02 / 1000x640 centered Electron + Chinese agent output + game preview
+
+### 本次完成
+
+- Electron BrowserWindow 改为默认 `1000x640`，居中显示，默认不再 fullscreen/kiosk，避免 1280x720 屏幕边缘截断消息。
+- 1000px 宽度下 workspace 保持五列，五个 agent 框同屏全部露出；面板、日志、字体和间距按比例压缩。
+- Electron shell 对 `agent.output` 改为追加最近 80 行，五个 agent 框内可持续显示公开进度流。
+- agent 输出框改为明显的深色终端样式，显示 `LIVE CLI OUTPUT` 和 `>>> LIVE CLI STREAM [...]`。
+- 常驻 `agentruntime/main.ts` 为五个 agent 分别设置中文人设：制作人、叙事设计、美术指导、系统研究、玩法工程师；公开进度和 Macbeth 产出模板均约束为中文输出。
+- renderer 每次重绘后自动把 agent 日志和 output 报告预览滚到底部，优先显示最新产出。
+- Output 区改为产物文件夹预览：显示 output folder、`final-report.md`、`manifest.json`、五个 role result 路径和 final report 内容预览。
+- `writeOutput()` 额外生成 `output/game-preview.html`；Electron 收到 `output.ready` 后可自动打开游戏预览，支持 `CARVIS_GAME_PREVIEW_BROWSER_CMD` 指定 Chrome/Chromium wrapper。
+- 保持边界：不显示 Claude Code 隐藏思考链，只显示可公开的进度和输出摘要。
+- NixOS 安装并启用 fcitx5 中文输入法：
+  - `i18n.inputMethod.type = "fcitx5"`
+  - addons: `qt6Packages.fcitx5-chinese-addons`、`qt6Packages.fcitx5-configtool`
+  - 环境变量：`GTK_IM_MODULE=fcitx`、`QT_IM_MODULE=fcitx`、`XMODIFIERS=@im=fcitx`
+  - 当前会话已启动 `fcitx5 -d`，默认输入法 profile 包含 `pinyin`
+- 从真实 NixOS Electron 输入框提交《麦克白》RPG 任务，`output/final-report.md` 和 `output/game-preview.html` 已生成；Chromium wrapper 已配置，但首次拉取 `nixpkgs#chromium` 会受网络下载影响。
+
+### 当前验证
+
+- 本地 `npm run build`：通过
+- 本地 `npm run electron:ui-smoke`：通过
+- 本地 `npm run electron:browser-smoke`：通过
+- 本地 `npm run ipc:smoke`：通过
+- 本地 `npm test`：通过
+- 远端 NixOS `nixos-rebuild switch`：通过
+- 远端 NixOS `fcitx5 -d`：运行中
+- 远端 NixOS 真实 Electron 输入《麦克白》RPG 任务：通过，`output/final-report.md` 包含中文设计内容，`output/game-preview.html` 包含 `麦克白 RPG Preview`
+- 远端 NixOS `xprop` 复核：Carvis 窗口位置 `140,40`，对应 1280x720 屏幕上的 `1000x640` 居中窗口；截图 `/tmp/carvis-1000x640-window.png` 显示五个 agent 框同屏露出。
+- 远端 NixOS 最新代码同步后 `npm run build`：通过，`carvis-electron.service` / `carvis-agentruntime.service` active。
+
 ## 2026-07-02 / Electron live renderer IPC
 
 ### 本次完成

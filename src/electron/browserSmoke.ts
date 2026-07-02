@@ -72,11 +72,12 @@ try {
   const html = await readFile(result.htmlPath, "utf8");
 
   assert(calls.options?.title === "Carvis", "BrowserWindow should use Carvis title");
-  assert(calls.options?.width === 1280, "BrowserWindow should use desktop width");
-  assert(calls.options?.height === 820, "BrowserWindow should use desktop height");
+  assert(calls.options?.width === 1000, "BrowserWindow should use compact 1000px width");
+  assert(calls.options?.height === 640, "BrowserWindow should use compact 640px height");
   assert(calls.options?.minWidth === 900, "BrowserWindow should enforce minimum width");
-  assert(calls.options?.fullscreen === true, "BrowserWindow should default to fullscreen");
-  assert(calls.options?.kiosk === true, "BrowserWindow should default to kiosk fullscreen");
+  assert(calls.options?.fullscreen === false, "BrowserWindow should default to windowed mode");
+  assert(calls.options?.kiosk === false, "BrowserWindow should default to non-kiosk mode");
+  assert(calls.options?.center === true, "BrowserWindow should open centered");
   assert(calls.options?.autoHideMenuBar === true, "BrowserWindow should hide menu bar");
   assert(calls.options?.webPreferences.contextIsolation === true, "contextIsolation should be enabled");
   assert(calls.options?.webPreferences.nodeIntegration === false, "nodeIntegration should be disabled");
@@ -87,8 +88,8 @@ try {
   );
   assert(calls.loadedFile === result.htmlPath, "BrowserWindow should load rendered HTML file");
   assert(calls.shown, "BrowserWindow should show after ready-to-show");
-  assert(calls.fullscreen, "BrowserWindow should be set fullscreen before show");
-  assert(calls.kiosk, "BrowserWindow should be set kiosk before show");
+  assert(!calls.fullscreen, "BrowserWindow should stay windowed before show");
+  assert(!calls.kiosk, "BrowserWindow should stay out of kiosk mode before show");
   assert(html.includes("data-carvis-shell"), "loaded HTML should contain Carvis shell");
   assert(html.includes("data-role=\"manager\""), "loaded HTML should render role panels");
   assert(html.includes("window.carvis?.submitCommand"), "loaded HTML should submit commands through preload API");

@@ -60,6 +60,43 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-02 / 1000x640 centered Electron + Chinese agent output + game preview / 接力记录
+
+### 当前状态
+
+- Electron 已改为默认 `1000x640` 居中窗口，不再默认 fullscreen/kiosk，避免 1280x720 屏幕边缘截断。
+- 1000px 宽度下五个 agent 框保持一行，全部同屏露出；截图证据为本地 `/tmp/carvis-1000x640-window.png`。
+- 五个 agent 框会追加显示最近 80 行公开进度输出。
+- 常驻 runtime 会发布中文化 `>>> LIVE CLI STREAM [...]` 公开进度，并按五个中文人设输出实际 RPG 设计内容预览。
+- renderer 重绘后会自动滚动 agent 日志和 output 预览到底部。
+- Output 区显示整个 output 产物文件夹预览：folder、final report、manifest、五个 role result 和 final report 预览。
+- Output 现在还会生成 `game-preview.html`；Electron 支持用 `CARVIS_GAME_PREVIEW_BROWSER_CMD` 指定 Chrome/Chromium wrapper 自动打开。
+- NixOS 已安装 fcitx5 中文输入法，当前会话运行 `fcitx5 -d`，默认 profile 含 `pinyin`。
+- 已从真实 Electron 输入框提交《麦克白》RPG 任务，`output/final-report.md` 和 `output/game-preview.html` 已生成。
+- 远端 `xprop` 复核 Carvis 窗口位置 `140,40`，对应 1280x720 屏幕上 `1000x640` 居中。
+- Chromium wrapper 已启动下载 Chromium；若网络慢，先以 HTML 文件生成作为产物验收，再等 Chromium 完成下载打开。
+
+### 未完成
+
+- 后续如果要真正接 Claude Code API 的 token 流，需要把 SDK/CLI streaming 事件接入 `agent.output`；当前常驻 systemd runtime 显示公开进度流和结果摘要。
+
+### 测试基线
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm run electron:browser-smoke`：通过。
+- 本地 `npm run ipc:smoke`：通过。
+- 本地 `npm test`：通过。
+- 远端 NixOS `nixos-rebuild switch`：通过。
+- 远端 NixOS 真实提交《麦克白》中文 RPG 任务：通过，`final-report.md` 和 `game-preview.html` 已生成。
+- 远端 NixOS `npm run build`：通过。
+- 远端 NixOS `carvis-electron.service` / `carvis-agentruntime.service`：active。
+
+### 风险提醒
+
+- 不要向用户承诺可显示 Claude Code 的隐藏思考链；只能显示公开进度/输出摘要。
+- NixOS 中文输入法对当前 Electron 是否即时生效取决于进程环境，已重启 Electron 后会继承 user environment。
+
 ## 2026-07-02 / Electron live renderer IPC / 接力记录
 
 ### 当前状态

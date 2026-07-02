@@ -42,7 +42,10 @@ try {
 
     assert(panel?.status === "shutdown", `${role} panel should be shutdown`);
     assert(panel.pid !== undefined && panel.pid > 0, `${role} panel should show pid`);
-    assert(panel.latestOutput === `${role}:${role}: run through persistent pid agents`, `${role} output should come from pid agent`);
+    assert(
+      panel.latestOutput?.includes(`${role}:${role}: run through persistent pid agents`) === true,
+      `${role} output should come from pid agent`,
+    );
   }
 
   console.log("[runtime-pidagent:smoke] ok");

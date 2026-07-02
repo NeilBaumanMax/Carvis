@@ -64,6 +64,7 @@ export interface AgentOutputPayload {
 export interface OutputReadyPayload {
   outputPath: string;
   manifestPath?: string;
+  gamePreviewPath?: string;
 }
 
 export type CarvisEventPayloadByType = {

@@ -17,6 +17,8 @@ try {
 
   const runtime = spawnComponent("agentruntime", ["dist/agentruntime/main.js"], {
     CARVIS_MESSAGEBUS_PORT: String(port),
+    CARVIS_AGENTRUNTIME_STREAM_DELAY_MS: "1",
+    CARVIS_AGENTRUNTIME_PREVIEW_DELAY_MS: "1",
   });
   children.push(runtime);
   await sleep(1_000);

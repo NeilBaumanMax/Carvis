@@ -22,8 +22,18 @@ export interface ElectronRuntimeDisplayState {
 
 export interface ElectronOutputEntry {
   outputPath: string;
+  outputFolderPath: string;
   manifestPath?: string;
+  gamePreviewPath?: string;
+  previewText?: string;
+  manifestEntries: ElectronOutputManifestEntry[];
+  previewStatus: string;
   readyAt: string;
+}
+
+export interface ElectronOutputManifestEntry {
+  role: AgentRole;
+  sourcePath: string;
 }
 
 export interface ElectronShellState {

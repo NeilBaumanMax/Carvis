@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { mkdtemp } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -32,6 +33,7 @@ const bus = createRemoteMessageBus({
 });
 const shell = createElectronShell(bus);
 const rendererTargets = new Set<{ send(channel: string, state: ElectronShellState): void }>();
+const openedGamePreviewPaths = new Set<string>();
 let openWindowCount = 0;
 
 electron.ipcMain.handle("carvis:get-state", () => shell.getState());
@@ -44,6 +46,7 @@ shell.onStateChanged((state) => {
   for (const target of rendererTargets) {
     target.send("carvis:state", state);
   }
+  void openLatestGamePreview(state);
 });
 
 void electron.app.whenReady().then(async () => {
@@ -85,6 +88,45 @@ async function openWindow(): Promise<void> {
       rendererTargets.delete(target);
       openWindowCount = Math.max(0, openWindowCount - 1);
     });
+  }
+}
+
+async function openLatestGamePreview(state: ElectronShellState): Promise<void> {
+  if (process.env.CARVIS_AUTO_OPEN_GAME_PREVIEW === "0") {
+    return;
+  }
+
+  const gamePreviewPath = state.outputs.at(-1)?.gamePreviewPath;
+
+  if (gamePreviewPath === undefined || openedGamePreviewPaths.has(gamePreviewPath)) {
+    return;
+  }
+
+  openedGamePreviewPaths.add(gamePreviewPath);
+  const errorMessage = await openGamePreviewPath(gamePreviewPath);
+
+  if (errorMessage.length > 0) {
+    console.error(`[electron] failed to open game preview ${gamePreviewPath}: ${errorMessage}`);
+  }
+}
+
+async function openGamePreviewPath(gamePreviewPath: string): Promise<string> {
+  const browserCommand = process.env.CARVIS_GAME_PREVIEW_BROWSER_CMD;
+
+  if (browserCommand === undefined || browserCommand.length === 0) {
+    return electron.shell.openPath(gamePreviewPath);
+  }
+
+  try {
+    const child = spawn(browserCommand, [gamePreviewPath], {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+
+    return "";
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
   }
 }
 

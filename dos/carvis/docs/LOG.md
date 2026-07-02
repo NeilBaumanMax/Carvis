@@ -1,5 +1,53 @@
 # Carvis Construction Log
 
+## 2026-07-02 / 1000x640 centered Electron + Chinese agent output + game preview
+
+### 目标
+
+- 1280x720 屏幕上 agent 框内必须有明显可见变化，Electron 默认窗口改成 1000x640 居中，不再全屏。
+- 五个 agent 框必须等比例压缩后同屏全部露出。
+- 每个 agent 框内显示 Claude Code CLI 的公开进度/输出摘要，不显示隐藏思考链。
+- agent 人设和输出约束要中文化。
+- Output 区显示整个 output 产物文件夹预览，而不是只有路径按钮。
+- 最终游戏预览生成 HTML，并通过 Chrome/Chromium 打开。
+- 安装中文输入法。
+- 从真实 Electron 输入框提交 RPG 任务，并确认屏幕有动静。
+
+### 实际修改
+
+- `src/electron/browserWindow.ts` 默认窗口宽高改为 `1000x640`，`center=true`，默认 `fullscreen=false`、`kiosk=false`。
+- `src/electron/renderer.ts` 压缩布局，把 `.latest` 改成深色终端风格，显示 `LIVE CLI OUTPUT`，并在重绘后自动滚到底部；1000px 宽度不触发两列布局，五个 agent 保持一行。
+- `src/electron/shell.ts` 对 agent 输出追加最近 80 行，并在 `output.ready` 后读取 `manifest.json`/`final-report.md` 生成预览。
+- `src/electron/types.ts` 为 output 状态增加 `outputFolderPath`、`manifestEntries`、`previewText`。
+- `src/agentruntime/main.ts` 常驻运行时发布中文化 `>>> LIVE CLI STREAM [...]` 公开进度；每个 agent 具有中文人设，并把实际 RPG 设计结果预览流式写回面板。
+- `src/output/index.ts` 新增 `game-preview.html` 生成，Macbeth/Don Quixote 预览内容按报告识别。
+- `src/electron/browserMain.ts` 支持 `CARVIS_GAME_PREVIEW_BROWSER_CMD` 指定 Chrome/Chromium 打开游戏预览。
+- NixOS `/etc/nixos/configuration.nix` 增加 fcitx5 输入法和环境变量。
+- NixOS 当前用户 `~/.config/fcitx5/profile` 设置默认 `pinyin`。
+
+### 验证结果
+
+- 本地 `npm run build`：通过。
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm run electron:browser-smoke`：通过。
+- 本地 `npm run ipc:smoke`：通过。
+- 远端 NixOS `nixos-rebuild switch`：通过。
+- 远端 NixOS `fcitx5 -d`：运行中。
+- 远端 NixOS 从真实 Electron 输入框提交《麦克白》RPG 任务：通过。
+- 远端 NixOS `output/final-report.md` 已更新，包含中文 Macbeth RPG 方案。
+- 远端 NixOS `output/game-preview.html` 已生成，包含 `麦克白 RPG Preview`。
+- Chromium wrapper 已配置为 `~/bin/carvis-open-chromium`，首次 `nixpkgs#chromium` 下载较慢且受网络超时影响。
+- 远端 NixOS `xprop`：Carvis 窗口 `program specified location: 140, 40`，符合 1280x720 上 `1000x640` 居中。
+- 远端截图 `/tmp/carvis-1000x640-window.png`：五个 agent 框同屏全部可见。
+- 本地完整 `npm test`：通过。
+- 远端 NixOS 最新同步后 `npm run build`：通过，Electron/agentruntime user service 均 active。
+
+### 结论
+
+- 1280x720 屏幕上已有明显可见流式输出和 output 文件夹预览。
+- 中文输入法已安装并在当前会话运行。
+- “隐藏思考链”不可显示，当前实现显示的是可公开的 Claude Code CLI 进度和输出摘要。
+
 ## 2026-07-02 / Electron live renderer IPC
 
 ### 目标

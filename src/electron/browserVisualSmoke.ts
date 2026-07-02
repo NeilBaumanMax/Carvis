@@ -186,12 +186,15 @@ async function runVisualSmoke(): Promise<void> {
       `document.querySelector("[data-role='manager'] .latest")?.textContent`,
     );
 
-    assert(managerText === "manager live renderer update ok", "visual smoke should live-update role output");
+    assert(
+      typeof managerText === "string" && managerText.includes("manager live renderer update ok"),
+      "visual smoke should live-update role output",
+    );
     await window.webContents.executeJavaScript(
       `document.querySelector("[data-output-open]")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))`,
     );
     await delay(300);
-    assert(openedOutputs.includes("output/final-report.md"), "visual smoke should request output open");
+    assert(openedOutputs.includes("output"), "visual smoke should request output folder open");
 
     const image = await window.webContents.capturePage();
     const png = image.toPNG();

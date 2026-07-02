@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { dirname } from "node:path";
+
 import type {
   AgentLifecyclePayload,
   AgentOutputPayload,
@@ -103,11 +106,8 @@ export class ElectronShell {
           type: "output.ready",
           target: "electron",
         },
-        (event) => {
-          this.state.outputs.push({
-            ...event.payload,
-            readyAt: event.timestamp,
-          });
+        async (event) => {
+          this.state.outputs.push(await createOutputEntry(event.payload, event.timestamp));
           this.rememberEvent(`output.ready:${event.payload.outputPath}`);
         },
       ),
@@ -127,7 +127,7 @@ export class ElectronShell {
             return;
           }
 
-          panel.latestOutput = event.payload.text;
+          panel.latestOutput = appendPanelOutput(panel.latestOutput, event.payload.text);
           panel.lastHeartbeatAt = event.timestamp;
           this.rememberEvent(`agent.output:${panel.role}`);
         },
@@ -220,11 +220,69 @@ function roleTitle(role: AgentRole): string {
   }
 }
 
+function appendPanelOutput(existing: string | undefined, text: string): string {
+  const next = existing === undefined || existing.length === 0 ? text : `${existing}\n${text}`;
+  const lines = next.split("\n");
+
+  return lines.slice(-80).join("\n");
+}
+
+async function createOutputEntry(
+  payload: OutputReadyPayload,
+  readyAt: string,
+): Promise<ElectronOutputEntry> {
+  const outputFolderPath = dirname(payload.outputPath);
+  const manifest = await readOutputManifestPreview(payload.manifestPath);
+  const previewText = await readFinalReportPreview(payload.outputPath);
+
+  return {
+    ...payload,
+    outputFolderPath,
+    previewText,
+    manifestEntries: manifest.entries,
+    previewStatus: previewText === undefined ? "preview unavailable" : "preview ready",
+    readyAt,
+  };
+}
+
+async function readFinalReportPreview(outputPath: string): Promise<string | undefined> {
+  try {
+    const report = await readFile(outputPath, "utf8");
+
+    return report.length > 3_600 ? `${report.slice(0, 3_600).trimEnd()}\n\n...` : report;
+  } catch {
+    return undefined;
+  }
+}
+
+async function readOutputManifestPreview(
+  manifestPath: string | undefined,
+): Promise<{ entries: ElectronOutputEntry["manifestEntries"] }> {
+  if (manifestPath === undefined) {
+    return { entries: [] };
+  }
+
+  try {
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+      entries?: ElectronOutputEntry["manifestEntries"];
+    };
+
+    return {
+      entries: Array.isArray(manifest.entries) ? manifest.entries : [],
+    };
+  } catch {
+    return { entries: [] };
+  }
+}
+
 function cloneState(state: ElectronShellState): ElectronShellState {
   return {
     panels: state.panels.map((panel) => ({ ...panel })),
     runtime: { ...state.runtime },
-    outputs: state.outputs.map((output) => ({ ...output })),
+    outputs: state.outputs.map((output) => ({
+      ...output,
+      manifestEntries: output.manifestEntries.map((entry) => ({ ...entry })),
+    })),
     submittedCommands: [...state.submittedCommands],
     recentEvents: [...state.recentEvents],
   };
