@@ -327,3 +327,39 @@
 - 22:34 左右：修复已同步到 NixOS，远端 `npm run build` 通过，`carvis-agentruntime.service` 和 `carvis-electron.service` 已重启为 active。
 - 22:34 左右：测试 1 已重新提交到 NixOS messagebus，requestId: `req-test1-happy-prince-galgame-retry-1783002839881`。
 - 22:42 左右：继续修复 runtime 异常释放与 Electron 内部打开 game-preview；远端 `npm run build` 通过，`carvis-electron.service` active。
+
+## 收尾审计：耗时、证据和备份
+
+### 耗时汇总
+
+| 项目 | 开始 | 关键验收 | 约耗时 | 说明 |
+|---|---:|---:|---:|---|
+| 测试 1 快乐王子 galgame | 22:23 | 22:42 | 约 19 分钟 | 首轮 engineer 被上游长文拖慢；修复 Electron 内部预览后截图通过。 |
+| 测试 2 红拂夜奔冒险闯关 | 23:00 | 23:45 | 约 45 分钟 | 经历 fallback 报告页、JS 重复声明黑屏两类失败；加 HTML 脚本语法门禁后通过。 |
+| 测试 3 Bazaar-like 商店自动战斗 | 23:48 | 00:07 | 约 19 分钟 | engineer 第一次 360 秒超时，第二次产出；后续修复预览窗口被任务栏遮挡。 |
+| 测试 4 open-yachiyo 文档展示 | 22:26 | 00:11 | 约 1 小时 45 分钟 | 中途排队并重跑，最终验证为文档展示页，非主三测试但作为协同回归记录保留。 |
+
+### 最终证据
+
+- 测试 1 HTML：`~/carvis-remote-smoke/output/runs/20260702-142339-req-test1-happy-prince-galgame-17830-测试1：请五个角色协作生成一个原创中文-galgame，主题灵感/game-preview.html`，远端检查大小约 38.9KB，截图 `/tmp/carvis-test1-game-window.png`。
+- 测试 2 HTML：`~/carvis-remote-smoke/output/runs/20260702-153234-req-test2-hongfu-adventure-platforme-测试2修复重跑：请五个角色协作生成一个原创中文冒险闯关游戏，主题/game-preview.html`，远端检查大小约 32.9KB，截图 `/tmp/carvis-test2-fixed-final.png`。
+- 测试 3 HTML：`~/carvis-remote-smoke/output/runs/20260702-154848-req-test3-bazaar-like-autobattler-17-测试3：请五个角色协作生成一个原创中文浏览器游戏，玩法结构参考-/game-preview.html`，远端检查大小约 50.8KB，截图 `/tmp/carvis-test3-window-fixed.png`。
+- 测试 4 HTML：`~/carvis-remote-smoke/output/runs/20260702-144304-req-test4-open-yachiyo-doc-html-retr-测试4重跑：请五个角色协作整理-GitHub-仓库-sdyzjx/game-preview.html`，远端检查大小约 41KB，截图 `/tmp/carvis-test4-window.png`。
+- NixOS 服务收尾状态：`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service` 均为 active。
+
+### 关键备份版本
+
+- `8ccf477 backup: add qwen image mcp and retained agents`
+- `dc40510 mvp0.0: harden agent html generation`
+- `be411d9 mvp0.0: fix electron layout and trim engineer handoff`
+- `924dd5d docs: record open-yachiyo html test evidence`
+- `5fade14 docs: reconcile test status summary`
+
+### 最终优化结论
+
+- manager 是当前协同质量的关键：必须先定义版权边界、MVP 范围、角色交付格式和 engineer 验收标准；复审时只拦异常，普通差异转成统一整合意见。
+- writer 不能只写表格，要被要求输出可数据化但有故事性的角色、场景、对白、失败反馈和结局；测试 1 证明还要加强“保留核心意象、换表达”，避免题材漂移。
+- artist 保持默认生图，且应该少写长文：游戏任务 2-4 张关键资产，文档任务 1-4 张 UI/图示资产；图片路径必须让 engineer 可直接引用。
+- engineer 输入必须压缩：复杂任务只给 manager 复审结论、关键资产路径、玩法状态字段和最小实现 brief，避免全量上游长文造成 Claude Code 超时。
+- 输出门禁必须保留：游戏/HTML 任务没有真实 fenced HTML 不发布成功预览；HTML 内 `<script>` 必须通过 `new Function(script)` 语法检查，避免黑屏。
+- Electron 预览必须使用内部 BrowserWindow 并按 `screen.workArea` 定位；NixOS 上不依赖 xdg-open，避免打开旧产物或被任务栏遮挡。
