@@ -14,9 +14,9 @@
 
 | 编号 | 用户任务 | 目标类型 | 状态 |
 |---|---|---|---|
-| 测试 1 | 生产一个王尔德《快乐王子》灵感的 galgame | 剧情分支 / 视觉小说 | 待开始 |
-| 测试 2 | 按王小波《红拂夜奔》写一个冒险闯关游戏 | 冒险闯关 / 关卡 | 待开始 |
-| 测试 3 | 按 The Bazaar 重写一个类似玩法游戏 | 商店/物品构筑 / 自动战斗 | 待开始 |
+| 测试 1 | 生产一个王尔德《快乐王子》灵感的 galgame | 剧情分支 / 视觉小说 | 已产出并截图验证，题材意象有漂移 |
+| 测试 2 | 按王小波《红拂夜奔》写一个冒险闯关游戏 | 冒险闯关 / 关卡 | 修复后已产出并截图验证 |
+| 测试 3 | 按 The Bazaar 重写一个类似玩法游戏 | 商店/物品构筑 / 自动战斗 | 第二次 engineer 成功，已产出并截图验证 |
 | 测试 4 | 整理 `sdyzjx/open-yachiyo` 仓库脚手架和文件用途，HTML 展示 | 仓库分析 / 文档可视化 | 已产出并截图验证 |
 
 ## 已做的测试前优化
@@ -31,13 +31,13 @@
 - artist 收敛：少写长篇设定，重点输出 2-4 张会被最终 HTML 使用的关键图片资产、用途、构图、UI 安全区和 prompt。
 - engineer 增强：标题页和至少一个可玩场景必须明显使用 artist 生成的本地图片，只有图片失败时才用 fallback。
 
-### 当前待验证点
+### 本轮已验证与剩余风险
 
-- 最新提示词是否让 writer 故事性提升，而不是只写结构。
-- artist 是否减少长篇报告并把时间转到真实生图。
-- 2 路并发生图是否稳定，不触发 Qwen image 429。
-- manager 是否能把“可整合差异”转成 engineer 可执行契约。
-- 最终 Electron / 浏览器是否只打开本次 `output/runs/.../game-preview.html`。
+- writer 故事性较早期提升：测试 1-3 都不再只是短结构表，能给 engineer 提供角色、场景、机制或物品数据；但测试 1 仍出现题材核心意象漂移，说明 manager 需要更强“保留核心意象、换表达”的任务书。
+- artist 默认生图已验证有效：测试 1、2、3、4 都有本地 `assets/artist-*.png`，并且最终 HTML 实际引用了本次图片。
+- 图片生成并行有效但需要控量：测试 3 中 artist 4 张图完成，复杂任务总耗时瓶颈转移到 engineer；后续建议默认 2-4 张，优先关键图，避免拖慢。
+- manager 复审策略有效：测试 3 中 manager 对可整合差异放行，交给 engineer 统一，未无谓打回 writer/artist/researcher。
+- Electron 已能打开本次 `output/runs/.../game-preview.html`，并通过内部预览窗口规避 xdg-open/Firefox 不稳定；后续仍要截图确认没有打开历史产物。
 
 ## 测试 1：王尔德《快乐王子》灵感 galgame
 
@@ -133,6 +133,16 @@
   - `assets/artist-level-bg.png`
   - `assets/artist-boss-face.png`
   - `assets/artist-key-art.png`
+- 修复重跑最终 HTML：
+  - `output/runs/20260702-153234-req-test2-hongfu-adventure-platforme-测试2修复重跑：请五个角色协作生成一个原创中文冒险闯关游戏，主题/game-preview.html`
+  - 大小：约 32KB。
+  - 包含 1 个 canvas、1 个 script，`new Function(script)` 语法检查通过。
+  - 代码包含 4 个关卡、WASD/方向键/Space、收集物、敌人巡逻/追捕、R 重试和结局页。
+- 修复重跑实际引用图片：
+  - `assets/artist-title-screen.png`
+  - `assets/artist-level-1-market.png`
+  - `assets/artist-character-hero.png`
+  - `assets/artist-enemy-guard.png`
 
 ### 截图验收
 
@@ -157,12 +167,7 @@
 - 23:32：使用正确的 `command.submitted` 事件提交测试 2 修复重跑，run 目录：
   - `workplaces/runs/20260702-153234-req-test2-hongfu-adventure-platforme-测试2修复重跑：请五个角色协作生成一个原创中文冒险闯关游戏，主题`
 - engineer handoff 进一步压缩：engineer 阶段只接收 manager 复审结论、writer 关卡/对白摘要、artist 资产路径、自审摘要、researcher 机制字段摘要；不再把上游长文整包塞入。
-- 23:44：测试 2 修复重跑生成新 `game-preview.html`：
-  - `output/runs/20260702-153234-req-test2-hongfu-adventure-platforme-测试2修复重跑：请五个角色协作生成一个原创中文冒险闯关游戏，主题/game-preview.html`
-  - HTML 大小约 32KB，包含 1 个 canvas、1 个 script。
-  - `new Function(script)` 语法检查通过。
-  - 代码包含 4 个关卡、`inputKeys` 键盘状态、WASD/方向键/Space、收集物、敌人巡逻/追捕、R 重试、结局页。
-  - 图片引用包含 `assets/artist-title-screen.png`、`assets/artist-level-1-market.png`、`assets/artist-character-hero.png`、`assets/artist-enemy-guard.png`，artist 本轮 4/4 生成成功。
+- 23:44：测试 2 修复重跑生成新 `game-preview.html`，产物细节见上方“产物”小节。
 - 23:45 截图验收：
   - 截图：本地 `/tmp/carvis-test2-fixed-final.png`。
   - 截图可见真实游戏场景、背景图、HUD、玩家/敌人/出口、失败反馈“规矩抓住了你”，不再黑屏。
