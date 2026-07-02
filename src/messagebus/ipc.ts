@@ -88,6 +88,11 @@ export async function startTcpMessageBusServer(port: number, host = "127.0.0.1")
         }
       }
     });
+    socket.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code !== "ECONNRESET" && error.code !== "EPIPE") {
+        console.error(`[messagebus] socket error: ${error.message}`);
+      }
+    });
   });
 
   await listen(server, port, host);

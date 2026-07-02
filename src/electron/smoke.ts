@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { createMessageBus } from "../messagebus/index.js";
 import type {
   AgentLifecyclePayload,
@@ -10,6 +14,18 @@ import { createElectronShell } from "./index.js";
 const bus = createMessageBus();
 const shell = createElectronShell(bus);
 const commands: string[] = [];
+const outputRoot = await mkdtemp(join(tmpdir(), "carvis-electron-smoke-"));
+const finalReportPath = join(outputRoot, "final-report.md");
+const gamePreviewPath = join(outputRoot, "game-preview.html");
+const manifestPath = join(outputRoot, "manifest.json");
+
+await writeFile(finalReportPath, "# Final report\n", "utf8");
+await writeFile(gamePreviewPath, "<!doctype html><title>Smoke Game</title><canvas></canvas><script></script>", "utf8");
+await writeFile(
+  manifestPath,
+  JSON.stringify({ entries: [{ role: "engineer", sourcePath: "workplaces/engineer/result.md" }] }),
+  "utf8",
+);
 
 bus.subscribe<CommandSubmittedPayload>(
   {
@@ -55,8 +71,9 @@ await bus.publish<OutputReadyPayload>({
   target: "electron",
   runId: "run-electron-smoke-1",
   payload: {
-    outputPath: "output/final-report.md",
-    manifestPath: "output/manifest.json",
+    outputPath: finalReportPath,
+    manifestPath,
+    gamePreviewPath,
   },
 });
 
@@ -83,10 +100,13 @@ assert(updatedState.runtime.retainedPidCount === 3, "heartbeat retained PID coun
 assert(updatedState.runtime.queueDepth === 4, "heartbeat queue depth should update");
 assert(updatedState.runtime.lastHeartbeatAt !== undefined, "heartbeat timestamp should be displayed");
 assert(updatedState.outputs.length === 1, "output ready should create one output entry");
-assert(updatedState.outputs[0]?.outputPath === "output/final-report.md", "output path should be displayed");
+assert(updatedState.outputs[0]?.outputPath === finalReportPath, "output path should be displayed");
+assert(updatedState.outputs[0]?.manifestPath === manifestPath, "manifest path should be displayed");
+assert(updatedState.outputs[0]?.gamePreviewPath === gamePreviewPath, "game preview path should be displayed");
+assert(updatedState.outputs[0]?.gamePreviewTitle === "Smoke Game", "game preview title should be displayed");
 assert(
-  updatedState.outputs[0]?.manifestPath === "output/manifest.json",
-  "manifest path should be displayed",
+  updatedState.outputs[0]?.previewText?.includes("Playable game preview") === true,
+  "game preview should be preferred",
 );
 assert(managerPanel?.status === "ready", "manager panel status should update");
 assert(managerPanel?.pid === 41001, "manager panel PID should update");

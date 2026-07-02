@@ -44,7 +44,11 @@ try {
       () => shell.getState().outputs.length === 1,
       "output.ready should arrive after reconnect",
     );
-    assert(shell.getState().outputs[0]?.outputPath === "output/final-report.md", "output path should render");
+    assert(shell.getState().outputs[0]?.outputPath.endsWith("final-report.md") === true, "output path should render");
+    assert(
+      shell.getState().outputs[0]?.gamePreviewPath?.endsWith("game-preview.html") === true,
+      "game preview path should render",
+    );
   } finally {
     shell.dispose();
     bus.close();

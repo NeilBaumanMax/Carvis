@@ -7,6 +7,13 @@ assert(getRoleProviderConfig("writer").provider === "qwen-openai", "writer shoul
 assert(getRoleProviderConfig("artist").provider === "qwen-openai", "artist should use Qwen");
 assert(getRoleProviderConfig("researcher").provider === "qwen-openai", "researcher should use Qwen");
 
+for (const role of ["manager", "writer", "artist", "researcher", "engineer"] as const) {
+  assert(
+    getRoleProviderConfig(role, { CARVIS_PROVIDER_MODE: "all-deepseek" }).provider === "deepseek-claudecode",
+    `${role} should use DeepSeek in all-deepseek mode`,
+  );
+}
+
 if (process.env.CARVIS_QWEN_REAL_SMOKE === "1") {
   const output = await runQwenOpenAiText({
     systemPrompt: "你是一个 smoke test responder。",

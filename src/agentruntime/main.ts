@@ -30,8 +30,12 @@ const providerPidAgentPool = isRealProviderMode() ? createProviderPidAgentPool()
 const runtime = createAgentRuntime(bus, {
   pidAgentPool: providerPidAgentPool,
   pidTaskTimeoutMs: readNonNegativeInteger(process.env.CARVIS_REAL_PROVIDER_TIMEOUT_MS, 240_000),
+  pidTaskMaxAttempts: readNonNegativeInteger(process.env.CARVIS_REAL_PROVIDER_MAX_ATTEMPTS, 2),
+  pidOutputValidator: isRealProviderMode() ? validateRealProviderOutput : undefined,
+  engineerRunsAfterFailedReview:
+    isRealProviderMode() && process.env.CARVIS_ENGINEER_RUNS_AFTER_FAILED_REVIEW !== "0",
   pidTaskInputBuilder: isRealProviderMode()
-    ? async ({ run, agent, commandText }) => {
+    ? async ({ run, agent, commandText, attempt, previousPidOutput, retryReason }) => {
         if (!initializedRuns.has(run.runId)) {
           await initializeWorkplaces(workplacesRoot, commandText);
           initializedRuns.add(run.runId);
@@ -42,7 +46,11 @@ const runtime = createAgentRuntime(bus, {
           phase: run.phase,
           commandText,
           systemPrompt: createRoleSystemPrompt(agent.role, run.phase),
-          prompt: await createRoleUserPrompt(agent.role, run.phase, commandText),
+          prompt: await createRoleUserPrompt(agent.role, run.phase, commandText, {
+            attempt: attempt ?? 1,
+            previousPidOutput,
+            retryReason,
+          }),
         });
       }
     : undefined,
@@ -155,7 +163,7 @@ function createRoleSystemPrompt(role: AgentRole, phase: string): string {
   const provider = getRoleProviderConfig(role);
   const phaseLine =
     role === "manager" && phase === "manager_reviewing"
-      ? "你现在是主管复审阶段。必须审核 writer/artist/researcher 是否满足用户原始要求，不通过就输出 GATE_PASSED: false。"
+      ? "你现在是主管复审阶段。只在角色产物异常、缺失、偷懒、provider 失败或无法供 engineer 使用时输出 GATE_PASSED: false；如果只是命名、尺寸、规则等可整合差异，必须给出统一整合意见并输出 GATE_PASSED: true。"
       : "你必须按本角色 skill 和上下游材料工作。";
 
   return [
@@ -165,13 +173,23 @@ function createRoleSystemPrompt(role: AgentRole, phase: string): string {
     `Model：${provider.defaultModel}`,
     "输出语言必须是中文，技术文件名和必要 API 名可以保留英文。",
     "不要输出隐藏思考过程；只输出可公开的工作结果、检查清单、文件方案和必要代码。",
+    "你不能调用工具、不能输出 <function_calls>、不能要求用户替你执行命令；你必须直接写出本角色的最终产物正文。",
     "必须紧贴用户原始任务，不得套用与任务无关的固定模板。",
     "如果用户要求做游戏，最终必须推动生成可打开、可玩的 HTML/JS 预览，而不是只写设定。",
     phaseLine,
   ].join("\n");
 }
 
-async function createRoleUserPrompt(role: AgentRole, phase: string, commandText: string): Promise<string> {
+async function createRoleUserPrompt(
+  role: AgentRole,
+  phase: string,
+  commandText: string,
+  retry: {
+    attempt: number;
+    previousPidOutput?: string;
+    retryReason?: string;
+  },
+): Promise<string> {
   const workplace = createWorkplacePaths(workplacesRoot, role);
   const input = await safeRead(workplace.inputPath);
   const skill = await safeRead(workplace.skillPath);
@@ -195,7 +213,10 @@ async function createRoleUserPrompt(role: AgentRole, phase: string, commandText:
           "",
           "## 复审输出硬要求",
           "- 逐条核对用户原始任务有没有被满足。",
-          "- 检查是否偷懒：泛泛设定、缺少可执行任务、缺少文件产物、缺少控制方式、缺少素材方案都要判返工。",
+          "- manager 主要检查异常：PROVIDER_ERROR、伪工具调用、空文件、明显偷懒、缺少本角色核心产物、与用户任务完全无关。",
+          "- 如果 writer/artist/researcher 都有实质产物，但存在命名、画布尺寸、敌人数值、胜利条件等可整合差异，不要判返工；请给出“统一整合标准”交给 engineer。",
+          "- 只有异常或缺失导致 engineer 无法继续时才输出 `GATE_PASSED: false`。",
+          "- 需要修改但不阻断时，输出 `GATE_PASSED: true`，并列出 engineer 必须采用的修改意见。",
           "- 最后一行必须是 `GATE_PASSED: true` 或 `GATE_PASSED: false`。",
         ].join("\n")
       : role === "engineer"
@@ -213,10 +234,14 @@ async function createRoleUserPrompt(role: AgentRole, phase: string, commandText:
             researcherResult,
             "",
             "## 技术产出硬要求",
-            "- 必须把上游内容集成为真实可玩游戏产物方案。",
-            "- 必须列出 output/game-preview.html 或 game/index.html 的文件结构和核心代码方案。",
+            "- 即使 manager/review.md 标记 GATE_PASSED:false，只要其中给出了统一修正指令，你也必须按该统一标准整合产物。",
+            "- manager/review.md 的统一修正指令优先级高于 writer/artist/researcher 的冲突细节。",
+            "- 必须把上游内容集成为真实可玩游戏产物，不得只写方案。",
+            "- 必须输出一个完整的单文件 HTML，使用 fenced code block：```html ... ```。",
+            "- HTML 必须可直接保存为 output/game-preview.html 并在浏览器打开。",
             "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，必须明确实现。",
-            "- 必须说明素材生成或素材来源，不得只写美术氛围。",
+            "- 如果用户要求 WASD/JKL/鼠标/触屏等控制，HTML 代码内必须实现对应事件。",
+            "- 必须用 Canvas/SVG/CSS 代码生成素材或明确嵌入素材，不得只写美术氛围。",
           ].join("\n")
         : [
             "## 上游主管规则",
@@ -226,8 +251,21 @@ async function createRoleUserPrompt(role: AgentRole, phase: string, commandText:
             "- 必须引用用户原始任务中的题材、控制方式、素材要求和交付格式。",
             "- 必须输出足够 engineer 直接实现的材料。",
           ].join("\n");
+  const retryBlock =
+    retry.attempt > 1
+      ? [
+          "# 返工要求",
+          `这是第 ${retry.attempt} 次尝试。上次输出没有通过系统质量门禁。`,
+          `失败原因：${retry.retryReason ?? "未知"}`,
+          "你必须直接重写完整产物，不要解释失败原因，不要输出工具调用。",
+          "## 上次无效输出",
+          retry.previousPidOutput ?? "",
+          "",
+        ].join("\n")
+      : "";
 
   return [
+    retryBlock,
     "# 用户原始任务",
     commandText,
     "",
@@ -242,6 +280,49 @@ async function createRoleUserPrompt(role: AgentRole, phase: string, commandText:
     "",
     upstream,
   ].join("\n");
+}
+
+function validateRealProviderOutput({
+  agent,
+  run,
+  commandText,
+  pidOutput,
+}: {
+  agent: { role: AgentRole };
+  run: { phase: string };
+  commandText: string;
+  pidOutput?: string;
+}): { ok: boolean; reason?: string } {
+  const output = pidOutput?.trim() ?? "";
+  const normalized = output.toLowerCase();
+  const isManagerReview = agent.role === "manager" && run.phase === "manager_reviewing";
+  const isGameTask = /游戏|game|rpg|galgame|杀戮尖塔|卡牌|wasd|j\/k\/l/i.test(commandText);
+
+  if (output.length === 0) {
+    return { ok: false, reason: "输出为空" };
+  }
+  if (output.includes("PROVIDER_ERROR")) {
+    return { ok: false, reason: "provider 调用失败" };
+  }
+  if (output.includes("<function_calls>") || output.includes("<invoke name=") || normalized.includes("workplace目录不存在")) {
+    return { ok: false, reason: "输出了伪工具调用或目录检查，而不是角色产物" };
+  }
+  if (!output.includes("PROVIDER:") && isRealProviderMode()) {
+    return { ok: false, reason: "缺少 provider 标记，输出协议异常" };
+  }
+
+  const minLength = isManagerReview ? 900 : agent.role === "manager" ? 1_500 : agent.role === "engineer" ? 2_500 : 1_800;
+  if (output.length < minLength) {
+    return { ok: false, reason: `产物过短：${output.length} 字节，低于 ${minLength}` };
+  }
+  if (isManagerReview && !/gate_passed\s*:\s*(true|false)/i.test(output)) {
+    return { ok: false, reason: "manager 复审缺少 GATE_PASSED 标记" };
+  }
+  if (agent.role === "engineer" && isGameTask && !/```html[\s\S]*<\/html>\s*```/i.test(output)) {
+    return { ok: false, reason: "engineer 没有输出完整 fenced HTML 游戏文件" };
+  }
+
+  return { ok: true };
 }
 
 function parseManagerReview(output: string): { content: string; gatePassed: boolean } {

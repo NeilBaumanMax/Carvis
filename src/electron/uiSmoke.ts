@@ -67,6 +67,7 @@ try {
     payload: {
       outputPath: "output/final-report.md",
       manifestPath: "output/manifest.json",
+      gamePreviewPath: "output/game-preview.html",
     },
   });
 
@@ -79,6 +80,9 @@ try {
   assert(html.includes('class="command-button"'), "HTML should include command button");
   assert(html.includes("@media (max-width: 620px)"), "HTML should include mobile layout rule");
   assert(html.includes("output/final-report.md"), "HTML should include output link");
+  assert(html.includes("output/game-preview.html"), "HTML should include game preview link");
+  assert(html.includes("Open Game"), "HTML should include game preview action");
+  assert(html.includes("Open Folder"), "HTML should include folder action");
 
   for (const role of roles) {
     assert(html.includes(`data-role="${role}"`), `${role} panel should render`);

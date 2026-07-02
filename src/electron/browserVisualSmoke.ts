@@ -113,6 +113,7 @@ async function seedShellState(bus: MessageBus): Promise<void> {
     payload: {
       outputPath: "output/final-report.md",
       manifestPath: "output/manifest.json",
+      gamePreviewPath: "output/game-preview.html",
     },
   });
 }
@@ -194,7 +195,7 @@ async function runVisualSmoke(): Promise<void> {
       `document.querySelector("[data-output-open]")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))`,
     );
     await delay(300);
-    assert(openedOutputs.includes("output"), "visual smoke should request output folder open");
+    assert(openedOutputs.includes("output/game-preview.html"), "visual smoke should request game preview open");
 
     const image = await window.webContents.capturePage();
     const png = image.toPNG();

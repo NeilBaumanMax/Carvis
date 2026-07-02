@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import type {
@@ -66,6 +66,11 @@ export class ElectronShell {
     return cloneState(this.state);
   }
 
+  async registerOutputReady(payload: OutputReadyPayload, readyAt = new Date().toISOString()): Promise<void> {
+    this.state.outputs.push(await createOutputEntry(payload, readyAt));
+    this.rememberEvent(`output.ready:${payload.outputPath}`);
+  }
+
   onStateChanged(handler: (state: ElectronShellState) => void): ElectronShellStateSubscription {
     this.stateHandlers.add(handler);
 
@@ -107,8 +112,7 @@ export class ElectronShell {
           target: "electron",
         },
         async (event) => {
-          this.state.outputs.push(await createOutputEntry(event.payload, event.timestamp));
-          this.rememberEvent(`output.ready:${event.payload.outputPath}`);
+          await this.registerOutputReady(event.payload, event.timestamp);
         },
       ),
     );
@@ -233,16 +237,52 @@ async function createOutputEntry(
 ): Promise<ElectronOutputEntry> {
   const outputFolderPath = dirname(payload.outputPath);
   const manifest = await readOutputManifestPreview(payload.manifestPath);
-  const previewText = await readFinalReportPreview(payload.outputPath);
+  const gamePreview = await readGamePreview(payload.gamePreviewPath);
+  const previewText = gamePreview.previewText ?? (await readFinalReportPreview(payload.outputPath));
+  const finalReportBytes = await readFileSize(payload.outputPath);
+  const manifestBytes = await readFileSize(payload.manifestPath);
 
   return {
     ...payload,
     outputFolderPath,
+    gamePreviewTitle: gamePreview.title,
+    gamePreviewBytes: gamePreview.bytes,
+    finalReportBytes,
+    manifestBytes,
     previewText,
     manifestEntries: manifest.entries,
     previewStatus: previewText === undefined ? "preview unavailable" : "preview ready",
     readyAt,
   };
+}
+
+async function readGamePreview(
+  gamePreviewPath: string | undefined,
+): Promise<{ title?: string; bytes?: number; previewText?: string }> {
+  if (gamePreviewPath === undefined) {
+    return {};
+  }
+
+  try {
+    const [html, fileStat] = await Promise.all([readFile(gamePreviewPath, "utf8"), stat(gamePreviewPath)]);
+    const title = html.match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim();
+    const hasCanvas = /<canvas\b/i.test(html);
+    const hasScript = /<script\b/i.test(html);
+    const previewLines = [
+      `Playable game preview: ${title === undefined || title.length === 0 ? "untitled" : title}`,
+      `file: ${gamePreviewPath}`,
+      `size: ${formatBytes(fileStat.size)}`,
+      `html: ${hasCanvas ? "canvas" : "no canvas"} / ${hasScript ? "script" : "no script"}`,
+    ];
+
+    return {
+      title,
+      bytes: fileStat.size,
+      previewText: previewLines.join("\n"),
+    };
+  } catch {
+    return {};
+  }
 }
 
 async function readFinalReportPreview(outputPath: string): Promise<string | undefined> {
@@ -253,6 +293,30 @@ async function readFinalReportPreview(outputPath: string): Promise<string | unde
   } catch {
     return undefined;
   }
+}
+
+async function readFileSize(path: string | undefined): Promise<number | undefined> {
+  if (path === undefined) {
+    return undefined;
+  }
+
+  try {
+    return (await stat(path)).size;
+  } catch {
+    return undefined;
+  }
+}
+
+function formatBytes(bytes: number | undefined): string {
+  if (bytes === undefined) {
+    return "unknown";
+  }
+
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
 async function readOutputManifestPreview(

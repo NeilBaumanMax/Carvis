@@ -138,7 +138,7 @@ export class AgentRuntime {
     await Promise.all(PARALLEL_ROLES.map((role) => this.runRole(role, command.commandText)));
     await this.changePhase("manager_reviewing");
     const managerReview = await this.runRole(MANAGER_ROLE, command.commandText);
-    if (managerReview?.gatePassed !== false) {
+    if (managerReview?.gatePassed !== false || this.options.engineerRunsAfterFailedReview === true) {
       await this.changePhase("engineer_building");
       await this.runRole(ENGINEER_ROLE, command.commandText);
     }
@@ -165,20 +165,60 @@ export class AgentRuntime {
     await this.setAgentStatus(agent, "working", "agent.output", `${role} working`);
     let pidOutput: string | undefined;
     if (pidAgent !== undefined) {
-      const pidInput =
-        (await this.options.pidTaskInputBuilder?.({
+      const maxAttempts = Math.max(1, this.options.pidTaskMaxAttempts ?? 1);
+      let previousPidOutput: string | undefined;
+      let retryReason: string | undefined;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        const pidInput =
+          (await this.options.pidTaskInputBuilder?.({
+            run: this.mustCurrentRun(),
+            agent,
+            commandText,
+            attempt,
+            previousPidOutput,
+            retryReason,
+          })) ?? `${role}: ${commandText}`;
+        const result = await pidAgent.runTask({
+          input: pidInput,
+          timeoutMs: this.options.pidTaskTimeoutMs,
+        });
+
+        agent.pid = result.pid;
+        pidOutput = result.output;
+        await this.setAgentStatus(agent, "working", "agent.output", result.output);
+
+        const validation = this.options.pidOutputValidator?.({
           run: this.mustCurrentRun(),
           agent,
           commandText,
-        })) ?? `${role}: ${commandText}`;
-      const result = await pidAgent.runTask({
-        input: pidInput,
-        timeoutMs: this.options.pidTaskTimeoutMs,
-      });
+          pidOutput,
+          attempt,
+          previousPidOutput,
+          retryReason,
+        }) ?? { ok: true };
 
-      agent.pid = result.pid;
-      pidOutput = result.output;
-      await this.setAgentStatus(agent, "working", "agent.output", result.output);
+        if (validation.ok || attempt === maxAttempts) {
+          if (!validation.ok) {
+            await this.setAgentStatus(
+              agent,
+              "working",
+              "agent.output",
+              `${role} quality gate still failed after ${attempt} attempts: ${validation.reason ?? "unknown reason"}`,
+            );
+          }
+          break;
+        }
+
+        previousPidOutput = pidOutput;
+        retryReason = validation.reason ?? "quality gate failed";
+        await this.setAgentStatus(
+          agent,
+          "working",
+          "agent.output",
+          `${role} quality gate failed, retrying attempt ${attempt + 1}/${maxAttempts}: ${retryReason}`,
+        );
+      }
     }
     const roleResult = await this.options.roleRunner?.({
       run: this.mustCurrentRun(),

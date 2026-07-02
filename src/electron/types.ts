@@ -25,6 +25,10 @@ export interface ElectronOutputEntry {
   outputFolderPath: string;
   manifestPath?: string;
   gamePreviewPath?: string;
+  gamePreviewTitle?: string;
+  gamePreviewBytes?: number;
+  finalReportBytes?: number;
+  manifestBytes?: number;
   previewText?: string;
   manifestEntries: ElectronOutputManifestEntry[];
   previewStatus: string;

@@ -45,6 +45,17 @@ export const ROLE_PROVIDER_CONFIG: Record<AgentRole, RoleProviderConfig> = {
 export function getRoleProviderConfig(role: AgentRole, env: NodeJS.ProcessEnv = process.env): RoleProviderConfig {
   const config = ROLE_PROVIDER_CONFIG[role];
 
+  if (env.CARVIS_PROVIDER_MODE === "all-deepseek") {
+    return {
+      role,
+      provider: "deepseek-claudecode",
+      modelEnvKey: role === "engineer" ? "CARVIS_DEEPSEEK_ENGINEER_MODEL" : "CARVIS_DEEPSEEK_MANAGER_MODEL",
+      defaultModel:
+        env[role === "engineer" ? "CARVIS_DEEPSEEK_ENGINEER_MODEL" : "CARVIS_DEEPSEEK_MANAGER_MODEL"] ??
+        "deepseek-v4-pro[1m]",
+    };
+  }
+
   return {
     ...config,
     defaultModel: env[config.modelEnvKey] ?? config.defaultModel,

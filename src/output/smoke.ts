@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -19,9 +19,27 @@ try {
     ],
   });
   const manifest = await readOutputManifest(output.manifestPath ?? "");
+  const gamePreview = await readFile(output.gamePreviewPath ?? "", "utf8");
 
   assert(output.outputPath.endsWith("final-report.md"), "final report path should be returned");
+  assert(output.outputPath.startsWith("/"), "final report path should be absolute");
   assert(manifest.entries[0]?.role === "manager", "manifest should include role entry");
+
+  const gameOutput = await writeOutput({
+    outputRootPath: rootPath,
+    title: "Game Output Smoke",
+    workplaceResults: [
+      {
+        role: "engineer",
+        sourcePath: "workplaces/engineer/result.md",
+        content: "```html\n<html><body><canvas id=\"game\"></canvas><script>window.ok=true;</script></body></html>\n```",
+      },
+    ],
+  });
+  const playablePreview = await readFile(gameOutput.gamePreviewPath ?? "", "utf8");
+
+  assert(gamePreview.includes("Generated Design Report"), "fallback preview should include report");
+  assert(playablePreview.includes("<canvas id=\"game\"></canvas>"), "engineer HTML should become game preview");
 
   console.log("[output:smoke] ok");
 } finally {

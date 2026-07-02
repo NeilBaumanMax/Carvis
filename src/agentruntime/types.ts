@@ -14,10 +14,19 @@ export interface RuntimeRoleContext {
   agent: AgentRuntimeState;
   commandText: string;
   pidOutput?: string;
+  attempt?: number;
+  previousPidOutput?: string;
+  retryReason?: string;
 }
 
 export type RuntimeOutputWriter = (context: RuntimeOutputContext) => OutputReadyPayload | Promise<OutputReadyPayload>;
 export type RuntimePidTaskInputBuilder = (context: RuntimeRoleContext) => string | Promise<string>;
+export type RuntimePidOutputValidator = (context: RuntimeRoleContext) => RuntimePidOutputValidation;
+
+export interface RuntimePidOutputValidation {
+  ok: boolean;
+  reason?: string;
+}
 
 export interface RuntimeOutputContext {
   run: RunState;
@@ -29,6 +38,9 @@ export interface AgentRuntimeOptions {
   pidTaskInputBuilder?: RuntimePidTaskInputBuilder;
   pidAgentPool?: PersistentPidAgentPool;
   pidTaskTimeoutMs?: number;
+  pidTaskMaxAttempts?: number;
+  pidOutputValidator?: RuntimePidOutputValidator;
+  engineerRunsAfterFailedReview?: boolean;
   outputWriter?: RuntimeOutputWriter;
   outputPath?: string;
   manifestPath?: string;

@@ -1,8 +1,8 @@
 import { createRequire } from "node:module";
-import { mkdtemp } from "node:fs/promises";
+import { access, mkdtemp } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import { createRemoteMessageBus } from "../messagebus/index.js";
 import { createElectronShell } from "./shell.js";
@@ -52,6 +52,7 @@ shell.onStateChanged((state) => {
 void electron.app.whenReady().then(async () => {
   await delay(readStartDelayMs(process.env.CARVIS_ELECTRON_START_DELAY_MS));
   await openWindow();
+  await backfillExistingOutput();
 });
 
 electron.app.on("activate", () => {
@@ -107,6 +108,36 @@ async function openLatestGamePreview(state: ElectronShellState): Promise<void> {
 
   if (errorMessage.length > 0) {
     console.error(`[electron] failed to open game preview ${gamePreviewPath}: ${errorMessage}`);
+  }
+}
+
+async function backfillExistingOutput(): Promise<void> {
+  if (process.env.CARVIS_ELECTRON_BACKFILL_OUTPUT === "0") {
+    return;
+  }
+
+  const outputRoot = resolve(process.env.CARVIS_OUTPUT_ROOT ?? "output");
+  const outputPath = join(outputRoot, "final-report.md");
+  const manifestPath = join(outputRoot, "manifest.json");
+  const gamePreviewPath = join(outputRoot, "game-preview.html");
+
+  if (!(await pathExists(outputPath))) {
+    return;
+  }
+
+  await shell.registerOutputReady({
+    outputPath,
+    manifestPath: (await pathExists(manifestPath)) ? manifestPath : undefined,
+    gamePreviewPath: (await pathExists(gamePreviewPath)) ? gamePreviewPath : undefined,
+  });
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
   }
 }
 

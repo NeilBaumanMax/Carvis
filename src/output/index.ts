@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import type { AgentRole } from "../shared/types/agent.js";
 import type { OutputReadyPayload } from "../shared/types/events.js";
@@ -27,13 +27,15 @@ export interface OutputManifestEntryWithContent extends OutputManifestEntry {
 }
 
 export async function writeOutput(options: WriteOutputOptions): Promise<OutputReadyPayload> {
-  await mkdir(options.outputRootPath, { recursive: true });
+  const outputRootPath = resolve(options.outputRootPath);
 
-  const finalReportPath = join(options.outputRootPath, "final-report.md");
-  const gamePreviewPath = join(options.outputRootPath, "game-preview.html");
-  const manifestPath = join(options.outputRootPath, "manifest.json");
+  await mkdir(outputRootPath, { recursive: true });
+
+  const finalReportPath = join(outputRootPath, "final-report.md");
+  const gamePreviewPath = join(outputRootPath, "game-preview.html");
+  const manifestPath = join(outputRootPath, "manifest.json");
   const finalReport = renderFinalReport(options.title, options.workplaceResults);
-  const gamePreview = renderGamePreviewHtml(options.title, finalReport);
+  const gamePreview = extractEngineerHtml(options.workplaceResults) ?? renderGamePreviewHtml(options.title, finalReport);
   const manifest: OutputManifest = {
     generatedAt: new Date().toISOString(),
     finalReportPath,
@@ -53,6 +55,20 @@ export async function writeOutput(options: WriteOutputOptions): Promise<OutputRe
     manifestPath,
     gamePreviewPath,
   };
+}
+
+function extractEngineerHtml(entries: OutputManifestEntryWithContent[]): string | undefined {
+  const engineer = entries.find((entry) => entry.role === "engineer");
+  const content = engineer?.content ?? "";
+  const fencedMatch = /```html\s*([\s\S]*?<\/html>)\s*```/i.exec(content);
+  const rawMatch = /<!doctype html[\s\S]*<\/html>/i.exec(content) ?? /<html[\s\S]*<\/html>/i.exec(content);
+  const html = fencedMatch?.[1] ?? rawMatch?.[0];
+
+  if (html === undefined) {
+    return undefined;
+  }
+
+  return html.trimStart().startsWith("<!doctype") ? html.trim() : `<!doctype html>\n${html.trim()}`;
 }
 
 export async function readOutputManifest(manifestPath: string): Promise<OutputManifest> {

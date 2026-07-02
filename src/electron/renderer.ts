@@ -167,6 +167,23 @@ export function renderElectronHtml(state: ElectronShellState): string {
       min-width: 0;
     }
 
+    .output-actions {
+      display: flex;
+      gap: 6px;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .output-title {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.25;
+    }
+
     .output-folder {
       min-width: 0;
       overflow-wrap: anywhere;
@@ -432,21 +449,42 @@ export function renderElectronHtml(state: ElectronShellState): string {
     }
 
     function renderOutputPreview(output) {
+      const gameLabel = output.gamePreviewTitle
+        ? \`game preview: \${output.gamePreviewTitle} (\${formatBytes(output.gamePreviewBytes)})\`
+        : output.gamePreviewPath
+          ? \`game preview: \${output.gamePreviewPath} (\${formatBytes(output.gamePreviewBytes)})\`
+          : "game preview: none";
       const files = [
-        output.gamePreviewPath ? \`game preview: \${output.gamePreviewPath}\` : "game preview: none",
-        \`final report: \${output.outputPath}\`,
-        output.manifestPath ? \`manifest: \${output.manifestPath}\` : "manifest: none",
+        gameLabel,
+        \`final report: \${output.outputPath} (\${formatBytes(output.finalReportBytes)})\`,
+        output.manifestPath ? \`manifest: \${output.manifestPath} (\${formatBytes(output.manifestBytes)})\` : "manifest: none",
         ...(output.manifestEntries ?? []).map((entry) => \`\${entry.role}: \${entry.sourcePath}\`),
       ];
 
       return \`<article class="output-preview">
   <div class="output-preview-head">
-    <div class="output-folder">folder \${escapeHtml(output.outputFolderPath ?? "")}</div>
-    <button class="output-link" type="button" data-output-open="\${escapeHtml(output.outputFolderPath ?? output.outputPath)}">Open</button>
+    <div>
+      <div class="output-title">\${escapeHtml(output.gamePreviewTitle ?? "Output package")}</div>
+      <div class="output-folder">folder \${escapeHtml(output.outputFolderPath ?? "")}</div>
+    </div>
+    <div class="output-actions">
+      \${output.gamePreviewPath ? \`<button class="output-link" type="button" data-output-open="\${escapeHtml(output.gamePreviewPath)}">Open Game</button>\` : ""}
+      <button class="output-link" type="button" data-output-open="\${escapeHtml(output.outputFolderPath ?? output.outputPath)}">Open Folder</button>
+    </div>
   </div>
   <div class="output-files">\${files.map((file) => \`<div>\${escapeHtml(file)}</div>\`).join("")}</div>
   <div class="output-report">\${escapeHtml(output.previewText ?? output.previewStatus ?? "preview unavailable")}</div>
 </article>\`;
+    }
+
+    function formatBytes(bytes) {
+      if (typeof bytes !== "number") {
+        return "unknown";
+      }
+      if (bytes < 1024) {
+        return \`\${bytes} B\`;
+      }
+      return \`\${(bytes / 1024).toFixed(1)} KB\`;
     }
 
     function renderApp(state) {
@@ -599,17 +637,33 @@ function renderElectronApp(state: ElectronShellState): string {
 }
 
 function renderOutputPreview(output: ElectronOutputEntry): string {
+  const gameLabel =
+    output.gamePreviewTitle === undefined
+      ? output.gamePreviewPath === undefined
+        ? "game preview: none"
+        : `game preview: ${output.gamePreviewPath} (${formatBytes(output.gamePreviewBytes)})`
+      : `game preview: ${output.gamePreviewTitle} (${formatBytes(output.gamePreviewBytes)})`;
   const files = [
-    output.gamePreviewPath === undefined ? "game preview: none" : `game preview: ${output.gamePreviewPath}`,
-    `final report: ${output.outputPath}`,
-    output.manifestPath === undefined ? "manifest: none" : `manifest: ${output.manifestPath}`,
+    gameLabel,
+    `final report: ${output.outputPath} (${formatBytes(output.finalReportBytes)})`,
+    output.manifestPath === undefined ? "manifest: none" : `manifest: ${output.manifestPath} (${formatBytes(output.manifestBytes)})`,
     ...output.manifestEntries.map((entry) => `${entry.role}: ${entry.sourcePath}`),
   ];
 
   return `<article class="output-preview">
   <div class="output-preview-head">
-    <div class="output-folder">folder ${escapeHtml(output.outputFolderPath)}</div>
-    <button class="output-link" type="button" data-output-open="${escapeAttribute(output.outputFolderPath)}">Open</button>
+    <div>
+      <div class="output-title">${escapeHtml(output.gamePreviewTitle ?? "Output package")}</div>
+      <div class="output-folder">folder ${escapeHtml(output.outputFolderPath)}</div>
+    </div>
+    <div class="output-actions">
+      ${
+        output.gamePreviewPath === undefined
+          ? ""
+          : `<button class="output-link" type="button" data-output-open="${escapeAttribute(output.gamePreviewPath)}">Open Game</button>`
+      }
+      <button class="output-link" type="button" data-output-open="${escapeAttribute(output.outputFolderPath)}">Open Folder</button>
+    </div>
   </div>
   <div class="output-files">${files.map((file) => `<div>${escapeHtml(file)}</div>`).join("")}</div>
   <div class="output-report">${escapeHtml(output.previewText ?? output.previewStatus)}</div>
@@ -641,4 +695,16 @@ function escapeHtml(value: string): string {
 
 function escapeAttribute(value: string): string {
   return escapeHtml(value).replaceAll("'", "&#39;");
+}
+
+function formatBytes(bytes: number | undefined): string {
+  if (bytes === undefined) {
+    return "unknown";
+  }
+
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }

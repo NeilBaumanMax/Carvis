@@ -6,6 +6,7 @@ import type {
   RunPhaseChangedPayload,
   RuntimeHeartbeatPayload,
 } from "../shared/types/events.js";
+import type { AgentRole } from "../shared/types/agent.js";
 import { createAgentRuntime } from "./index.js";
 
 const bus = createMessageBus();
@@ -170,6 +171,95 @@ assert(!gatePhases.includes("engineer_building"), "engineer phase should be skip
 assert(!gateStarts.includes("engineer"), "engineer should not start when manager review fails");
 
 gateRuntime.dispose();
+
+const reviewCarryBus = createMessageBus();
+const reviewCarryRuntime = createAgentRuntime(reviewCarryBus, {
+  engineerRunsAfterFailedReview: true,
+  roleRunner: ({ run, agent }) => {
+    if (run.phase === "manager_reviewing" && agent.role === "manager") {
+      return {
+        gatePassed: false,
+      };
+    }
+
+    return undefined;
+  },
+});
+const reviewCarryStarts: string[] = [];
+
+reviewCarryBus.subscribe<AgentLifecyclePayload>(
+  {
+    type: "agent.starting",
+    target: "electron",
+  },
+  (event) => {
+    reviewCarryStarts.push(event.payload.role);
+  },
+);
+
+reviewCarryRuntime.start();
+await reviewCarryBus.publish<CommandSubmittedPayload>({
+  type: "command.submitted",
+  source: "electron",
+  target: "agentruntime",
+  requestId: "req-runtime-smoke-review-carry",
+  payload: {
+    commandText: "continue to engineer with manager rework directives",
+  },
+});
+
+assert(reviewCarryStarts.includes("engineer"), "engineer should start when review carry option is enabled");
+reviewCarryRuntime.dispose();
+
+const retryBus = createMessageBus();
+const retryAttempts = new Map<string, number>();
+const retryOutputs: string[] = [];
+const retryRuntime = createAgentRuntime(retryBus, {
+  pidTaskMaxAttempts: 2,
+  pidAgentPool: {
+    getAgent: (role: AgentRole) => ({
+      role,
+      pid: 50_000,
+      retained: false,
+      runTask: async () => {
+        const next = (retryAttempts.get(role) ?? 0) + 1;
+        retryAttempts.set(role, next);
+
+        return {
+          pid: 50_000,
+          output: role === "artist" && next === 1 ? "bad" : `${role} valid output`,
+        };
+      },
+      shutdown: async () => undefined,
+    }),
+    getAgents: () => [],
+    shutdown: async () => undefined,
+  } as unknown as import("./pidagent/index.js").PersistentPidAgentPool,
+  pidOutputValidator: ({ agent, pidOutput }) =>
+    agent.role === "artist" && pidOutput === "bad" ? { ok: false, reason: "too short" } : { ok: true },
+  roleRunner: ({ pidOutput }) => {
+    if (pidOutput !== undefined) {
+      retryOutputs.push(pidOutput);
+    }
+
+    return { gatePassed: false };
+  },
+});
+
+retryRuntime.start();
+await retryBus.publish<CommandSubmittedPayload>({
+  type: "command.submitted",
+  source: "electron",
+  target: "agentruntime",
+  requestId: "req-runtime-smoke-retry",
+  payload: {
+    commandText: "retry invalid artist output",
+  },
+});
+
+assert(retryAttempts.get("artist") === 2, "artist should retry after failed quality gate");
+assert(retryOutputs.includes("artist valid output"), "roleRunner should receive retried valid output");
+retryRuntime.dispose();
 
 console.log("[agentruntime:smoke] ok");
 

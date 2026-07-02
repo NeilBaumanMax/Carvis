@@ -110,6 +110,11 @@ class LineProtocolPidAgent implements PersistentPidAgent {
     this.child.stderr.on("data", () => {
       // stderr is intentionally consumed so the child cannot block.
     });
+    this.child.stdin.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code !== "EPIPE") {
+        throw error;
+      }
+    });
   }
 
   get pid(): number {
@@ -153,7 +158,13 @@ class LineProtocolPidAgent implements PersistentPidAgent {
       this.child.once("exit", () => {
         resolve();
       });
-      this.child.stdin.write(`${JSON.stringify({ shutdown: true })}\n`);
+      if (!this.child.stdin.destroyed) {
+        this.child.stdin.write(`${JSON.stringify({ shutdown: true })}\n`, (error) => {
+          if (error !== null && (error as NodeJS.ErrnoException).code !== "EPIPE") {
+            throw error;
+          }
+        });
+      }
       setTimeout(() => {
         if (!this.closed) {
           this.child.kill("SIGTERM");

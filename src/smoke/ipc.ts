@@ -52,10 +52,15 @@ try {
       () => shell.getState().outputs.length === 1,
       () => `output.ready should arrive over IPC; received=${electronEvents.join(",")}`,
     );
+    await waitFor(
+      () => shell.getState().panels.every((panel) => panel.status === "shutdown"),
+      () => `agent shutdown events should arrive; statuses=${shell.getState().panels.map((panel) => `${panel.role}:${panel.status}`).join(",")}`,
+    );
 
     const state = shell.getState();
 
-    assert(state.outputs[0]?.outputPath === "output/final-report.md", "output path should be visible");
+    assert(state.outputs[0]?.outputPath.endsWith("final-report.md") === true, "output path should be visible");
+    assert(state.outputs[0]?.gamePreviewPath?.endsWith("game-preview.html") === true, "game preview path should be visible");
     assert(state.runtime.queueDepth === 0, "runtime queue should drain");
 
     for (const role of ["manager", "writer", "artist", "researcher", "engineer"] as const) {
