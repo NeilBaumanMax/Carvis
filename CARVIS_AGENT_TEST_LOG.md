@@ -17,7 +17,7 @@
 | 测试 1 | 生产一个王尔德《快乐王子》灵感的 galgame | 剧情分支 / 视觉小说 | 待开始 |
 | 测试 2 | 按王小波《红拂夜奔》写一个冒险闯关游戏 | 冒险闯关 / 关卡 | 待开始 |
 | 测试 3 | 按 The Bazaar 重写一个类似玩法游戏 | 商店/物品构筑 / 自动战斗 | 待开始 |
-| 测试 4 | 整理 `sdyzjx/open-yachiyo` 仓库脚手架和文件用途，HTML 展示 | 仓库分析 / 文档可视化 | 准备中 |
+| 测试 4 | 整理 `sdyzjx/open-yachiyo` 仓库脚手架和文件用途，HTML 展示 | 仓库分析 / 文档可视化 | 已产出并截图验证 |
 
 ## 已做的测试前优化
 
@@ -258,18 +258,50 @@
 
 - 22:26 左右：NixOS 远程 clone 完成，生成 `open-yachiyo-summary.md`，共 1022 行。
 - 22:27:58：测试 4 已提交到 NixOS Carvis messagebus，`delivered=1`；由于测试 1 正在运行，测试 4 等待队列执行。
+- 22:43 左右：首次文档任务产出后发现容易被旧游戏模板影响，重跑测试 4，要求按“仓库分析 / 脚手架说明 / 文件用途表 / HTML 展示页”处理。
+- 22:44 左右：测试 4 重跑产出 `game-preview.html` 和 `final-report.md`。
+- 00:11：重新发布本次 output.ready 到 Electron，截图验收文档页面。
 
 ### 产物
 
-待记录。
+- run 目录：
+  - `workplaces/runs/20260702-144304-req-test4-open-yachiyo-doc-html-retr-测试4重跑：请五个角色协作整理-GitHub-仓库-sdyzjx`
+- HTML：
+  - `output/runs/20260702-144304-req-test4-open-yachiyo-doc-html-retr-测试4重跑：请五个角色协作整理-GitHub-仓库-sdyzjx/game-preview.html`
+  - 大小：约 41KB。
+  - 包含 1 个 `<script>`，`new Function(script)` 语法检查通过。
+- final report：
+  - `output/runs/20260702-144304-req-test4-open-yachiyo-doc-html-retr-测试4重跑：请五个角色协作整理-GitHub-仓库-sdyzjx/final-report.md`
+  - 大小：约 98KB。
+- artist 图片资产：
+  - `assets/artist-icon-set-directory-structure.png`
+  - `assets/artist-architecture-flow-diagram.png`
+  - `assets/artist-diagram-architecture-flow.png`
+  - `assets/artist-icon-file-script.png`
+  - `assets/artist-ui-background-gradient.png`
+  - `assets/artist-repo-banner-hero.png`
+  - `assets/artist-badge-status-indicators.png`
+  - `assets/artist-icon-folder-config.png`
+- HTML 实际引用的图片资产：
+  - `assets/artist-badge-status-indicators.png`
+  - `assets/artist-diagram-architecture-flow.png`
+  - `assets/artist-icon-set-directory-structure.png`
+  - `assets/artist-ui-background-gradient.png`
+- 内容关键词命中：`open-yachiyo`、脚手架、目录结构、文件用途、ReAct、JSON-RPC、EventBus、SSE、Live2D、macOS、Windows、安装、启动。
 
 ### 截图验收
 
-待记录。
+- 截图：`/tmp/carvis-test4-window.png`。
+- 截图可见标题 `open-yachiyo`，副标题为 AI Native 运行时 + 可控 ReAct 循环相关说明，页面包含版本、GitHub、作者/维护者、演示视频标签。
+- 首屏可见“仓库概览”正文，明确说明不是 OpenClaw 或通用编排框架二次封装，而是运行时可控性优化的原生引擎。
+- 页面布局是文档展示页，不是游戏 UI；符合用户“html 展示”的要求。
+- 截图右上角出现“关闭”提示，是鼠标悬停窗口关闭按钮时 KDE/Electron 的系统 tooltip，不属于 HTML 内容。
 
 ### 问题与优化点
 
 - 该任务不是游戏生成，而是仓库结构分析；需要 manager 改变验收标准为“文档准确性、脚手架图谱、文件用途表、HTML 信息架构”，不能套用游戏验收。
+- 文档任务的 artist 生图很有价值，结构图和状态徽章能帮助 HTML 页面解释仓库；后续应保留 artist 默认生图，但约束为 1-4 张 UI/图示资产，避免长篇美术设定。
+- 对非游戏任务，engineer prompt 必须显式写“不得套用游戏剧情、关卡、结局模板”，否则容易把统一游戏流水线误套到文档展示任务上。
 
 ## 汇总优化池
 
