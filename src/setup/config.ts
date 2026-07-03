@@ -80,6 +80,9 @@ function readElectronEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<string
     "CARVIS_ELECTRON_RENDERER_DIR",
     "CARVIS_ELECTRON_FULLSCREEN",
     "CARVIS_ELECTRON_START_DELAY_MS",
+    "CARVIS_LAN_IP",
+    "CARVIS_NAS_PUBLIC_URL",
+    "CARVIS_NGINX_URL",
     "DISPLAY",
     "XAUTHORITY",
   ]) {
@@ -98,10 +101,12 @@ function readNasEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<string, str
 
   for (const key of [
     "CARVIS_NAS_CONFIG_DIR",
+    "CARVIS_NAS_CLIENT_DIR",
     "CARVIS_NAS_HOST",
     "CARVIS_NAS_PORT",
     "CARVIS_NAS_PUBLIC_URL",
     "CARVIS_NGINX_URL",
+    "CARVIS_LAN_IP",
     "CARVIS_ELECTRON_API_URL",
     "CARVIS_OUTPUT_ROOT",
     "CARVIS_HISTORY_ROOT",

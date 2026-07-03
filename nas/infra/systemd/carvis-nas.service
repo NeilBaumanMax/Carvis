@@ -9,6 +9,7 @@ ExecStart=%h/carvis-remote-smoke/nas/carvis-nas-server
 Restart=on-failure
 RestartSec=2
 Environment=CARVIS_NAS_CONFIG_DIR=%h/carvis-remote-smoke/nas/config
+Environment=CARVIS_NAS_CLIENT_DIR=%h/carvis-remote-smoke/nas/apps/client
 Environment=CARVIS_ELECTRON_API_URL=http://127.0.0.1:45932
 Environment=CARVIS_OUTPUT_ROOT=%h/carvis-remote-smoke/output/runs
 Environment=CARVIS_HISTORY_ROOT=%h/carvis-remote-smoke/output/runs

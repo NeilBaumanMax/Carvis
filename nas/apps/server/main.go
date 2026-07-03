@@ -95,7 +95,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		"publicUrl":   s.cfg.PublicURL,
 		"nginxUrl":    s.cfg.NginxURL,
 		"electronApi": s.cfg.ElectronAPI,
-		"lanIp":       findLANIP(),
+		"lanIp":       defaultString(os.Getenv("CARVIS_LAN_IP"), findLANIP()),
 	})
 }
 
