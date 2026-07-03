@@ -60,8 +60,8 @@
 
 - 当前分支：`backup/mvp-nixos-20260702-020835`
 - 开发前状态：工作区干净，远端分支存在。
-- 本轮提交：`feat: install carvisui electron renderer`，最终提交号以 `git log -1` 为准。
-- push 状态：提交后 push 到 `origin/backup/mvp-nixos-20260702-020835`。
+- 本轮功能提交：`32623d2 feat: install carvisui electron renderer`；最终最新提交以 `git log -1` 为准。
+- push 状态：已 push 到 `origin/backup/mvp-nixos-20260702-020835`。
 
 ### 回滚判断
 

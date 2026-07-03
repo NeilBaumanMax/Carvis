@@ -143,8 +143,8 @@
 ### GitHub 状态
 
 - 当前分支：`backup/mvp-nixos-20260702-020835`
-- 本轮提交：`feat: install carvisui electron renderer`，最终提交号以 `git log -1` 为准。
-- 本轮 push：提交后 push 到 `origin/backup/mvp-nixos-20260702-020835`。
+- 本轮功能提交：`32623d2 feat: install carvisui electron renderer`；最终最新提交以 `git log -1` 为准。
+- 本轮 push：已 push 到 `origin/backup/mvp-nixos-20260702-020835`。
 - 备份分支：`origin/backup/mvp-nixos-20260702-020835`
 
 ### 风险提醒
