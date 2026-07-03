@@ -4,8 +4,10 @@ import type { AgentRole } from "../../shared/types/agent.js";
 import { ClaudeCodeWarmSdkAgent } from "../claudecode/warmSdk.js";
 import { runClaudeCodePrint } from "../claudecode/command.js";
 import { callArtistImageMcp, renderArtistImageMcpAssets } from "../mcp/artistImageMcp.js";
+import { runDeepSeekOpenAiText } from "./deepseekOpenAi.js";
 import { getRoleProviderConfig } from "./roles.js";
 import { createProviderUsage, runQwenOpenAiText, type ProviderUsage } from "./qwenOpenAi.js";
+import { runScraplingSearch } from "./scraplingSearch.js";
 
 interface ProviderTaskInput {
   runId?: string;
@@ -123,6 +125,61 @@ async function runProviderTask(task: ProviderTaskInput, onProgress: (output: str
         model: config.defaultModel,
         role: task.role,
         usage,
+      },
+    };
+  }
+
+  if (config.provider === "deepseek-openai") {
+    onProgress(`provider:${task.role}: deepseek api started model=${config.defaultModel}`);
+    const searchEvidence =
+      task.role === "researcher" && task.speedMode !== "fast" && !isSimpleTask(task.commandText)
+        ? await runScraplingSearch({
+            commandText: task.commandText,
+            env: process.env,
+          })
+        : {
+            ok: false,
+            evidenceText: "SCRAPLING_SEARCH_SKIPPED: fast/simple task",
+          };
+    if (task.role === "researcher") {
+      onProgress(
+        `provider:${task.role}: scrapling search ${searchEvidence.ok ? "finished" : "unavailable"} chars=${searchEvidence.evidenceText.length}`,
+      );
+    }
+    const userPrompt =
+      task.role === "researcher"
+        ? [
+            task.prompt,
+            "",
+            "## Scrapling Web Evidence",
+            searchEvidence.evidenceText,
+            "",
+            "## Researcher source rules",
+            "- 只能引用 Scrapling Web Evidence 中列出的 URL。",
+            "- 如果证据没有给出精确播放量、互动数、发布日期或账号信息，必须写“未在公开证据中找到”，不能补造。",
+            "- 可以给 engineer 提供 mock/fallback 数据结构，但必须标记为模拟数据。",
+          ].join("\n")
+        : task.prompt;
+    const deepSeekResult = await runDeepSeekOpenAiText({
+      model: config.defaultModel,
+      systemPrompt: task.systemPrompt,
+      userPrompt,
+    });
+    onProgress(`provider:${task.role}: deepseek api finished chars=${deepSeekResult.content.length}`);
+
+    return {
+      output: [
+        `PROVIDER: ${config.provider}`,
+        `MODEL: ${config.defaultModel}`,
+        `ROLE: ${task.role}`,
+        "",
+        deepSeekResult.content,
+      ].join("\n"),
+      metadata: {
+        provider: config.provider,
+        model: config.defaultModel,
+        role: task.role,
+        usage: deepSeekResult.usage,
       },
     };
   }

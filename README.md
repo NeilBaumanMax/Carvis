@@ -11,7 +11,7 @@ Role routing:
 - `manager`: DeepSeek through Claude Code CLI
 - `writer`: DeepSeek through Claude Code CLI
 - `artist`: Qwen OpenAI-compatible text route, plus Qwen Image through the local artist-image MCP wrapper
-- `researcher`: Qwen OpenAI-compatible route with explicit web search enabled when supported
+- `researcher`: DeepSeek OpenAI-compatible API, with Scrapling-collected web evidence injected before generation
 - `engineer`: DeepSeek through Claude Code CLI
 
 Provider workers are prewarmed and retained. `writer` and `engineer` intentionally share one provider worker key so engineer can resume the writer Claude Code session within the same non-fast/simple run, while the UI still shows them as separate roles. New runs and fast/simple tasks use isolated Claude sessions to avoid carrying old HTML or game context forward.
@@ -54,7 +54,8 @@ Verified on NixOS:
 - `carvis-messagebus.service`, `carvis-agentruntime.service`, and `carvis-electron.service` active
 - four retained `providerWorker` processes active for five visible roles (`writer` and `engineer` share one worker)
 - DeepSeek Claude Code route works for manager, writer, and engineer
-- Qwen text route works for artist and researcher; researcher search must use explicit Qwen web search support, not model-invented citations
+- DeepSeek API route works for researcher; researcher search must cite Scrapling web evidence, not model-invented citations
+- Qwen text route works for artist
 - Qwen Image route works through artist-image MCP and writes local image assets
 - recent regression tasks produced `output/runs/.../game-preview.html` and passed browser checks
 

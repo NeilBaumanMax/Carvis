@@ -2,7 +2,7 @@
 
 `src/agentruntime` owns multi-agent orchestration.
 
-Current scope is the real provider runtime used on NixOS. It can still run deterministic smokes, but production mode launches retained provider workers and routes roles to DeepSeek Claude Code CLI or Qwen OpenAI-compatible APIs according to `provider/roles.ts`.
+Current scope is the real provider runtime used on NixOS. It can still run deterministic smokes, but production mode launches retained provider workers and routes roles to DeepSeek Claude Code CLI, DeepSeek OpenAI-compatible API, or Qwen OpenAI-compatible APIs according to `provider/roles.ts`.
 
 The active run sequence is:
 
@@ -30,7 +30,7 @@ created -> parallel_roles_working -> engineer_building -> output_ready -> retain
 - AgentRuntime does not bypass messagebus.
 - AgentRuntime does not make browser-window decisions; Electron opens the produced output.
 - AgentRuntime does not treat manager as a second review gate; engineer owns audit, merge, and production.
-- AgentRuntime does not assume Qwen can browse by itself. Researcher web search is only valid when explicit Qwen search options or injected search results are present.
+- AgentRuntime does not assume model-side browsing is trustworthy. Researcher web search is only valid when Scrapling evidence is injected; otherwise researcher must mark facts as not found or unverified.
 
 ## Speed Modes
 
@@ -61,6 +61,6 @@ Each run writes role workspaces under `workplaces/runs/<timestamp-request>/`:
 - `result.md`: public role output.
 - `handoff_to_engineer.json`: compressed facts, decisions, assets, constraints, and risks.
 - `evidence_index.json`: pointers to the source of important facts.
-- `usage.json`: provider/model/role plus token usage. Qwen returns real `prompt_tokens`, `completion_tokens`, and `total_tokens`; DeepSeek through Claude Code CLI currently records `estimated_*_tokens` because the CLI does not expose provider usage in this route.
+- `usage.json`: provider/model/role plus token usage. Qwen and DeepSeek API routes return real `prompt_tokens`, `completion_tokens`, and `total_tokens`; DeepSeek through Claude Code CLI currently records `estimated_*_tokens` because the CLI does not expose provider usage in this route.
 
 Final output is written under `output/runs/<timestamp-request>/`, including `game-preview.html`, `final-report.md`, `manifest.json`, and copied/generated `assets/`.

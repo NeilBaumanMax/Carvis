@@ -8,3 +8,4 @@ logs/
 .carvis-real-mvp-*/
 .env.qwen
 .env.qwen-omni
+.venv-scrapling/

@@ -38,5 +38,10 @@ CARVIS_OUTPUT_ROOT=/path/to/output/runs
 CARVIS_HISTORY_ROOT=/path/to/output/runs
 CARVIS_SPEED_MODE=auto
 CARVIS_QWEN_IMAGE_CONCURRENCY=2
-QWEN_RESEARCHER_MODEL=qwen-plus
+DEEPSEEK_API_KEY=...
+DEEPSEEK_OPENAI_BASE_URL=https://api.deepseek.com
+CARVIS_DEEPSEEK_RESEARCHER_MODEL=deepseek-chat
+CARVIS_SCRAPLING_PYTHON=/home/howtion/carvis-remote-smoke/.venv-scrapling/bin/python
+CARVIS_SCRAPLING_SEARCH=1
+CARVIS_SCRAPLING_LD_LIBRARY_PATH=/nix/store/<gcc-lib>/lib
 ```

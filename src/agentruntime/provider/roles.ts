@@ -1,6 +1,6 @@
 import type { AgentRole } from "../../shared/types/agent.js";
 
-export type ProviderKind = "deepseek-claudecode" | "qwen-openai";
+export type ProviderKind = "deepseek-claudecode" | "deepseek-openai" | "qwen-openai";
 
 export interface RoleProviderConfig {
   role: AgentRole;
@@ -30,9 +30,9 @@ export const ROLE_PROVIDER_CONFIG: Record<AgentRole, RoleProviderConfig> = {
   },
   researcher: {
     role: "researcher",
-    provider: "qwen-openai",
-    modelEnvKey: "QWEN_RESEARCHER_MODEL",
-    defaultModel: "qwen-plus",
+    provider: "deepseek-openai",
+    modelEnvKey: "CARVIS_DEEPSEEK_RESEARCHER_MODEL",
+    defaultModel: "deepseek-chat",
   },
   engineer: {
     role: "engineer",

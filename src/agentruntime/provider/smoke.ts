@@ -5,8 +5,8 @@ assert(getRoleProviderConfig("manager").provider === "deepseek-claudecode", "man
 assert(getRoleProviderConfig("engineer").provider === "deepseek-claudecode", "engineer should use DeepSeek");
 assert(getRoleProviderConfig("writer").provider === "deepseek-claudecode", "writer should use DeepSeek");
 assert(getRoleProviderConfig("artist").provider === "qwen-openai", "artist should use Qwen");
-assert(getRoleProviderConfig("researcher").provider === "qwen-openai", "researcher should use Qwen");
-assert(getRoleProviderConfig("researcher").defaultModel === "qwen-plus", "researcher should default to search-capable Qwen");
+assert(getRoleProviderConfig("researcher").provider === "deepseek-openai", "researcher should use DeepSeek API");
+assert(getRoleProviderConfig("researcher").defaultModel === "deepseek-chat", "researcher should default to DeepSeek chat API");
 
 for (const role of ["manager", "writer", "artist", "researcher", "engineer"] as const) {
   assert(

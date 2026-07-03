@@ -319,7 +319,7 @@ function createRoleSystemPrompt(role: AgentRole, phase: string, commandText: str
       : "这是 full/normal 任务：按角色职责给出可交付材料。",
     role === "researcher"
       ? isResearcherSearchEnabled(commandText, mode)
-        ? "researcher 本轮会通过 Qwen web search 显式联网检索；只能引用搜索工具返回的来源，不得编造 URL 或来源。"
+        ? "researcher 本轮会先通过 Scrapling 抓取搜索证据，再交给 DeepSeek API 汇总；只能引用 Scrapling Web Evidence 中列出的来源，不得编造 URL 或来源。"
         : "researcher 本轮不启用联网搜索；必须标注“未联网检索”，不能编造来源。"
       : "",
     role === "engineer"
@@ -434,7 +434,7 @@ async function createRoleUserPrompt(
               : "",
             role === "researcher"
               ? isResearcherSearchEnabled(commandText, mode)
-                ? "- 重要：本轮 provider 显式开启 Qwen web search。可以基于搜索工具返回的网页信息总结；只引用真实返回来源，不得编造 URL。"
+                ? "- 重要：本轮 provider 会注入 Scrapling Web Evidence，再由 DeepSeek API 整理。只能基于证据中列出的网页信息总结；只引用真实返回来源，不得编造 URL。"
                 : "- 重要：本轮没有启用联网检索。你不能声称联网搜索、不能编造 URL/来源；如需搜索，只能写“未联网检索，以下为基于已知资料的检查”。"
               : "",
             isFastTask(commandText, mode)

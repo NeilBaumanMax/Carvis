@@ -37,7 +37,7 @@ https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/api/v1/services/aigc/mu
 | writer | DeepSeek Claude Code | Claude Code CLI |
 | engineer | DeepSeek Claude Code | Claude Code CLI |
 | artist 文本规划 | `qwen3.5-omni-plus` | OpenAI-compatible |
-| researcher | `qwen-plus`（可用 `QWEN_RESEARCHER_MODEL` 覆盖） | OpenAI-compatible Chat Completions + `enable_search` |
+| researcher | `deepseek-chat`（可用 `CARVIS_DEEPSEEK_RESEARCHER_MODEL` 覆盖） | DeepSeek OpenAI-compatible Chat Completions + Scrapling web evidence |
 | artist 生图 | `qwen-image-2.0-pro` | DashScope native Qwen-Image API |
 
 路由代码：
@@ -79,8 +79,16 @@ QWEN_OPENAI_BASE_URL=https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/co
 QWEN_OPENAI_MODEL=qwen3.5-omni-plus
 QWEN_OMNI_MODEL=qwen3.5-omni-plus
 QWEN_MODEL=qwen3.5-omni-plus
-QWEN_RESEARCHER_MODEL=qwen-plus
-CARVIS_QWEN_RESEARCHER_SEARCH=1
+
+# Researcher / DeepSeek API + Scrapling
+DEEPSEEK_API_KEY=在这里填入真实DeepSeek APIKey
+DEEPSEEK_OPENAI_BASE_URL=https://api.deepseek.com
+CARVIS_DEEPSEEK_RESEARCHER_MODEL=deepseek-chat
+CARVIS_SCRAPLING_PYTHON=/home/howtion/桌面/郑州黑客松/carvis/.venv-scrapling/bin/python
+CARVIS_SCRAPLING_SEARCH=1
+CARVIS_SCRAPLING_LD_LIBRARY_PATH=/nix/store/<gcc-lib>/lib
+CARVIS_SCRAPLING_TIMEOUT_MS=45000
+CARVIS_SCRAPLING_MAX_RESULTS=6
 
 # Qwen Image / DashScope native
 QWEN_DASHSCOPE_BASE_URL=https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/api/v1
@@ -155,9 +163,15 @@ CARVIS_CLAUDE_CODE_SDK_FALLBACK=1
 
 ## 6. Researcher Web Search
 
-当前实现使用 OpenAI-compatible Chat Completions 的 `enable_search: true` 和 `search_options.forced_search`，只在 researcher 路由开启。默认 `QWEN_RESEARCHER_MODEL=qwen-plus`，可按当前阿里云账号实际可用模型覆盖。不要让 Qwen 在未开启搜索时声称已联网检索。
+当前 researcher 不再使用 Qwen web search。流程是：
 
-阿里云 Responses API 的 `web_search` / `web_extractor` / `code_interpreter` 工具只支持特定模型，例如 `qwen3.7-plus`、`qwen3.6-plus`、`qwen3.5-plus`、对应 flash 版本，以及思考模式下的 `qwen3-max`。当前代码不是 Responses API 工具调用路径；如果后续迁移到 Responses API，应同时开启 `web_search`、`web_extractor` 和 `code_interpreter`，并把 `QWEN_RESEARCHER_MODEL` 设置为官方支持工具的模型。
+1. provider worker 调用本地 Python `scrapling` 工具抓取搜索结果和页面摘要。
+2. 把 `SCRAPLING_WEB_EVIDENCE` 注入 researcher prompt。
+3. researcher 走 DeepSeek OpenAI-compatible API，根据证据做结构化整理。
+
+硬规则：researcher 只能引用 `SCRAPLING_WEB_EVIDENCE` 中列出的 URL。证据里没有的播放量、互动数、发布时间或账号信息，必须写“未在公开证据中找到”，不能补造。可以给 engineer 提供 mock/fallback 数据结构，但必须标记为模拟数据。
+
+如后续重新评估阿里云 Responses API 的 `web_search` / `web_extractor` / `code_interpreter` 工具，需要单独切换 provider 路由；当前 3.0 路线不使用 Qwen researcher。
 
 ## 7. 验证命令
 
