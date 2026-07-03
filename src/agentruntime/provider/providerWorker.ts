@@ -204,6 +204,7 @@ async function runProviderTask(task: ProviderTaskInput, onProgress: (output: str
           commandText: task.commandText,
           artistOutput: qwenResult.content,
           outputRootPath: task.outputRootPath,
+          waitFor: task.speedMode === "fast" ? "critical" : "all",
           onProgress: (message) => {
             onProgress(`provider:${task.role}: ${message}`);
           },
@@ -318,7 +319,7 @@ function shouldGenerateArtistImages(
   }
   const mode = speedMode ?? process.env.CARVIS_SPEED_MODE ?? "auto";
   if (mode === "fast") {
-    return false;
+    return /图片|图像|生图|配图|插图|视觉素材|image|asset/i.test(commandText);
   }
   if (mode !== "full" && isSimpleTask(commandText)) {
     return false;

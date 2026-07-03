@@ -93,7 +93,9 @@ await bus.publish<CommandSubmittedPayload>({
 const snapshot = runtime.getSnapshot();
 
 assertSequence(phases, [
+  "manager_planning",
   "parallel_roles_working",
+  "manager_reviewing",
   "engineer_building",
   "output_ready",
   "retaining_agents",
@@ -103,12 +105,14 @@ assert(starts.includes("writer"), "writer should start");
 assert(starts.includes("artist"), "artist should start");
 assert(starts.includes("researcher"), "researcher should start");
 assert(starts.at(-1) === "engineer", "engineer should start after parallel roles");
-assert(starts.filter((role) => role === "manager").length === 1, "manager should run once as monitor");
-assert(starts.indexOf("manager") < starts.indexOf("engineer"), "manager monitor should run before engineer");
+assert(starts.filter((role) => role === "manager").length === 2, "manager should run exactly twice");
+assert(starts[0] === "manager", "manager should write the initial task contract first");
+assert(starts.lastIndexOf("manager") < starts.indexOf("engineer"), "manager review should run before engineer");
+assert(starts.lastIndexOf("manager") > starts.indexOf("writer"), "manager review should run after employee roles start");
 assert(dones.indexOf("engineer") > dones.indexOf("writer"), "engineer should finish after writer");
 assert(dones.indexOf("engineer") > dones.indexOf("artist"), "engineer should finish after artist");
 assert(dones.indexOf("engineer") > dones.indexOf("researcher"), "engineer should finish after researcher");
-assert(dones.indexOf("manager") < dones.indexOf("engineer"), "engineer should finish after manager monitor");
+assert(dones.lastIndexOf("manager") < dones.indexOf("engineer"), "engineer should finish after manager review");
 assertSequence(shutdowns, []);
 assert(retainedCounts.some((count) => count === 5), "all five agents should be retained before shutdown");
 assertSequence(outputs, ["output/final-report.md"]);
@@ -122,6 +126,7 @@ const retryBus = createMessageBus();
 const retryAttempts = new Map<string, number>();
 const retryOutputs: string[] = [];
 const retryRuntime = createAgentRuntime(retryBus, {
+  engineerRunsAfterFailedReview: true,
   pidTaskMaxAttempts: 2,
   pidAgentPool: {
     getAgent: (role: AgentRole) => ({

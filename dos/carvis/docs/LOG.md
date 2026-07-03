@@ -2,6 +2,8 @@
 
 ## 2026-07-03 / NAS remote control and Electron HTTP API
 
+> 历史记录：本节记录 NAS 初次接入结果。当前 WiFi 入口、系统 Go、防火墙和 NAS 启动自修复状态以文末 `NAS WiFi startup hardening and documentation drift fix` 为准。
+
 ### 本轮计划回放
 
 - 新增 `carvis/nas/` 作为手机远程控制端。
@@ -1526,3 +1528,68 @@
 - GitHub 主体备份提交：`6e68339`
 - GitHub 最新备份提交：以 `origin/backup/mvp-nixos-20260702-020835` 的 HEAD 为准
 - push 状态：已推送到 `origin/backup/mvp-nixos-20260702-020835`
+
+## 2026-07-03 / NAS WiFi startup hardening and documentation drift fix
+
+### 本轮计划回放
+
+- 修正 NAS 手机端文案，让页面明确显示 WiFi 入口和 Carvis 主屏同步口径。
+- 加固 NixOS 开机后 WiFi 访问路径，避免 `carvis-nas-server` 丢失导致 `8765` 不监听。
+- 将当前真实运行状态写回文档，修正文档漂移。
+
+### 本次修改
+
+- `nas/apps/client/index.html`：文案改为“WiFi 入口 / 任务输入 / 当前输出 / 历史任务”。
+- `nas/apps/client/app.js`：状态文案改为“Carvis 主屏”，顶部 URL 显示 `WiFi <url>`，不再优先展示 `carvis.lan`。
+- NixOS `/etc/nixos/configuration.nix`：永久开放 TCP `8765` 和 `45932`，并将 `go` 纳入系统环境。
+- NixOS user service：`carvis-nas.service` 增加 `ExecStartPre=/home/howtion/.local/bin/carvis-nas-ensure-server`。
+- NixOS user service：`carvis.target` 改为 `Wants=` 四个服务，四个服务均单独 enable。
+- NixOS 生成 NAS 二进制备份：`/home/howtion/.local/bin/carvis-nas-server.backup`。
+- 更新 `README.md`、`nas/README.md`、`dos/carvis/docs/DEV_PROGRESS.md`、`dos/carvis/docs/HANDOFF.md`。
+
+### 验证结果
+
+- `sudo nixos-rebuild boot`：通过，生成 generation `24`。
+- NixOS 重启一次：通过。
+- NixOS `wlan0=192.168.135.250/24`：通过。
+- NixOS `go=/run/current-system/sw/bin/go`：通过。
+- NixOS 防火墙包含 TCP `8765` 和 `45932`：通过。
+- NixOS `systemctl --user is-enabled` 五个 Carvis units：通过。
+- NixOS `systemctl --user is-active` 五个 Carvis units：通过。
+- NixOS `ss -ltnp` 包含 `127.0.0.1:45931`、`0.0.0.0:45932`、`*:8765`：通过。
+- NixOS `GET http://192.168.135.250:8765/api/config`：通过。
+- NixOS `GET http://127.0.0.1:45932/api/health`：通过。
+
+### 测试日志
+
+- 第 1 次：`sudo nixos-rebuild switch`，卡在激活阶段，无 systemd job 运行；终止后未作为完成结果记录。
+- 第 2 次：`sudo nixos-rebuild boot`，通过，generation `24`。
+- 第 3 次：重启 NixOS 后检查 WiFi、firewall、Go、services、ports、NAS API、Electron API，全部通过。
+- 第 4 次：用户将“重启 4 次”改为“重启一次就行”，停止后续重启测试。
+
+### 测试指标判断
+
+- 本轮涉及层：NAS phone web、Electron HTTP API、NixOS user services、NixOS firewall、documentation。
+- 应执行测试：NixOS rebuild、重启验收、service/port/API 检查。
+- 实际执行测试：上述检查已执行并通过。
+- 未执行项及原因：未执行 4 次连续重启，原因是用户后续明确改为只重启一次。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 基线提交：`2fc06de725a433409077b4c13d56bfed04c9ba3b`
+- 备份分支：`origin/backup/mvp-nixos-20260702-020835`
+- 本轮提交：未提交。
+- push 状态：未 push，原因是工作区已有早前 agentruntime / image MCP 未提交改动，本轮只做漂移修正和远端配置加固。
+
+### 回滚判断
+
+- 是否需要回滚：否。
+- NixOS 配置回滚点：`/etc/nixos/configuration.nix.bak.carvis-wifi-hardening-20260703-181914`。
+- 远端 user service 回滚：移除 `~/.config/systemd/user/carvis-nas.service.d/10-ensure-server.conf` 和 WiFi URL drop-ins 后 `systemctl --user daemon-reload && systemctl --user restart carvis.target`。
+- 文档回滚：使用 Git 对本轮文档文件做普通反向补丁或后续提交后 `git revert`。
+
+### 下一步
+
+- 如需提交，先将 NAS 文案/文档与 agentruntime 未提交改动拆分处理。
+- 如需把远端手工 service drop-in 工程化，更新 `src/setup/systemd.ts` 和相关 smoke。

@@ -122,7 +122,7 @@ export class AgentRuntime {
     this.currentRun = run;
 
     try {
-      await this.bus.publish<RunCreatedPayload>({
+      await this.publishEvent<RunCreatedPayload>({
         type: "run.created",
         source: "agentruntime",
         target: "electron",
@@ -135,8 +135,15 @@ export class AgentRuntime {
       });
 
       await this.publishHeartbeat();
+      await this.changePhase("manager_planning");
+      await this.runRole(MANAGER_ROLE, command.commandText);
       await this.changePhase("parallel_roles_working");
-      await Promise.all([MANAGER_ROLE, ...PARALLEL_ROLES].map((role) => this.runRole(role, command.commandText)));
+      await Promise.all(PARALLEL_ROLES.map((role) => this.runRole(role, command.commandText)));
+      await this.changePhase("manager_reviewing");
+      const managerReview = await this.runRole(MANAGER_ROLE, command.commandText);
+      if (managerReview?.gatePassed === false && this.options.engineerRunsAfterFailedReview !== true) {
+        throw new Error("manager review did not pass");
+      }
       await this.changePhase("engineer_building");
       await this.runRole(ENGINEER_ROLE, command.commandText);
       await this.changePhase("output_ready");
@@ -146,7 +153,7 @@ export class AgentRuntime {
       console.error(
         `[agentruntime] run failed requestId=${run.requestId} error=${error instanceof Error ? error.message : String(error)}`,
       );
-      await this.bus.publish<AgentOutputPayload>({
+      await this.publishEvent<AgentOutputPayload>({
         type: "agent.output",
         source: "agentruntime",
         target: "electron",
@@ -356,13 +363,19 @@ export class AgentRuntime {
     agent.lastHeartbeatAt = new Date().toISOString();
 
     if (eventType === "agent.output") {
+      const run = this.currentRun;
+
+      if (run === undefined) {
+        return;
+      }
+
       agent.lastOutputAt = agent.lastHeartbeatAt;
-      await this.bus.publish<AgentOutputPayload>({
+      await this.publishEvent<AgentOutputPayload>({
         type: "agent.output",
         source: "agentruntime",
         target: "electron",
-        requestId: this.mustCurrentRun().requestId,
-        runId: this.mustCurrentRun().runId,
+        requestId: run.requestId,
+        runId: run.runId,
         agentId: agent.agentId,
         payload: {
           stream: "system",
@@ -399,7 +412,7 @@ export class AgentRuntime {
     run.phase = phase;
     run.updatedAt = new Date().toISOString();
 
-    await this.bus.publish<RunPhaseChangedPayload>({
+    await this.publishEvent<RunPhaseChangedPayload>({
       type: "run.phase.changed",
       source: "agentruntime",
       target: "electron",
@@ -415,7 +428,7 @@ export class AgentRuntime {
     const run = this.mustCurrentRun();
     const output = await this.createOutputReadyPayload(commandText);
 
-    await this.bus.publish<OutputReadyPayload>({
+    await this.publishEvent<OutputReadyPayload>({
       type: "output.ready",
       source: "agentruntime",
       target: "electron",
@@ -446,7 +459,7 @@ export class AgentRuntime {
   ): Promise<void> {
     const run = this.currentRun;
 
-    await this.bus.publish<AgentLifecyclePayload>({
+    await this.publishEvent<AgentLifecyclePayload>({
       type,
       source: "agentruntime",
       target: "electron",
@@ -465,7 +478,7 @@ export class AgentRuntime {
   private async publishHeartbeat(): Promise<void> {
     const run = this.currentRun;
 
-    await this.bus.publish<RuntimeHeartbeatPayload>({
+    await this.publishEvent<RuntimeHeartbeatPayload>({
       type: "runtime.heartbeat",
       source: "agentruntime",
       target: "electron",
@@ -486,6 +499,18 @@ export class AgentRuntime {
     };
   }
 
+  private async publishEvent<TPayload>(event: Parameters<MessageBus["publish"]>[0] & { payload?: TPayload }): Promise<void> {
+    try {
+      await this.bus.publish(event);
+    } catch (error) {
+      if (isMessageBusClosedError(error)) {
+        return;
+      }
+
+      throw error;
+    }
+  }
+
   private mustCurrentRun(): RunState {
     if (this.currentRun === undefined) {
       throw new Error("expected active run");
@@ -493,6 +518,12 @@ export class AgentRuntime {
 
     return this.currentRun;
   }
+}
+
+function isMessageBusClosedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return /messagebus is closed/i.test(message);
 }
 
 export function createAgentRuntime(bus: MessageBus, options?: AgentRuntimeOptions): AgentRuntime {

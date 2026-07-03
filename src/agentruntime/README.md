@@ -7,21 +7,21 @@ Current scope is the real provider runtime used on NixOS. It can still run deter
 The active run sequence is:
 
 ```text
-created -> parallel_roles_working -> engineer_building -> output_ready -> retaining_agents
+created -> manager_planning -> parallel_roles_working -> manager_reviewing -> engineer_building -> output_ready -> retaining_agents
 ```
 
-`manager_planning` and `manager_reviewing` remain in shared types and helper code for compatibility with older run records and smokes, but the current production flow does not enter a second manager review gate.
+`manager_planning` writes the initial task contract once. `manager_reviewing` writes one compressed handoff/review after writer, artist, and researcher finish. It is not a repeating letter loop.
 
 ## Responsibilities
 
 - Subscribe to `command.submitted` from messagebus.
 - Create run state and a task queue.
 - Prewarm retained provider workers. `writer` and `engineer` share one worker key so engineer can resume the writer Claude Code session only within the same non-fast/simple run; UI lifecycle events remain separate, and new runs/fast tasks are isolated from previous Claude sessions.
-- Run `manager`, `writer`, `artist`, and `researcher` in parallel; then run `engineer`. Manager runs once as a scope/monitor role and writes handoff material for engineer; it is not a repeating letter loop.
+- Run `manager` once, then `writer`, `artist`, and `researcher` in parallel, then `manager` once for the engineer handoff, then `engineer`.
 - Apply per-command speed mode from Electron/NAS: `fast`, `auto`, or `full`.
 - Retain provider PID agents after each role finishes.
 - Publish heartbeat and lifecycle events through messagebus.
-- Shutdown all retained PID Agents at the end of a run.
+- Keep retained provider workers warm after a run so the next command can start quickly; shutdown only happens when the service stops.
 - Write each role's public `result.md`, layered handoff files, and provider `usage.json` when metadata is available.
 
 ## Boundaries
@@ -29,7 +29,7 @@ created -> parallel_roles_working -> engineer_building -> output_ready -> retain
 - AgentRuntime does not render UI.
 - AgentRuntime does not bypass messagebus.
 - AgentRuntime does not make browser-window decisions; Electron opens the produced output.
-- AgentRuntime does not treat manager as a second review gate; engineer owns audit, merge, and production.
+- AgentRuntime does not let manager loop or repeatedly write letters; engineer owns final audit, merge, and production after the single manager review/handoff.
 - AgentRuntime does not assume model-side browsing is trustworthy. Researcher web search is only valid when Scrapling evidence is injected; otherwise researcher must mark facts as not found or unverified.
 
 ## Speed Modes
@@ -42,17 +42,20 @@ created -> parallel_roles_working -> engineer_building -> output_ready -> retain
 
 The UI still shows all five roles and the same envelope/progress sequence. Speed mode changes provider prompts, retry counts, quality thresholds, and image trigger policy.
 
+Artist image generation first emits a fixed plan (`PLANNED_IMAGE_ASSETS`) with stable `assets/artist-*.png` paths. Full mode waits for all planned images. Fast mode only triggers images when the command explicitly asks for them, returns after the first critical image, and lets remaining planned filenames resolve when background jobs land.
+
 ## Current smoke coverage
 
 `npm run agentruntime:smoke` verifies:
 
 - Electron-style `command.submitted` starts one run;
-- manager, writer, artist, and researcher start in the parallel phase;
-- manager runs once as a monitor/scope role, not as a second review gate;
+- manager writes the initial task contract before employee roles;
+- writer, artist, and researcher start in the parallel phase;
+- manager runs exactly one review/handoff before engineer;
 - engineer starts after the parallel roles and performs audit, conflict merge, and production together;
 - `pidagent:smoke` verifies that `writer` and `engineer` can share a retained provider worker PID;
 - heartbeat contains PID pool counts and queue depth;
-- all retained PID Agents are shutdown at final cleanup.
+- all five visible roles can be retained after the run.
 
 ## Runtime Artifacts
 

@@ -142,9 +142,11 @@ CARVIS_CLAUDE_CODE_SDK_FALLBACK=1
 
 1. Artist 先用 Qwen 文本模型输出视觉规划。
 2. `artistImageMcp` 根据用户任务和 artist 输出生成短 JSON 图片计划。
-3. `qwenImage` 并发生成 1-6 张图片，默认并发由 `CARVIS_QWEN_IMAGE_CONCURRENCY` 控制，兼容旧变量 `CARVIS_ARTIST_IMAGE_CONCURRENCY`。
-4. 图片写入本次 `output/runs/<run>/assets/artist-*.png`。
-5. Engineer prompt 只允许使用本轮真实 `assets/artist-*` 图片路径，不采信 writer/researcher 虚拟资产名。
+3. `artistImageMcp` 先输出稳定计划，包含 `PLANNED_IMAGE_ASSETS` 和提前固定的 `assets/artist-*.png` 文件名。
+4. `qwenImage` 并发生成 1-6 张图片，默认并发 2，由 `CARVIS_QWEN_IMAGE_CONCURRENCY` 控制，兼容旧变量 `CARVIS_ARTIST_IMAGE_CONCURRENCY`。
+5. `full` 模式等待全部计划图片完成；`fast` 模式只在用户明确要求图片时触发，并在首张关键图完成后返回，剩余图片继续按固定文件名落盘。
+6. 图片写入本次 `output/runs/<run>/assets/artist-*.png`。
+7. Engineer prompt 必须优先使用本轮 `PLANNED_IMAGE_ASSETS`/`GENERATED_IMAGE_ASSETS` 中的本地路径，不采信 writer/researcher 虚拟资产名。
 
 图片比例和背景规则：
 
@@ -157,8 +159,15 @@ CARVIS_CLAUDE_CODE_SDK_FALLBACK=1
 
 ```text
 ## ARTIST_IMAGE_MCP_PLAN
+## PLANNED_IMAGE_ASSETS
 ## GENERATED_IMAGE_ASSETS
 ## ARTIST_IMAGE_MCP_SELF_REVIEW
+```
+
+运行中心跳会包含 planned/active/completed/failed/retrying，例如：
+
+```text
+artist images: planned 3, 2 active, 1/3 completed, 0 failed, 0 retrying, elapsed 42s
 ```
 
 ## 6. Researcher Web Search

@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 
 export interface QwenImageAsset {
   label: string;
@@ -13,6 +13,15 @@ export interface QwenImageOptions {
   label: string;
   outputDir?: string;
   timeoutMs?: number;
+  onRetry?: (event: QwenImageRetryEvent) => void;
+}
+
+export interface QwenImageRetryEvent {
+  attempt: number;
+  nextAttempt: number;
+  delayMs: number;
+  error: string;
+  state: "start" | "end";
 }
 
 export async function generateQwenImageAsset(options: QwenImageOptions): Promise<QwenImageAsset> {
@@ -29,7 +38,22 @@ export async function generateQwenImageAsset(options: QwenImageOptions): Promise
         break;
       }
 
-      await sleep(readImageRetryDelayMs(env, attempt));
+      const delayMs = readImageRetryDelayMs(env, attempt);
+      const retryEvent = {
+        attempt,
+        nextAttempt: attempt + 1,
+        delayMs,
+        error: error instanceof Error ? error.message : String(error),
+      };
+      options.onRetry?.({
+        ...retryEvent,
+        state: "start",
+      });
+      await sleep(delayMs);
+      options.onRetry?.({
+        ...retryEvent,
+        state: "end",
+      });
     }
   }
 
@@ -108,8 +132,7 @@ async function generateQwenImageAssetOnce(options: QwenImageOptions): Promise<Qw
     }
 
     await mkdir(outputDir, { recursive: true });
-    const extension = imageExtensionFromUrl(imageUrl);
-    const path = join(outputDir, `${safeFilename(options.label)}${extension}`);
+    const path = join(outputDir, `${safeFilename(options.label)}.png`);
     const buffer = Buffer.from(await imageResponse.arrayBuffer());
 
     await writeFile(path, buffer);
@@ -183,14 +206,6 @@ function safeFilename(value: string): string {
     .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
-}
-
-function imageExtensionFromUrl(url: string): string {
-  const path = new URL(url).pathname;
-  const name = basename(path);
-  const match = /\.(png|jpg|jpeg|webp)$/i.exec(name);
-
-  return match?.[0].toLowerCase() ?? ".png";
 }
 
 function readPositiveInteger(value: string | undefined, fallback: number): number {

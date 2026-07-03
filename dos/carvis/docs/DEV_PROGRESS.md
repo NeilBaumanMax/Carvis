@@ -1,6 +1,68 @@
 # Carvis Development Progress
 
+## 2026-07-03 / NAS WiFi startup hardening and copy drift fix / 记录
+
+### 本轮目标
+
+- 修正 NAS 手机端文案，使页面明确显示 WiFi 入口和 Carvis 主屏同步口径。
+- 加固 NixOS 开机后 WiFi 访问路径，避免断电/重启后 `8765` 不监听或地址显示错误。
+- 将当前真实运行状态写回文档，修正文档漂移。
+
+### 涉及层
+
+- `nas/apps/client`
+- `nas/apps/server`
+- `01-electron`
+- NixOS user services / firewall
+- 接力文档与 README
+
+### 本次完成
+
+- 手机端文案已统一：
+  - 顶部显示“WiFi 入口”。
+  - 输入区显示“任务输入”。
+  - 输出区显示“当前输出”。
+  - 历史区显示“历史任务”。
+  - 同步状态使用“Carvis 主屏”，不再直接写 Electron。
+- 远端运行目录 `/home/howtion/carvis-remote-smoke/nas/apps/client/` 已同步新文案。
+- NixOS WiFi URL 固定为 `http://192.168.135.250:8765`。
+- NixOS `networking.firewall.allowedTCPPorts` 已配置 `[ 8765 45932 ]`。
+- NixOS `environment.systemPackages` 已增加 `go`。
+- `carvis-nas.service` 新增启动前自修复脚本 `/home/howtion/.local/bin/carvis-nas-ensure-server`：
+  - 二进制存在且新于 source 时直接启动。
+  - 有系统 `go` 时自动 rebuild。
+  - 如 rebuild 不可用，回退到 `/home/howtion/.local/bin/carvis-nas-server.backup`。
+- `carvis.target` 改为 `Wants=` 四个服务，并单独 enable 四个 service，避免 NAS 短暂自修复重启导致 target dependency failed。
+- `sudo nixos-rebuild boot` 已生成 generation `24`。
+
+### 当前验证
+
+- NixOS 重启一次后 generation `24` 为 current。
+- `go` 路径：`/run/current-system/sw/bin/go`。
+- `wlan0`：`192.168.135.250/24`。
+- 防火墙规则包含 TCP `8765` 和 `45932`。
+- `carvis.target`、`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`、`carvis-nas.service` 均 enabled/active。
+- 监听端口：
+  - `127.0.0.1:45931`
+  - `0.0.0.0:45932`
+  - `*:8765`
+- `GET http://192.168.135.250:8765/api/config`：通过，返回 `publicUrl=http://192.168.135.250:8765`。
+- `GET http://127.0.0.1:45932/api/health`：通过。
+
+### 未完成
+
+- 用户最初要求 4 次重启，随后改为只重启 1 次；因此本轮只记录 1 次重启验收。
+- 本轮没有 push。工作区仍有早前 agentruntime / image MCP 未提交修改。
+
+### 下次优先任务
+
+1. 如需工程化持久化 `carvis.target Wants=` 和 NAS `ExecStartPre`，更新 `src/setup/systemd.ts`。
+2. 如需安全加固，给 `45932`/`8765` 加 token 或 WiFi 网段限制。
+3. 分开提交 NAS 文案/文档与 agentruntime 未提交改动，避免混合提交。
+
 ## 2026-07-03 / NAS remote control and Electron HTTP API / 开工计划
+
+> 历史记录：本节记录的是 NAS 初次接入时的状态。当前 WiFi 入口、系统 Go、防火墙和开机自修复状态以上方 `NAS WiFi startup hardening and copy drift fix` 记录为准。
 
 ### 本轮目标
 

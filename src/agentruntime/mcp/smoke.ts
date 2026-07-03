@@ -1,4 +1,4 @@
-import { callArtistImageMcp, createAssetRenderingRules } from "./artistImageMcp.js";
+import { callArtistImageMcp, createAssetRenderingRules, renderArtistImageMcpAssets } from "./artistImageMcp.js";
 
 await assertRejects(
   () =>
@@ -33,6 +33,61 @@ assert(
 );
 assert(backgroundRules.join("\n").includes("横向 16:9"), "background assets should request wide composition");
 assert(uiRules.join("\n").includes("不要默认正方形"), "UI assets should avoid default square composition");
+
+const renderedAssets = renderArtistImageMcpAssets({
+  assets: [
+    {
+      label: "artist-hero",
+      path: "output/runs/example/assets/artist-hero.png",
+      url: "https://example.test/artist-hero",
+    },
+  ],
+  plan: {
+    styleRules: ["clean"],
+    assets: [
+      {
+        label: "artist-hero",
+        purpose: "首屏主视觉",
+        prompt: "hero",
+      },
+      {
+        label: "artist-icon-main",
+        purpose: "主图标",
+        prompt: "icon",
+      },
+    ],
+    reviewChecklist: ["fixed names"],
+  },
+  review: "ok",
+});
+
+assert(renderedAssets.includes("## PLANNED_IMAGE_ASSETS"), "rendered assets should list fixed planned filenames");
+assert(renderedAssets.includes("assets/artist-hero.png"), "rendered assets should include generated fixed filename");
+assert(
+  renderedAssets.includes("assets/artist-icon-main.png"),
+  "rendered assets should include not-yet-generated planned filename",
+);
+
+const plannedOnlyAssets = renderArtistImageMcpAssets({
+  assets: [],
+  plan: {
+    styleRules: ["clean"],
+    assets: [
+      {
+        label: "artist-planned-only",
+        purpose: "后台补图占位",
+        prompt: "planned",
+      },
+    ],
+    reviewChecklist: ["fixed names"],
+  },
+  review: "pending",
+});
+
+assert(
+  plannedOnlyAssets.includes("assets/artist-planned-only.png"),
+  "rendered assets should preserve planned filenames even before generated assets exist",
+);
 
 console.log("[artist-image-mcp:smoke] ok");
 

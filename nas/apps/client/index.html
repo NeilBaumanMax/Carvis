@@ -11,34 +11,34 @@
     <header class="wood-header">
       <div class="brand-card">Carvis</div>
       <div class="net-card">
-        <span>远程控制</span>
+        <span>WiFi 入口</span>
         <strong id="publicUrl">检测中...</strong>
       </div>
     </header>
 
     <section class="panel input-panel">
-      <h1>输入栏</h1>
+      <h1>任务输入</h1>
       <div class="speed-mode-group" aria-label="协同速度模式">
         <button class="speed-mode" data-speed-mode="fast" type="button">fast</button>
         <button class="speed-mode active" data-speed-mode="auto" type="button">auto</button>
         <button class="speed-mode" data-speed-mode="full" type="button">full</button>
       </div>
       <div class="task-row">
-        <textarea id="taskInput" rows="3" placeholder="请输入内容..."></textarea>
+        <textarea id="taskInput" rows="3" placeholder="输入任务内容..."></textarea>
         <button id="submitButton" type="button" aria-label="开始协同">启动</button>
       </div>
-      <p id="draftStatus" class="status-line">输入会实时浮现在 Electron 上。</p>
+      <p id="draftStatus" class="status-line">同一 WiFi 下会实时同步到 Carvis 主屏。</p>
     </section>
 
     <section class="panel output-panel">
-      <h2>Output</h2>
+      <h2>当前输出</h2>
       <div id="outputBox" class="output-box">
-        <p class="muted">等待输出结果...</p>
+        <p class="muted">等待任务输出...</p>
       </div>
     </section>
 
     <section class="panel history-panel">
-      <h2>历史栏</h2>
+      <h2>历史任务</h2>
       <div id="historyList" class="history-list"></div>
     </section>
   </main>

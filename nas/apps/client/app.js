@@ -21,7 +21,7 @@ function init() {
   input.addEventListener('input', () => {
     window.clearTimeout(draftTimer);
     const text = input.value;
-    showDraftStatus('正在同步到 Electron...');
+    showDraftStatus('正在同步到 Carvis 主屏...');
     draftTimer = window.setTimeout(() => sendDraft(text), 120);
   });
 
@@ -52,16 +52,17 @@ function renderSpeedMode() {
 async function loadConfig() {
   try {
     const config = await fetchJSON('/api/config');
-    publicUrl.textContent = config.publicUrl || config.nginxUrl || location.href;
+    const url = config.publicUrl || location.href;
+    publicUrl.textContent = `WiFi ${url}`;
   } catch (error) {
-    publicUrl.textContent = location.href;
+    publicUrl.textContent = `WiFi ${location.href}`;
   }
 }
 
 async function sendDraft(text) {
   try {
     await postJSON('/api/input', { text });
-    showDraftStatus('已同步到 Electron');
+    showDraftStatus('已同步到 Carvis 主屏');
   } catch (error) {
     showDraftStatus(`同步失败：${error.message}`);
   }
@@ -98,7 +99,7 @@ async function refreshState() {
     }
     renderOutput(latest);
   } catch (error) {
-    outputBox.innerHTML = `<p class="muted">Electron 未连接：${escapeHTML(error.message)}</p>`;
+    outputBox.innerHTML = `<p class="muted">Carvis 主屏未连接：${escapeHTML(error.message)}</p>`;
   }
 }
 
@@ -123,7 +124,7 @@ function renderOutputEmpty() {
     `;
     return;
   }
-  outputBox.innerHTML = '<p class="muted">等待输出结果...</p>';
+  outputBox.innerHTML = '<p class="muted">等待任务输出...</p>';
 }
 
 function renderOutput(output) {

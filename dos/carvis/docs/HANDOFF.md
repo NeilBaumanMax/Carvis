@@ -60,7 +60,96 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-03 / NAS WiFi startup hardening / 接力记录
+
+### 当前状态
+
+- NixOS 当前 WiFi 地址：`192.168.135.250/24`。
+- 手机/同 WiFi 设备应打开：`http://192.168.135.250:8765`。
+- NixOS 当前 generation：`24`，路径 `/nix/store/r6smvrwi88vfrgm9rzxxmnldm9qk44b7-nixos-system-nixos-25.11.9418.c7f47036d3df`。
+- `go` 已纳入 NixOS 系统环境，当前路径：`/run/current-system/sw/bin/go`。
+- NixOS 防火墙永久放行：
+  - TCP `8765`：NAS 手机网页。
+  - TCP `45932`：Electron HTTP API。
+- user linger 已启用：`loginctl show-user howtion -p Linger` 返回 `Linger=yes`。
+- `carvis.target`、`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`、`carvis-nas.service` 均 enabled。
+- `carvis.target` 已改为 `Wants=` 四个服务，避免 NAS 首次自修复重启时把 target 标成 dependency failed。
+- `carvis-nas.service` 有 drop-in：
+  - `10-ensure-server.conf`：启动前执行 `/home/howtion/.local/bin/carvis-nas-ensure-server`。
+  - `20-lan-url.conf`：固定 `CARVIS_NAS_PUBLIC_URL=http://192.168.135.250:8765`。
+  - `30-client-dir.conf`：固定 `CARVIS_LAN_IP=192.168.135.250` 和 client 目录。
+- NAS 二进制备份：`/home/howtion/.local/bin/carvis-nas-server.backup`。
+
+### 本轮完成
+
+- 修正 NAS 手机端文案：
+  - “远程控制”改为“WiFi 入口”。
+  - “输入栏”改为“任务输入”。
+  - “Output”改为“当前输出”。
+  - “历史栏”改为“历史任务”。
+  - 同步状态改为“Carvis 主屏”，避免暴露 Electron 内部名。
+- 同步 `nas/apps/client/index.html` 和 `nas/apps/client/app.js` 到 NixOS 运行目录。
+- 修复开机后 `carvis-nas-server` 丢失导致 `8765` 不监听的问题。
+- 将 NixOS `networking.firewall.allowedTCPPorts` 改为 `[ 8765 45932 ]`。
+- 将 NixOS `environment.systemPackages` 增加 `go`。
+- 执行 `sudo nixos-rebuild boot` 成功生成 generation `24`。
+- 重启 NixOS 后验收 WiFi、端口、防火墙、服务和 URL。
+
+### 未完成
+
+- 用户原计划要求“重启 4 次测试通用程度”，后续用户改为“重启一次就行”，因此只完成 1 次重启验收。
+- 本轮没有提交或 push；工作区仍有早前 agentruntime / image MCP 未提交改动，不能把本轮标成完整 GitHub 收尾。
+
+### 下次优先任务
+
+1. 如果要继续工程收尾，先处理当前工作区未提交改动，避免 NAS 文案和 agentruntime 改动混在一个提交。
+2. 如需再验收手机实机，直接在同 WiFi 设备打开 `http://192.168.135.250:8765`。
+3. 如需把 `carvis.target` 的 `Wants=` 变更纳入项目生成器，更新 `src/setup/systemd.ts` 并补 smoke。
+
+### 必读文档
+
+- `nas/README.md`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+
+### 关键文件
+
+- `nas/apps/client/index.html`
+- `nas/apps/client/app.js`
+- `nas/README.md`
+- NixOS `/etc/nixos/configuration.nix`
+- NixOS `/home/howtion/.local/bin/carvis-nas-ensure-server`
+- NixOS `/home/howtion/.config/systemd/user/carvis-nas.service.d/*.conf`
+- NixOS `/home/howtion/.config/systemd/user/carvis-electron.service.d/20-lan-url.conf`
+- NixOS `/home/howtion/.config/systemd/user/carvis.target`
+
+### 测试基线
+
+- NixOS `sudo nixos-rebuild boot`：通过，generation `24`。
+- NixOS 重启一次后 WiFi `wlan0=192.168.135.250/24`：通过。
+- NixOS 防火墙 `iptables -S` 包含 TCP `8765` 和 `45932`：通过。
+- NixOS `ss -ltnp` 包含 `127.0.0.1:45931`、`0.0.0.0:45932`、`*:8765`：通过。
+- NixOS `GET http://192.168.135.250:8765/api/config`：通过。
+- NixOS `GET http://127.0.0.1:45932/api/health`：通过。
+- NixOS `systemctl --user is-active` 五个 Carvis units：通过。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：`2fc06de725a433409077b4c13d56bfed04c9ba3b`
+- 已 push：本轮否。
+- 备份分支：`origin/backup/mvp-nixos-20260702-020835`
+
+### 风险提醒
+
+- 不要把真实 API Key 或 `/home/howtion/.config/carvis/agentruntime.env` 写入仓库。
+- `45932` 对同网段开放；如进入不可信网络，应增加 token 或网段限制。
+- 当前远端 user service 配置有手工修改，若重新运行 setup installer，需确认不会覆盖 `ExecStartPre` 和 WiFi URL drop-ins。
+
 ## 2026-07-03 / NAS remote control and Electron HTTP API / 接力记录
+
+> 历史记录：本节中的 `192.168.137.59:8765`、临时 Go 工具链和 `carvis.target Requires=` 描述已被上方 `NAS WiFi startup hardening` 记录覆盖。当前手机入口以 `http://192.168.135.250:8765` 为准。
 
 ### 当前状态
 

@@ -7,6 +7,7 @@ export interface ArtistImageMcpRequest {
   commandText: string;
   artistOutput: string;
   outputRootPath?: string;
+  waitFor?: "all" | "critical";
   onProgress?: (message: string) => void;
 }
 
@@ -50,51 +51,21 @@ export async function callArtistImageMcp(request: ArtistImageMcpRequest): Promis
     active: 0,
     completed: 0,
     failed: 0,
+    retrying: 0,
     startedAt: Date.now(),
   };
   const reportProgress = () => {
     const elapsedSeconds = Math.max(1, Math.round((Date.now() - progress.startedAt) / 1000));
     request.onProgress?.(
-      `artist images: ${progress.active} active, ${progress.completed}/${plan.assets.length} completed, ${progress.failed} failed, elapsed ${elapsedSeconds}s`,
+      `artist images: planned ${plan.assets.length}, ${progress.active} active, ${progress.completed}/${plan.assets.length} completed, ${progress.failed} failed, ${progress.retrying} retrying, elapsed ${elapsedSeconds}s`,
     );
   };
-  const assets = await mapWithConcurrency(plan.assets, concurrency, async (item, index) => {
-    progress.active += 1;
-    request.onProgress?.(`artist-image-mcp: generating ${index + 1}/${plan.assets.length} ${item.label}`);
-    reportProgress();
-    const renderingRules = createAssetRenderingRules(item);
-    try {
-      const asset = await generateQwenImageAsset({
-        label: item.label,
-        prompt: [
-          "你是游戏 artist 的生图工具。根据主管要求和 artist 视觉稿生成可直接用于游戏的图片资产。",
-          "通用规则：原创、可商用风格、不要真实公众人物肖像、不要受版权保护角色、不要复刻现有作品画面、不要文字密集。",
-          `资产用途：${item.purpose}`,
-          "资产渲染规则：",
-          ...renderingRules.map((rule) => `- ${rule}`),
-          "统一风格规则：",
-          ...plan.styleRules.map((rule) => `- ${rule}`),
-          "具体生图提示词：",
-          item.prompt,
-        ].join("\n"),
-        outputDir: request.outputRootPath === undefined ? "output/assets" : `${request.outputRootPath}/assets`,
-      });
-      progress.completed += 1;
-      request.onProgress?.(`artist-image-mcp: generated ${index + 1}/${plan.assets.length} ${asset.path}`);
-      return asset;
-    } catch (error) {
-      progress.failed += 1;
-      request.onProgress?.(
-        `artist-image-mcp: failed ${index + 1}/${plan.assets.length} ${item.label}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-      throw error;
-    } finally {
-      progress.active -= 1;
-      reportProgress();
-    }
-  });
+  const worker = (item: ArtistImagePlan["assets"][number], index: number) =>
+    generatePlannedAsset(request, plan, progress, reportProgress, item, index);
+  const assets =
+    request.waitFor === "critical"
+      ? await runCriticalImageJobs(plan.assets, concurrency, worker, request.onProgress)
+      : await mapWithConcurrency(plan.assets, concurrency, worker);
 
   return {
     assets,
@@ -126,7 +97,7 @@ async function mapWithConcurrency<T, R>(
 }
 
 export function renderArtistImageMcpAssets(result: ArtistImageMcpResult): string {
-  if (result.assets.length === 0) {
+  if (result.plan.assets.length === 0) {
     return "";
   }
 
@@ -138,7 +109,11 @@ export function renderArtistImageMcpAssets(result: ArtistImageMcpResult): string
     ...result.plan.styleRules.map((rule) => `- ${rule}`),
     "",
     "### Planned Assets",
-    ...result.plan.assets.map((asset) => `- ${asset.label}: ${asset.purpose}`),
+    ...result.plan.assets.map((asset) => `- ${asset.label}: ${asset.purpose} -> assets/${safeLabel(asset.label, 0)}.png`),
+    "",
+    "## PLANNED_IMAGE_ASSETS",
+    "",
+    ...result.plan.assets.map((asset) => `- ${asset.label}: assets/${safeLabel(asset.label, 0)}.png`),
     "",
     "## GENERATED_IMAGE_ASSETS",
     "",
@@ -150,6 +125,105 @@ export function renderArtistImageMcpAssets(result: ArtistImageMcpResult): string
     "",
     "这些图片由 artist-image-mcp 生成。Engineer 必须在最终 HTML 中使用这些本地图片资产；从 output/game-preview.html 引用时使用相对路径 assets/文件名。",
   ].join("\n");
+}
+
+async function generatePlannedAsset(
+  request: ArtistImageMcpRequest,
+  plan: ArtistImagePlan,
+  progress: { active: number; completed: number; failed: number; retrying: number; startedAt: number },
+  reportProgress: () => void,
+  item: ArtistImagePlan["assets"][number],
+  index: number,
+): Promise<QwenImageAsset> {
+  progress.active += 1;
+  request.onProgress?.(`artist-image-mcp: generating ${index + 1}/${plan.assets.length} ${item.label}`);
+  reportProgress();
+  const renderingRules = createAssetRenderingRules(item);
+  try {
+    const asset = await generateQwenImageAsset({
+      label: item.label,
+      prompt: [
+        "你是游戏 artist 的生图工具。根据主管要求和 artist 视觉稿生成可直接用于游戏的图片资产。",
+        "通用规则：原创、可商用风格、不要真实公众人物肖像、不要受版权保护角色、不要复刻现有作品画面、不要文字密集。",
+        `资产用途：${item.purpose}`,
+        "资产渲染规则：",
+        ...renderingRules.map((rule) => `- ${rule}`),
+        "统一风格规则：",
+        ...plan.styleRules.map((rule) => `- ${rule}`),
+        "具体生图提示词：",
+        item.prompt,
+      ].join("\n"),
+      outputDir: request.outputRootPath === undefined ? "output/assets" : `${request.outputRootPath}/assets`,
+      onRetry: (event) => {
+        if (event.state === "start") {
+          progress.retrying += 1;
+          request.onProgress?.(
+            `artist-image-mcp: retrying ${index + 1}/${plan.assets.length} ${item.label} attempt ${event.nextAttempt} after ${event.delayMs}ms: ${event.error}`,
+          );
+        } else {
+          progress.retrying = Math.max(0, progress.retrying - 1);
+        }
+        reportProgress();
+      },
+    });
+    progress.completed += 1;
+    request.onProgress?.(`artist-image-mcp: generated ${index + 1}/${plan.assets.length} ${asset.path}`);
+    return asset;
+  } catch (error) {
+    progress.failed += 1;
+    request.onProgress?.(
+      `artist-image-mcp: failed ${index + 1}/${plan.assets.length} ${item.label}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+    throw error;
+  } finally {
+    progress.active -= 1;
+    reportProgress();
+  }
+}
+
+async function runCriticalImageJobs<T extends QwenImageAsset>(
+  items: ArtistImagePlan["assets"],
+  concurrency: number,
+  worker: (item: ArtistImagePlan["assets"][number], index: number) => Promise<T>,
+  onProgress: ((message: string) => void) | undefined,
+): Promise<T[]> {
+  const results: T[] = [];
+  let nextIndex = 0;
+  let finished = 0;
+  let resolveFirst: (assets: T[]) => void = () => undefined;
+  const firstCompleted = new Promise<T[]>((resolve) => {
+    resolveFirst = resolve;
+  });
+  const workerCount = Math.max(1, Math.min(concurrency, items.length));
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      try {
+        const asset = await worker(items[index] as ArtistImagePlan["assets"][number], index);
+        results.push(asset);
+        if (results.length === 1) {
+          onProgress?.("artist-image-mcp: critical image ready; remaining images continue in background");
+          resolveFirst([...results]);
+        }
+      } catch {
+        // Individual failures are already reported by the worker.
+      } finally {
+        finished += 1;
+        if (finished === items.length && results.length === 0) {
+          resolveFirst([]);
+        }
+      }
+    }
+  });
+
+  void Promise.all(workers).then(() => {
+    onProgress?.(`artist-image-mcp: background image jobs completed ${results.length}/${items.length}`);
+  });
+
+  return firstCompleted;
 }
 
 async function createArtistImagePlan(request: ArtistImageMcpRequest): Promise<ArtistImagePlan> {
