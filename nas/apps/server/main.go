@@ -39,6 +39,7 @@ type Config struct {
 type DraftPayload struct {
 	Text      string `json:"text"`
 	RequestID string `json:"requestId,omitempty"`
+	SpeedMode string `json:"speedMode,omitempty"`
 }
 
 type HistoryEntry struct {

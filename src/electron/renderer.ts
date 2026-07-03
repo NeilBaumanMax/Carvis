@@ -36,7 +36,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("carvis", {
   getState: () => ipcRenderer.invoke("carvis:get-state"),
-  submitCommand: (commandText) => ipcRenderer.invoke("carvis:submit-command", commandText),
+  submitCommand: (commandText, options) => ipcRenderer.invoke("carvis:submit-command", commandText, options),
   openOutput: (outputPath) => ipcRenderer.invoke("carvis:open-output", outputPath),
   onState: (listener) => {
     const wrapped = (_event, state) => listener(state);

@@ -16,6 +16,7 @@ await runComponentMain({
     if (process.env.CARVIS_ELECTRON_SUBMIT_ON_START !== undefined) {
       await shell.submitCommand(process.env.CARVIS_ELECTRON_SUBMIT_ON_START, {
         requestId: process.env.CARVIS_ELECTRON_REQUEST_ID,
+        speedMode: readSpeedMode(process.env.CARVIS_SPEED_MODE),
       });
       console.log("[electron] submitted startup command");
     }
@@ -49,4 +50,8 @@ function readPort(value: string | undefined): number {
   }
 
   return port;
+}
+
+function readSpeedMode(value: string | undefined): "auto" | "fast" | "full" | undefined {
+  return value === "auto" || value === "fast" || value === "full" ? value : undefined;
 }

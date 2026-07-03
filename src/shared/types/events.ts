@@ -31,6 +31,7 @@ export interface CarvisEventEnvelope<TPayload = unknown> {
 
 export interface CommandSubmittedPayload {
   commandText: string;
+  speedMode?: "auto" | "fast" | "full";
 }
 
 export interface RuntimeHeartbeatPayload {

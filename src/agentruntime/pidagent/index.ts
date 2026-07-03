@@ -33,15 +33,17 @@ export interface PersistentPidAgent {
 
 export interface PersistentPidAgentPoolOptions {
   createCommand(role: AgentRole): PersistentPidAgentCommand;
+  agentKey?: (role: AgentRole) => string;
 }
 
 export class PersistentPidAgentPool {
-  private readonly agents = new Map<AgentRole, LineProtocolPidAgent>();
+  private readonly agents = new Map<string, LineProtocolPidAgent>();
 
   constructor(private readonly options: PersistentPidAgentPoolOptions) {}
 
   getAgent(role: AgentRole): PersistentPidAgent {
-    const existing = this.agents.get(role);
+    const key = this.options.agentKey?.(role) ?? role;
+    const existing = this.agents.get(key);
 
     if (existing !== undefined && !existing.isClosed) {
       return existing;
@@ -50,7 +52,7 @@ export class PersistentPidAgentPool {
     const command = this.options.createCommand(role);
     const agent = new LineProtocolPidAgent(role, command);
 
-    this.agents.set(role, agent);
+    this.agents.set(key, agent);
     return agent;
   }
 

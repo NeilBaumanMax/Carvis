@@ -9,7 +9,7 @@ import { createElectronShell } from "./shell.js";
 import { createElectronBrowserWindow, fitWindowToWorkArea, type ElectronBrowserModule } from "./browserWindow.js";
 import { writeElectronRendererPreload } from "./renderer.js";
 import { startElectronRemoteApi, type ElectronRemoteApiHandle } from "./remoteApi.js";
-import type { ElectronShellState } from "./types.js";
+import type { CarvisSpeedMode, ElectronShellState } from "./types.js";
 
 interface ElectronRuntimeModule extends ElectronBrowserModule {
   app: {
@@ -19,7 +19,10 @@ interface ElectronRuntimeModule extends ElectronBrowserModule {
   };
   ipcMain: {
     handle(channel: "carvis:get-state", listener: () => ElectronShellState): void;
-    handle(channel: "carvis:submit-command", listener: (_event: unknown, commandText: string) => Promise<void>): void;
+    handle(
+      channel: "carvis:submit-command",
+      listener: (_event: unknown, commandText: string, options?: { speedMode?: CarvisSpeedMode }) => Promise<void>,
+    ): void;
     handle(channel: "carvis:open-output", listener: (_event: unknown, outputPath: string) => Promise<string>): void;
   };
   shell: {
@@ -41,8 +44,8 @@ let isBackfillingOutput = false;
 let remoteApi: ElectronRemoteApiHandle | undefined;
 
 electron.ipcMain.handle("carvis:get-state", () => shell.getState());
-electron.ipcMain.handle("carvis:submit-command", async (_event, commandText) => {
-  await shell.submitCommand(commandText);
+electron.ipcMain.handle("carvis:submit-command", async (_event, commandText, options) => {
+  await shell.submitCommand(commandText, options);
 });
 electron.ipcMain.handle("carvis:open-output", async (_event, outputPath) => electron.shell.openPath(outputPath));
 

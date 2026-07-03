@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { initialAgents } from '../data/agents';
-import type { AgentId, AgentState, AgentStatus, Envelope, HistoryItem, OutputItem } from '../types';
+import type { AgentId, AgentState, AgentStatus, Envelope, HistoryItem, OutputItem, SpeedMode } from '../types';
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
@@ -135,7 +135,7 @@ export function useAgentWorkflow() {
   }, [bootstrapState]);
 
   const startVisualWorkflow = useCallback(
-    async (task: string, submitToCarvis: boolean) => {
+    async (task: string, submitToCarvis: boolean, speedMode: SpeedMode = 'auto') => {
       resetAgents();
       setRunning(true);
       appendLog(`[用户] 提交任务：${task}`);
@@ -143,7 +143,7 @@ export function useAgentWorkflow() {
       showBubble('manager', '收到任务，正在拆分给文员、设计、调研，并等待他们返回后交给技术。', 'thinking');
 
       if (submitToCarvis) {
-        await window.carvis?.submitCommand(task);
+        await window.carvis?.submitCommand(task, { speedMode });
       }
 
       await sleep(520);
@@ -221,12 +221,12 @@ export function useAgentWorkflow() {
   }, [appendLog, running, sendEnvelope, setAgent, shellState, showBubble, startVisualWorkflow]);
 
   const runWorkflow = useCallback(
-    async (rawTask: string) => {
+    async (rawTask: string, speedMode: SpeedMode = 'auto') => {
       if (running) return;
       const task = rawTask.trim();
       if (!task) return;
 
-      await startVisualWorkflow(task, true);
+      await startVisualWorkflow(task, true, speedMode);
     },
     [running, startVisualWorkflow],
   );

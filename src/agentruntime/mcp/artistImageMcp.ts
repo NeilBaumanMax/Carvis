@@ -42,27 +42,58 @@ export async function callArtistImageMcp(request: ArtistImageMcpRequest): Promis
   request.onProgress?.("artist-image-mcp: planning image assets");
   const plan = await createArtistImagePlan(request);
   request.onProgress?.(`artist-image-mcp: planned ${plan.assets.length} image assets`);
-  const concurrency = readPositiveInteger(process.env.CARVIS_ARTIST_IMAGE_CONCURRENCY, 2);
+  const concurrency = readPositiveInteger(
+    process.env.CARVIS_QWEN_IMAGE_CONCURRENCY ?? process.env.CARVIS_ARTIST_IMAGE_CONCURRENCY,
+    2,
+  );
+  const progress = {
+    active: 0,
+    completed: 0,
+    failed: 0,
+    startedAt: Date.now(),
+  };
+  const reportProgress = () => {
+    const elapsedSeconds = Math.max(1, Math.round((Date.now() - progress.startedAt) / 1000));
+    request.onProgress?.(
+      `artist images: ${progress.active} active, ${progress.completed}/${plan.assets.length} completed, ${progress.failed} failed, elapsed ${elapsedSeconds}s`,
+    );
+  };
   const assets = await mapWithConcurrency(plan.assets, concurrency, async (item, index) => {
+    progress.active += 1;
     request.onProgress?.(`artist-image-mcp: generating ${index + 1}/${plan.assets.length} ${item.label}`);
+    reportProgress();
     const renderingRules = createAssetRenderingRules(item);
-    const asset = await generateQwenImageAsset({
-      label: item.label,
-      prompt: [
-        "你是游戏 artist 的生图工具。根据主管要求和 artist 视觉稿生成可直接用于游戏的图片资产。",
-        "通用规则：原创、可商用风格、不要真实公众人物肖像、不要受版权保护角色、不要复刻现有作品画面、不要文字密集。",
-        `资产用途：${item.purpose}`,
-        "资产渲染规则：",
-        ...renderingRules.map((rule) => `- ${rule}`),
-        "统一风格规则：",
-        ...plan.styleRules.map((rule) => `- ${rule}`),
-        "具体生图提示词：",
-        item.prompt,
-      ].join("\n"),
-      outputDir: request.outputRootPath === undefined ? "output/assets" : `${request.outputRootPath}/assets`,
-    });
-    request.onProgress?.(`artist-image-mcp: generated ${index + 1}/${plan.assets.length} ${asset.path}`);
-    return asset;
+    try {
+      const asset = await generateQwenImageAsset({
+        label: item.label,
+        prompt: [
+          "你是游戏 artist 的生图工具。根据主管要求和 artist 视觉稿生成可直接用于游戏的图片资产。",
+          "通用规则：原创、可商用风格、不要真实公众人物肖像、不要受版权保护角色、不要复刻现有作品画面、不要文字密集。",
+          `资产用途：${item.purpose}`,
+          "资产渲染规则：",
+          ...renderingRules.map((rule) => `- ${rule}`),
+          "统一风格规则：",
+          ...plan.styleRules.map((rule) => `- ${rule}`),
+          "具体生图提示词：",
+          item.prompt,
+        ].join("\n"),
+        outputDir: request.outputRootPath === undefined ? "output/assets" : `${request.outputRootPath}/assets`,
+      });
+      progress.completed += 1;
+      request.onProgress?.(`artist-image-mcp: generated ${index + 1}/${plan.assets.length} ${asset.path}`);
+      return asset;
+    } catch (error) {
+      progress.failed += 1;
+      request.onProgress?.(
+        `artist-image-mcp: failed ${index + 1}/${plan.assets.length} ${item.label}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      throw error;
+    } finally {
+      progress.active -= 1;
+      reportProgress();
+    }
   });
 
   return {

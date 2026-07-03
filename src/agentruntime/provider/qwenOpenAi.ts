@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 export interface QwenTextOptions {
   env?: NodeJS.ProcessEnv;
   model?: string;
+  enableSearch?: boolean;
+  forceSearch?: boolean;
   systemPrompt: string;
   userPrompt: string;
   timeoutMs?: number;
@@ -31,6 +33,7 @@ export async function runQwenOpenAiText(options: QwenTextOptions): Promise<QwenT
   const apiKey = env.DASHSCOPE_API_KEY ?? env.QWEN_API_KEY ?? env.QWEN_OPENAI_API_KEY;
   const baseUrl = normalizeBaseUrl(env.QWEN_OPENAI_BASE_URL ?? "https://dashscope.aliyuncs.com/compatible-mode/v1");
   const model = options.model ?? env.QWEN_OMNI_MODEL ?? env.QWEN_OPENAI_MODEL ?? env.QWEN_MODEL ?? "qwen3.5-omni-plus";
+  const enableSearch = options.enableSearch ?? env.CARVIS_QWEN_ENABLE_SEARCH === "1";
 
   if (apiKey === undefined || apiKey.length === 0) {
     throw new Error("Qwen API key is required in DASHSCOPE_API_KEY, QWEN_API_KEY, or QWEN_OPENAI_API_KEY");
@@ -66,6 +69,15 @@ export async function runQwenOpenAiText(options: QwenTextOptions): Promise<QwenT
         stream_options: {
           include_usage: true,
         },
+        ...(enableSearch
+          ? {
+              enable_search: true,
+              search_options: {
+                forced_search: options.forceSearch ?? env.CARVIS_QWEN_FORCE_SEARCH !== "0",
+                enable_source: true,
+              },
+            }
+          : {}),
         temperature: Number(env.CARVIS_QWEN_TEMPERATURE ?? 0.35),
       }),
     });

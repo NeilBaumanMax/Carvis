@@ -36,6 +36,7 @@ bus.subscribe<CommandSubmittedPayload>(
     commands.push(event.payload.commandText);
     assert(event.source === "electron", "command should originate from electron");
     assert(event.requestId === "req-electron-smoke-1", "command should keep requestId");
+    assert(event.payload.speedMode === "fast", "command should carry selected speed mode");
   },
 );
 
@@ -48,6 +49,7 @@ assert(initialState.runtime.queueDepth === 0, "initial queue depth should be zer
 
 await shell.submitCommand("  build a launch report  ", {
   requestId: "req-electron-smoke-1",
+  speedMode: "fast",
 });
 
 assertSequence(commands, ["build a launch report"]);

@@ -37,7 +37,7 @@ https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/api/v1/services/aigc/mu
 | writer | DeepSeek Claude Code | Claude Code CLI |
 | engineer | DeepSeek Claude Code | Claude Code CLI |
 | artist 文本规划 | `qwen3.5-omni-plus` | OpenAI-compatible |
-| researcher | `qwen3.5-omni-plus` | OpenAI-compatible |
+| researcher | `qwen-plus`（可用 `QWEN_RESEARCHER_MODEL` 覆盖） | OpenAI-compatible Chat Completions + `enable_search` |
 | artist 生图 | `qwen-image-2.0-pro` | DashScope native Qwen-Image API |
 
 路由代码：
@@ -79,6 +79,8 @@ QWEN_OPENAI_BASE_URL=https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/co
 QWEN_OPENAI_MODEL=qwen3.5-omni-plus
 QWEN_OMNI_MODEL=qwen3.5-omni-plus
 QWEN_MODEL=qwen3.5-omni-plus
+QWEN_RESEARCHER_MODEL=qwen-plus
+CARVIS_QWEN_RESEARCHER_SEARCH=1
 
 # Qwen Image / DashScope native
 QWEN_DASHSCOPE_BASE_URL=https://ws-a8dnumqf64i9ncca.cn-beijing.maas.aliyuncs.com/api/v1
@@ -88,9 +90,14 @@ QWEN_IMAGE_SIZE=1024*1024
 QWEN_IMAGE_N=1
 QWEN_IMAGE_WATERMARK=false
 QWEN_IMAGE_PROMPT_EXTEND=true
-CARVIS_ARTIST_IMAGE_CONCURRENCY=2
+CARVIS_QWEN_IMAGE_CONCURRENCY=2
 CARVIS_QWEN_IMAGE_MAX_ATTEMPTS=3
 CARVIS_QWEN_IMAGE_RETRY_DELAY_MS=12000
+
+# Runtime speed defaults; Electron/NAS UI can override per command.
+CARVIS_SPEED_MODE=auto
+CARVIS_CLAUDE_CODE_USE_SDK=1
+CARVIS_CLAUDE_CODE_SDK_FALLBACK=1
 ```
 
 如果 shell 不支持 `${VAR}` 在 env 文件内展开，请直接写入具体值。不要提交该 env 文件。
@@ -127,7 +134,7 @@ CARVIS_QWEN_IMAGE_RETRY_DELAY_MS=12000
 
 1. Artist 先用 Qwen 文本模型输出视觉规划。
 2. `artistImageMcp` 根据用户任务和 artist 输出生成短 JSON 图片计划。
-3. `qwenImage` 并发生成 1-6 张图片，默认并发由 `CARVIS_ARTIST_IMAGE_CONCURRENCY` 控制。
+3. `qwenImage` 并发生成 1-6 张图片，默认并发由 `CARVIS_QWEN_IMAGE_CONCURRENCY` 控制，兼容旧变量 `CARVIS_ARTIST_IMAGE_CONCURRENCY`。
 4. 图片写入本次 `output/runs/<run>/assets/artist-*.png`。
 5. Engineer prompt 只允许使用本轮真实 `assets/artist-*` 图片路径，不采信 writer/researcher 虚拟资产名。
 
@@ -146,7 +153,13 @@ CARVIS_QWEN_IMAGE_RETRY_DELAY_MS=12000
 ## ARTIST_IMAGE_MCP_SELF_REVIEW
 ```
 
-## 6. 验证命令
+## 6. Researcher Web Search
+
+当前实现使用 OpenAI-compatible Chat Completions 的 `enable_search: true` 和 `search_options.forced_search`，只在 researcher 路由开启。不要让 Qwen 在未开启搜索时声称已联网检索。
+
+阿里云 Responses API 的 `web_search` / `web_extractor` / `code_interpreter` 工具只支持特定模型，例如 `qwen3.7-plus`、`qwen3.6-plus`、`qwen3.5-plus`、对应 flash 版本，以及思考模式下的 `qwen3-max`。如果后续迁移到 Responses API，应同时开启 `web_search`、`web_extractor` 和 `code_interpreter`，并把 `QWEN_RESEARCHER_MODEL` 设置为支持工具的模型。
+
+## 7. 验证命令
 
 本地无真实 key 时：
 
@@ -177,15 +190,16 @@ systemctl --user is-active carvis-messagebus.service carvis-agentruntime.service
 pgrep -af providerWorker
 ```
 
-## 7. Usage 记录
+## 8. Usage 记录
 
 每个角色完成后会在 workspace 写 `usage.json`：
 
 - Qwen OpenAI-compatible route 记录真实 `prompt_tokens`、`completion_tokens`、`total_tokens`。
 - DeepSeek Claude Code CLI route 当前记录 `estimated_*_tokens`，用于相对性能对比，不作为计费依据。
 
-## 8. 当前已知优化点
+## 9. 当前已知优化点
 
 - Writer 还需要进一步 schema 化，减少长文本输出。
 - 仓库/长文档任务需要先生成短 task card，避免每个角色重复吃超长原始输入。
 - DeepSeek route 如需真实 token usage，后续可评估绕过 Claude Code CLI，改为直接调用兼容 chat API。
+- 当前 writer/engineer 共享 provider worker，并仅在同一 run 的非 fast/simple 任务中通过 Claude Code session resume 降低 engineer 重读成本；换 run 或轻度任务会隔离 session，防止旧 HTML/游戏上下文漂移。若 SDK resume 在某环境失败，会回退到原 `claude -p` 路径。

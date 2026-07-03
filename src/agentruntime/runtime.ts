@@ -51,6 +51,7 @@ export class AgentRuntime {
           this.queue.push({
             requestId,
             commandText: event.payload.commandText,
+            speedMode: event.payload.speedMode,
           });
 
           await this.publishHeartbeat();
@@ -115,6 +116,7 @@ export class AgentRuntime {
       phase: "created",
       createdAt: now,
       updatedAt: now,
+      speedMode: command.speedMode,
     };
 
     this.currentRun = run;
@@ -177,7 +179,16 @@ export class AgentRuntime {
     let pidOutput: string | undefined;
     let pidMetadata: unknown;
     if (pidAgent !== undefined) {
-      const maxAttempts = Math.max(1, this.options.pidTaskMaxAttempts ?? 1);
+      const maxAttempts = Math.max(
+        1,
+        typeof this.options.pidTaskMaxAttempts === "function"
+          ? this.options.pidTaskMaxAttempts({
+              run: this.mustCurrentRun(),
+              agent,
+              commandText,
+            })
+          : (this.options.pidTaskMaxAttempts ?? 1),
+      );
       let previousPidOutput: string | undefined;
       let retryReason: string | undefined;
 

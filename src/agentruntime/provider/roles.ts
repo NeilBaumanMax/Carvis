@@ -31,8 +31,8 @@ export const ROLE_PROVIDER_CONFIG: Record<AgentRole, RoleProviderConfig> = {
   researcher: {
     role: "researcher",
     provider: "qwen-openai",
-    modelEnvKey: "QWEN_OMNI_MODEL",
-    defaultModel: "qwen3.5-omni-plus",
+    modelEnvKey: "QWEN_RESEARCHER_MODEL",
+    defaultModel: "qwen-plus",
   },
   engineer: {
     role: "engineer",

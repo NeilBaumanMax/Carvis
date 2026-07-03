@@ -26,6 +26,7 @@ const workplacesRoot = process.env.CARVIS_WORKPLACES_ROOT ?? join(process.cwd(),
 const outputRoot = process.env.CARVIS_OUTPUT_ROOT ?? join("output", "runs");
 const progressDelayMs = readNonNegativeInteger(process.env.CARVIS_AGENTRUNTIME_STREAM_DELAY_MS, 260);
 const previewDelayMs = readNonNegativeInteger(process.env.CARVIS_AGENTRUNTIME_PREVIEW_DELAY_MS, 140);
+const speedMode = readSpeedMode(process.env.CARVIS_SPEED_MODE);
 const initializedRuns = new Set<string>();
 const initializingRuns = new Map<string, Promise<void>>();
 const runPaths = new Map<string, { workplacesRoot: string; outputRoot: string }>();
@@ -33,25 +34,32 @@ const providerPidAgentPool = isRealProviderMode() ? createProviderPidAgentPool()
 const runtime = createAgentRuntime(bus, {
   pidAgentPool: providerPidAgentPool,
   pidTaskTimeoutMs: readNonNegativeInteger(process.env.CARVIS_REAL_PROVIDER_TIMEOUT_MS, 240_000),
-  pidTaskMaxAttempts: readNonNegativeInteger(process.env.CARVIS_REAL_PROVIDER_MAX_ATTEMPTS, 2),
+  pidTaskMaxAttempts: ({ run, commandText }) =>
+    isFastTask(commandText, getRunSpeedMode(run.speedMode))
+      ? 1
+      : readNonNegativeInteger(process.env.CARVIS_REAL_PROVIDER_MAX_ATTEMPTS, 2),
   pidOutputValidator: isRealProviderMode() ? validateRealProviderOutput : undefined,
   engineerRunsAfterFailedReview:
     isRealProviderMode() && process.env.CARVIS_ENGINEER_RUNS_AFTER_FAILED_REVIEW !== "0",
   pidTaskInputBuilder: isRealProviderMode()
     ? async ({ run, agent, commandText, attempt, previousPidOutput, retryReason }) => {
+        const runSpeedMode = getRunSpeedMode(run.speedMode);
         const paths = getRunPaths(run, commandText);
         await ensureRunInitialized(run.runId, paths.workplacesRoot, commandText);
 
         return JSON.stringify({
+          runId: run.runId,
           role: agent.role,
           phase: run.phase,
           commandText,
+          speedMode: runSpeedMode,
           outputRootPath: paths.outputRoot,
-          systemPrompt: createRoleSystemPrompt(agent.role, run.phase, commandText),
+          systemPrompt: createRoleSystemPrompt(agent.role, run.phase, commandText, runSpeedMode),
           prompt: await createRoleUserPrompt(paths.workplacesRoot, agent.role, run.phase, commandText, {
             attempt: attempt ?? 1,
             previousPidOutput,
             retryReason,
+            speedMode: runSpeedMode,
           }),
         });
       }
@@ -98,11 +106,12 @@ const runtime = createAgentRuntime(bus, {
   outputWriter: async ({ run, commandText }) => {
     const paths = getRunPaths(run, commandText);
     const results = await readWorkplaceResults(paths.workplacesRoot);
+    const runSpeedMode = getRunSpeedMode(run.speedMode);
 
     return writeOutput({
       outputRootPath: paths.outputRoot,
       title: "Carvis Live Task Output",
-      requireEngineerHtml: requiresEngineerHtml(commandText),
+      requireEngineerHtml: !isFastTask(commandText, runSpeedMode) && requiresEngineerHtml(commandText),
       workplaceResults: results.map((result) => ({
         role: result.role,
         sourcePath: result.resultPath,
@@ -211,8 +220,49 @@ function isRealProviderMode(): boolean {
   return process.env.CARVIS_AGENTRUNTIME_REAL_PROVIDERS === "1";
 }
 
+type SpeedMode = "auto" | "fast" | "full";
+
+function readSpeedMode(value: string | undefined): SpeedMode {
+  if (value === "fast" || value === "full") {
+    return value;
+  }
+
+  return "auto";
+}
+
+function getRunSpeedMode(value: "auto" | "fast" | "full" | undefined): SpeedMode {
+  return value ?? speedMode;
+}
+
+function isFastTask(commandText: string, mode: SpeedMode = speedMode): boolean {
+  if (mode === "full") {
+    return false;
+  }
+  if (mode === "fast") {
+    return true;
+  }
+
+  return isSimpleTask(commandText);
+}
+
+function isSimpleTask(commandText: string): boolean {
+  const text = commandText.trim();
+
+  if (text.length <= 80 && !requiresEngineerHtml(text) && !/图片|图像|生图|视觉|游戏|HTML|html|网页|展示页/i.test(text)) {
+    return true;
+  }
+
+  return /一句话|简单|快速|验证|测试|只回复|不要生成文件|不用生成文件|无需生成文件/i.test(text) &&
+    !/图片|图像|生图|视觉|游戏|HTML|html|网页|展示页/i.test(text);
+}
+
+function isResearcherSearchEnabled(commandText: string, mode: SpeedMode = speedMode): boolean {
+  return mode !== "fast" && !isSimpleTask(commandText);
+}
+
 function createProviderPidAgentPool(): PersistentPidAgentPool {
   return new PersistentPidAgentPool({
+    agentKey: (role) => (role === "engineer" ? "writer-engineer" : role === "writer" ? "writer-engineer" : role),
     createCommand: () => ({
       command: process.execPath,
       args: ["dist/agentruntime/provider/providerWorker.js"],
@@ -222,9 +272,10 @@ function createProviderPidAgentPool(): PersistentPidAgentPool {
   });
 }
 
-function createRoleSystemPrompt(role: AgentRole, phase: string, commandText: string): string {
+function createRoleSystemPrompt(role: AgentRole, phase: string, commandText: string, mode: SpeedMode = speedMode): string {
   const provider = getRoleProviderConfig(role);
   const gameTask = isGameTask(commandText);
+  const fastTask = isFastTask(commandText, mode);
   const phaseLine =
     role === "manager" && phase === "manager_reviewing"
       ? "你现在是主管复审阶段。输出控制在 900 字内。只检查异常和阻塞；如果只是命名、尺寸、规则等可整合差异，给出极短统一意见并输出 GATE_PASSED: true。"
@@ -255,6 +306,7 @@ function createRoleSystemPrompt(role: AgentRole, phase: string, commandText: str
     `角色：${role}`,
     `Provider：${provider.provider}`,
     `Model：${provider.defaultModel}`,
+    `SpeedMode：${mode}${fastTask ? " fast-task" : ""}`,
     "输出语言必须是中文，技术文件名和必要 API 名可以保留英文。",
     "不要输出隐藏思考过程；只输出可公开的工作结果、检查清单、文件方案和必要代码。",
     "你不能调用工具、不能输出 <function_calls>、不能要求用户替你执行命令；你必须直接写出本角色的最终产物正文。",
@@ -262,6 +314,17 @@ function createRoleSystemPrompt(role: AgentRole, phase: string, commandText: str
     gameTask
       ? "这是游戏任务：最终必须推动生成可打开、可玩的 HTML/JS 预览，而不是只写设定。"
       : "这是非游戏任务：最终必须推动生成可打开的中文 HTML 展示页，而不是套用游戏模板。",
+    fastTask
+      ? "这是 fast/simple 任务：当前用户输入是唯一任务来源；不要续写上一轮任务、旧游戏或旧 HTML；只输出完成任务所需的最短公开结果；不要为了满足通用质量门槛写长文；artist 不要规划或生成图片，除非用户明确要求图片。"
+      : "这是 full/normal 任务：按角色职责给出可交付材料。",
+    role === "researcher"
+      ? isResearcherSearchEnabled(commandText, mode)
+        ? "researcher 本轮会通过 Qwen web search 显式联网检索；只能引用搜索工具返回的来源，不得编造 URL 或来源。"
+        : "researcher 本轮不启用联网搜索；必须标注“未联网检索”，不能编造来源。"
+      : "",
+    role === "engineer"
+      ? "如果上文来自 writer 的同一 ClaudeCode session，必须切换为 engineer 身份：writer 内容只作为素材，最终按 engineer 输出实现/HTML/CSS/JS，不要继续写 writer 文案。"
+      : "",
     roleLine,
     phaseLine,
   ].join("\n");
@@ -276,8 +339,10 @@ async function createRoleUserPrompt(
     attempt: number;
     previousPidOutput?: string;
     retryReason?: string;
+    speedMode?: SpeedMode;
   },
 ): Promise<string> {
+  const mode = retry.speedMode ?? speedMode;
   const workplace = createWorkplacePaths(currentWorkplacesRoot, role);
   const input = await safeRead(workplace.inputPath);
   const plan = await safeRead(workplace.planPath);
@@ -366,6 +431,14 @@ async function createRoleUserPrompt(
               : "",
             role === "researcher"
               ? "- 必须输出状态字段、核心循环、数值表、反馈事件和 3 条 playtest 检查。"
+              : "",
+            role === "researcher"
+              ? isResearcherSearchEnabled(commandText, mode)
+                ? "- 重要：本轮 provider 显式开启 Qwen web search。可以基于搜索工具返回的网页信息总结；只引用真实返回来源，不得编造 URL。"
+                : "- 重要：本轮没有启用联网检索。你不能声称联网搜索、不能编造 URL/来源；如需搜索，只能写“未联网检索，以下为基于已知资料的检查”。"
+              : "",
+            isFastTask(commandText, mode)
+              ? "- fast/simple 任务：只处理本轮用户原文；禁止复用、续写或改写上一轮旧 HTML/游戏内容；输出最短可用结果，禁止扩写长篇，artist 禁止生图计划，researcher 禁止伪搜索，engineer 不需要 HTML 除非用户明确要求。"
               : "",
           ].join("\n");
   const retryBlock =
@@ -657,7 +730,7 @@ function validateRealProviderOutput({
   pidOutput,
 }: {
   agent: { role: AgentRole };
-  run: { phase: string };
+  run: { phase: string; speedMode?: "auto" | "fast" | "full" };
   commandText: string;
   pidOutput?: string;
 }): { ok: boolean; reason?: string } {
@@ -665,6 +738,7 @@ function validateRealProviderOutput({
   const normalized = output.toLowerCase();
   const isManagerReview = agent.role === "manager" && run.phase === "manager_reviewing";
   const gameTask = isGameTask(commandText);
+  const fastTask = isFastTask(commandText, getRunSpeedMode(run.speedMode));
 
   if (output.length === 0) {
     return { ok: false, reason: "输出为空" };
@@ -679,17 +753,25 @@ function validateRealProviderOutput({
     return { ok: false, reason: "缺少 provider 标记，输出协议异常" };
   }
 
-  const minLength = isManagerReview ? 500 : agent.role === "manager" ? 700 : agent.role === "engineer" ? 2_500 : 1_800;
+  const minLength = fastTask
+    ? 40
+    : isManagerReview
+      ? 500
+      : agent.role === "manager"
+        ? 700
+        : agent.role === "engineer"
+          ? 2_500
+          : 1_800;
   if (output.length < minLength) {
     return { ok: false, reason: `产物过短：${output.length} 字节，低于 ${minLength}` };
   }
   if (isManagerReview && !/gate_passed\s*:\s*(true|false)/i.test(output)) {
     return { ok: false, reason: "manager 复审缺少 GATE_PASSED 标记" };
   }
-  if (agent.role === "engineer" && gameTask && !/```html[\s\S]*<\/html>\s*```/i.test(output)) {
+  if (agent.role === "engineer" && gameTask && !fastTask && !/```html[\s\S]*<\/html>\s*```/i.test(output)) {
     return { ok: false, reason: "engineer 没有输出完整 fenced HTML 游戏文件" };
   }
-  if (agent.role === "engineer") {
+  if (agent.role === "engineer" && !fastTask) {
     const html = extractHtmlFromProviderOutput(output);
     const htmlValidation = html === undefined ? { ok: false, reason: "engineer HTML 提取失败" } : validateHtmlScripts(html);
     if (!htmlValidation.ok) {
@@ -740,6 +822,10 @@ function isGameTask(commandText: string): boolean {
 }
 
 function requiresEngineerHtml(commandText: string): boolean {
+  if (/不要\s*HTML|不需要\s*HTML|无需\s*HTML|禁止\s*HTML|不要生成\s*HTML|不要生成文件|不用生成文件|无需生成文件/i.test(commandText)) {
+    return false;
+  }
+
   return isGameTask(commandText) || /game-preview\.html|HTML|html|浏览器|展示页|预览窗口/i.test(commandText);
 }
 

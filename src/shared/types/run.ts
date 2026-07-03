@@ -21,4 +21,5 @@ export interface RunState {
   phase: RunPhase;
   createdAt: string;
   updatedAt: string;
+  speedMode?: "auto" | "fast" | "full";
 }

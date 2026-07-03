@@ -26,7 +26,10 @@ interface ElectronVisualRuntime extends ElectronBrowserModule {
   };
   ipcMain: {
     handle(channel: "carvis:get-state", listener: () => ElectronShellState): void;
-    handle(channel: "carvis:submit-command", listener: (_event: unknown, commandText: string) => Promise<void>): void;
+    handle(
+      channel: "carvis:submit-command",
+      listener: (_event: unknown, commandText: string, options?: { speedMode?: "auto" | "fast" | "full" }) => Promise<void>,
+    ): void;
     handle(channel: "carvis:open-output", listener: (_event: unknown, outputPath: string) => Promise<string>): void;
   };
 }
@@ -128,8 +131,8 @@ async function runVisualSmoke(): Promise<void> {
   const openedOutputs: string[] = [];
 
   electron.ipcMain.handle("carvis:get-state", () => shell.getState());
-  electron.ipcMain.handle("carvis:submit-command", async (_event, commandText) => {
-    await shell.submitCommand(commandText);
+  electron.ipcMain.handle("carvis:submit-command", async (_event, commandText, options) => {
+    await shell.submitCommand(commandText, options);
   });
   electron.ipcMain.handle("carvis:open-output", async (_event, outputPath) => {
     openedOutputs.push(outputPath);

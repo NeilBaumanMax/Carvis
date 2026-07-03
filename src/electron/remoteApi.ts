@@ -70,16 +70,17 @@ async function handleRequest(
     }
 
     if (request.method === "POST" && url.pathname === "/api/submit") {
-      const payload = await readJsonBody<{ text?: unknown; requestId?: unknown }>(request);
+      const payload = await readJsonBody<{ text?: unknown; requestId?: unknown; speedMode?: unknown }>(request);
       const text =
         typeof payload.text === "string" && payload.text.trim().length > 0
           ? payload.text
           : shell.getState().remoteDraft?.text ?? "";
       const requestId = typeof payload.requestId === "string" ? payload.requestId : undefined;
+      const speedMode = readSpeedMode(payload.speedMode);
 
       shell.setRemoteDraft(text, "nas");
-      await shell.submitCommand(text, { requestId });
-      writeJson(response, 200, { ok: true, text });
+      await shell.submitCommand(text, { requestId, speedMode });
+      writeJson(response, 200, { ok: true, text, speedMode });
       return;
     }
 
@@ -90,6 +91,10 @@ async function handleRequest(
       error: error instanceof Error ? error.message : String(error),
     });
   }
+}
+
+function readSpeedMode(value: unknown): "auto" | "fast" | "full" | undefined {
+  return value === "auto" || value === "fast" || value === "full" ? value : undefined;
 }
 
 function setCorsHeaders(response: ServerResponse): void {

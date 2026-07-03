@@ -11,10 +11,16 @@ Role routing:
 - `manager`: DeepSeek through Claude Code CLI
 - `writer`: DeepSeek through Claude Code CLI
 - `artist`: Qwen OpenAI-compatible text route, plus Qwen Image through the local artist-image MCP wrapper
-- `researcher`: Qwen OpenAI-compatible route
+- `researcher`: Qwen OpenAI-compatible route with explicit web search enabled when supported
 - `engineer`: DeepSeek through Claude Code CLI
 
-Provider workers are prewarmed and retained: one `providerWorker` process per role.
+Provider workers are prewarmed and retained. `writer` and `engineer` intentionally share one provider worker key so engineer can resume the writer Claude Code session within the same non-fast/simple run, while the UI still shows them as separate roles. New runs and fast/simple tasks use isolated Claude sessions to avoid carrying old HTML or game context forward.
+
+Speed modes are selectable in both Electron and the NAS web UI:
+
+- `fast`: short output, one provider attempt, no default image generation.
+- `auto`: detects simple tasks and avoids unnecessary images/long quality gates.
+- `full`: keeps the full five-role behavior and image workflow.
 
 ## Collaboration Rules
 
@@ -30,7 +36,7 @@ The manager is a monitor/scope role, not a second review gate.
 The runtime supports this with:
 
 - PID worker quality validation and retry (`CARVIS_REAL_PROVIDER_MAX_ATTEMPTS`)
-- one prewarmed provider worker per role
+- retained provider workers, with `writer`/`engineer` sharing a worker/session path
 - layered workplace context: `common/`, `skills/`, `task_state.json`, `handoff_to_engineer.json`, `evidence_index.json`
 - provider usage recording in each role's `usage.json`
 - extraction of engineer fenced HTML into `output/runs/<run>/game-preview.html`
@@ -48,7 +54,7 @@ Verified on NixOS:
 - `carvis-messagebus.service`, `carvis-agentruntime.service`, and `carvis-electron.service` active
 - five retained `providerWorker` processes active
 - DeepSeek Claude Code route works for manager, writer, and engineer
-- Qwen text route works for artist and researcher
+- Qwen text route works for artist and researcher; researcher search must use explicit Qwen web search support, not model-invented citations
 - Qwen Image route works through artist-image MCP and writes local image assets
 - four current regression tasks produced `output/runs/.../game-preview.html` and passed browser screenshot checks
 

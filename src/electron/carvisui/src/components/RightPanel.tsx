@@ -1,14 +1,16 @@
-import type { HistoryItem, OutputItem } from '../types';
+import type { HistoryItem, OutputItem, SpeedMode } from '../types';
 import { assetPath } from '../assets';
 import { PixelButton } from './PixelButton';
 
 type RightPanelProps = {
   input: string;
+  speedMode: SpeedMode;
   running: boolean;
   outputLogs: string[];
   currentOutput?: OutputItem;
   history: HistoryItem[];
   onInputChange: (value: string) => void;
+  onSpeedModeChange: (value: SpeedMode) => void;
   onStart: () => void;
   onOpenPath: (path: string | undefined) => void;
 };
@@ -28,11 +30,13 @@ function getHistoryIconAsset(icon: string) {
 
 export function RightPanel({
   input,
+  speedMode,
   running,
   outputLogs,
   currentOutput,
   history,
   onInputChange,
+  onSpeedModeChange,
   onStart,
   onOpenPath,
 }: RightPanelProps) {
@@ -40,6 +44,19 @@ export function RightPanel({
     <aside className="right-panel">
       <section className="panel-box input-box">
         <h2>输入任务</h2>
+        <div className="speed-mode-group" aria-label="协同速度模式">
+          {(['fast', 'auto', 'full'] as const).map((mode) => (
+            <button
+              className={mode === speedMode ? 'speed-mode active' : 'speed-mode'}
+              disabled={running}
+              key={mode}
+              onClick={() => onSpeedModeChange(mode)}
+              type="button"
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
         <div className="input-row">
           <input
             value={input}

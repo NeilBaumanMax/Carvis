@@ -5,9 +5,11 @@ import { EnvelopeLayer } from './components/EnvelopeLayer';
 import { RightPanel } from './components/RightPanel';
 import { useAgentWorkflow } from './hooks/useAgentWorkflow';
 import { assetPath } from './assets';
+import type { SpeedMode } from './types';
 
 export default function App() {
   const [input, setInput] = useState('');
+  const [speedMode, setSpeedMode] = useState<SpeedMode>('auto');
   const [floatingDraft, setFloatingDraft] = useState('');
   const lastDraftAt = useRef<string | undefined>(undefined);
   const floatTimer = useRef<number | undefined>(undefined);
@@ -44,7 +46,7 @@ export default function App() {
     if (!submitted) return;
 
     setInput('');
-    await runWorkflow(submitted);
+    await runWorkflow(submitted, speedMode);
   };
 
   return (
@@ -82,11 +84,13 @@ export default function App() {
           </section>
           <RightPanel
             input={input}
+            speedMode={speedMode}
             running={running}
             outputLogs={outputLogs}
             currentOutput={currentOutput}
             history={history}
             onInputChange={setInput}
+            onSpeedModeChange={setSpeedMode}
             onStart={handleStart}
             onOpenPath={openPath}
           />

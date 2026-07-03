@@ -54,6 +54,7 @@ function readAgentRuntimeEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<st
   for (const key of [
     "CARVIS_AGENTRUNTIME_REAL_PROVIDERS",
     "CARVIS_PROVIDER_MODE",
+    "CARVIS_SPEED_MODE",
     "CARVIS_REAL_PROVIDER_TIMEOUT_MS",
     "CARVIS_REAL_PROVIDER_MAX_ATTEMPTS",
     "CARVIS_REAL_PROVIDER_MAX_BUDGET_USD",
@@ -61,8 +62,13 @@ function readAgentRuntimeEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<st
     "CARVIS_CLAUDE_CODE_BIN",
     "CARVIS_CLAUDE_CODE_RUNNER",
     "CARVIS_CLAUDE_CODE_BARE",
+    "CARVIS_CLAUDE_CODE_USE_SDK",
+    "CARVIS_CLAUDE_CODE_SDK_FALLBACK",
     "QWEN_OPENAI_BASE_URL",
     "QWEN_OMNI_MODEL",
+    "QWEN_RESEARCHER_MODEL",
+    "CARVIS_QWEN_RESEARCHER_SEARCH",
+    "CARVIS_QWEN_IMAGE_CONCURRENCY",
   ]) {
     const value = env[key];
 

@@ -1,6 +1,7 @@
 const input = document.querySelector('#taskInput');
 const submitButton = document.querySelector('#submitButton');
 const draftStatus = document.querySelector('#draftStatus');
+const speedButtons = [...document.querySelectorAll('.speed-mode')];
 const publicUrl = document.querySelector('#publicUrl');
 const outputBox = document.querySelector('#outputBox');
 const historyList = document.querySelector('#historyList');
@@ -12,6 +13,7 @@ const fileList = document.querySelector('#fileList');
 let draftTimer = 0;
 let latestHistory = [];
 let currentFolder = null;
+let speedMode = 'auto';
 
 init();
 
@@ -24,6 +26,12 @@ function init() {
   });
 
   submitButton.addEventListener('click', submitTask);
+  for (const button of speedButtons) {
+    button.addEventListener('click', () => {
+      speedMode = button.dataset.speedMode || 'auto';
+      renderSpeedMode();
+    });
+  }
   drawerClose.addEventListener('click', () => {
     drawer.hidden = true;
   });
@@ -33,6 +41,12 @@ function init() {
   refreshState();
   window.setInterval(refreshHistory, 5000);
   window.setInterval(refreshState, 2500);
+}
+
+function renderSpeedMode() {
+  for (const button of speedButtons) {
+    button.classList.toggle('active', button.dataset.speedMode === speedMode);
+  }
 }
 
 async function loadConfig() {
@@ -63,7 +77,7 @@ async function submitTask() {
   submitButton.disabled = true;
   showDraftStatus('正在启动协同...');
   try {
-    await postJSON('/api/submit', { text });
+    await postJSON('/api/submit', { text, speedMode });
     input.value = '';
     showDraftStatus('已启动协同');
     await refreshState();

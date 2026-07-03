@@ -61,11 +61,12 @@ export class ElectronShell {
       requestId: options.requestId,
       payload: {
         commandText: normalizedCommand,
+        speedMode: options.speedMode,
       },
     });
 
     this.state.submittedCommands.push(normalizedCommand);
-    this.rememberEvent(`command.submitted:${normalizedCommand}`);
+    this.rememberEvent(`command.submitted:${options.speedMode ?? "auto"}:${normalizedCommand}`);
   }
 
   setRemoteDraft(text: string, source: "electron" | "nas" | "api" = "api"): void {

@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 type CarvisAgentRole = 'manager' | 'writer' | 'artist' | 'researcher' | 'engineer';
+type CarvisSpeedMode = 'fast' | 'auto' | 'full';
 type CarvisAgentStatus =
   | 'idle'
   | 'starting'
@@ -67,7 +68,7 @@ type CarvisShellState = {
 
 type CarvisBridge = {
   getState: () => Promise<CarvisShellState>;
-  submitCommand: (commandText: string) => Promise<void>;
+  submitCommand: (commandText: string, options?: { speedMode?: CarvisSpeedMode }) => Promise<void>;
   openOutput: (outputPath: string) => Promise<string>;
   onState: (listener: (state: CarvisShellState) => void) => () => void;
 };

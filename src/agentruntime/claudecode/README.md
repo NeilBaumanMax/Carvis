@@ -38,7 +38,7 @@ npm run claudecode:smoke
 
 真实 smoke 会使用 `--print` 非交互模式、禁用工具，并限制 `--max-budget-usd`。
 
-## Claude Agent SDK warm runner
+## Claude Agent SDK warm/resume runner
 
 `claudecode:sdk-smoke` 使用 `@anthropic-ai/claude-agent-sdk` 的 `startup()` 预热 Claude Code 子进程。SDK 的 `WarmQuery.query()` 每个 warm handle 只能调用一次，所以当前策略是：
 
@@ -46,11 +46,15 @@ npm run claudecode:smoke
 2. 任务分配时直接向 warm handle 提交 prompt；
 3. 本轮 query 结束后重新预热下一轮。
 
+生产 provider worker 默认优先使用 SDK 路径。`writer` 和 `engineer` 共用同一个 provider worker key；同一 run 内的非 fast/simple 任务会在 writer 完成后保存 Claude Code `session_id`，engineer 阶段用该 session resume。换 run 或 fast/simple 任务会使用隔离 session，避免旧 HTML、旧游戏上下文漂移到新任务。UI 仍分别显示 writer 和 engineer，日志会包含 `worker_pid` 和 `session`。如果 SDK/resume 在某环境失败，默认回退到原 `claude -p` print 路径；设置 `CARVIS_CLAUDE_CODE_SDK_FALLBACK=0` 可关闭回退。
+
 在 NixOS 上同样使用：
 
 ```text
 CARVIS_CLAUDE_CODE_RUNNER=steam-run
 CARVIS_CLAUDE_CODE_BIN=/home/howtion/.npm/_npx/<cache>/node_modules/@anthropic-ai/claude-code-linux-x64/claude
+CARVIS_CLAUDE_CODE_USE_SDK=1
+CARVIS_CLAUDE_CODE_SDK_FALLBACK=1
 ```
 
 真实 SDK smoke：

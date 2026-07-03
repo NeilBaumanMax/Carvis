@@ -1,6 +1,7 @@
 import type { AgentRole, AgentStatus } from "../shared/types/agent.js";
 
 export type ElectronPanelRole = AgentRole;
+export type CarvisSpeedMode = "auto" | "fast" | "full";
 
 export interface ElectronWorkplacePanel {
   role: ElectronPanelRole;
@@ -52,6 +53,7 @@ export interface ElectronShellState {
 
 export interface ElectronSubmitCommandOptions {
   requestId?: string;
+  speedMode?: CarvisSpeedMode;
 }
 
 export interface ElectronRemoteDraft {

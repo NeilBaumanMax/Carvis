@@ -1,4 +1,5 @@
 export type AgentId = 'manager' | 'clerk' | 'designer' | 'researcher' | 'tech';
+export type SpeedMode = 'fast' | 'auto' | 'full';
 
 export type AgentStatus =
   | 'idle'

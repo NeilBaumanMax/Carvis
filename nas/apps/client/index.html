@@ -18,6 +18,11 @@
 
     <section class="panel input-panel">
       <h1>输入栏</h1>
+      <div class="speed-mode-group" aria-label="协同速度模式">
+        <button class="speed-mode" data-speed-mode="fast" type="button">fast</button>
+        <button class="speed-mode active" data-speed-mode="auto" type="button">auto</button>
+        <button class="speed-mode" data-speed-mode="full" type="button">full</button>
+      </div>
       <div class="task-row">
         <textarea id="taskInput" rows="3" placeholder="请输入内容..."></textarea>
         <button id="submitButton" type="button" aria-label="开始协同">启动</button>

@@ -1,15 +1,18 @@
 import { createInterface } from "node:readline";
 
 import type { AgentRole } from "../../shared/types/agent.js";
+import { ClaudeCodeWarmSdkAgent } from "../claudecode/warmSdk.js";
 import { runClaudeCodePrint } from "../claudecode/command.js";
 import { callArtistImageMcp, renderArtistImageMcpAssets } from "../mcp/artistImageMcp.js";
 import { getRoleProviderConfig } from "./roles.js";
 import { createProviderUsage, runQwenOpenAiText, type ProviderUsage } from "./qwenOpenAi.js";
 
 interface ProviderTaskInput {
+  runId?: string;
   role: AgentRole;
   phase: string;
   commandText: string;
+  speedMode?: "auto" | "fast" | "full";
   prompt: string;
   systemPrompt: string;
   outputRootPath?: string;
@@ -28,6 +31,8 @@ interface ProviderTaskResult {
 const input = createInterface({
   input: process.stdin,
 });
+let sharedClaudeSessionId: string | undefined;
+let sharedClaudeSessionRunId: string | undefined;
 
 input.on("line", (line) => {
   void handleLine(line);
@@ -83,28 +88,25 @@ async function handleLine(line: string): Promise<void> {
 
 async function runProviderTask(task: ProviderTaskInput, onProgress: (output: string) => void): Promise<ProviderTaskResult> {
   const config = getRoleProviderConfig(task.role);
+  const canReuseClaudeSession = shouldReuseClaudeSession(task);
+
+  if (task.runId !== undefined && sharedClaudeSessionRunId !== undefined && sharedClaudeSessionRunId !== task.runId) {
+    sharedClaudeSessionId = undefined;
+    sharedClaudeSessionRunId = undefined;
+  }
+
+  if (!canReuseClaudeSession) {
+    sharedClaudeSessionId = undefined;
+    sharedClaudeSessionRunId = undefined;
+  }
 
   if (config.provider === "deepseek-claudecode") {
-    onProgress(`provider:${task.role}: deepseek claude-code started model=${config.defaultModel}`);
-    const result = await runClaudeCodePrint(task.prompt, {
-      env: {
-        ...process.env,
-        ANTHROPIC_MODEL: config.defaultModel,
-      },
-      model: config.defaultModel,
-      maxBudgetUsd: process.env.CARVIS_REAL_PROVIDER_MAX_BUDGET_USD ?? "0.20",
-      timeoutMs: Number(process.env.CARVIS_REAL_PROVIDER_TIMEOUT_MS ?? 240_000),
-      cwd: process.cwd(),
-      systemPrompt: task.systemPrompt,
-    });
-    const output = result.stdout.trim();
-    onProgress(`provider:${task.role}: deepseek claude-code finished exit=${String(result.exitCode)}`);
-
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `DeepSeek Claude Code exited ${String(result.exitCode)} stdout=${output.slice(0, 600)} stderr=${result.stderr.trim().slice(0, 600)}`,
-      );
-    }
+    onProgress(
+      `provider:${task.role}: deepseek claude-code started model=${config.defaultModel} worker_pid=${process.pid}${
+        canReuseClaudeSession && sharedClaudeSessionId !== undefined ? ` resume_session=${sharedClaudeSessionId}` : ""
+      }`,
+    );
+    const output = await runDeepSeekClaudeCode(task, config.defaultModel, canReuseClaudeSession, onProgress);
 
     const usage = createProviderUsage(task.systemPrompt, task.prompt, output);
 
@@ -128,12 +130,18 @@ async function runProviderTask(task: ProviderTaskInput, onProgress: (output: str
   onProgress(`provider:${task.role}: qwen text started model=${config.defaultModel}`);
   const qwenResult = await runQwenOpenAiText({
     model: config.defaultModel,
+    enableSearch:
+      task.role === "researcher" &&
+      task.speedMode !== "fast" &&
+      !isSimpleTask(task.commandText) &&
+      process.env.CARVIS_QWEN_RESEARCHER_SEARCH !== "0",
+    forceSearch: task.role === "researcher" && task.speedMode !== "fast" && !isSimpleTask(task.commandText),
     systemPrompt: task.systemPrompt,
     userPrompt: task.prompt,
   });
   onProgress(`provider:${task.role}: qwen text finished chars=${qwenResult.content.length}`);
   const imageAssets =
-    task.role === "artist" && shouldGenerateArtistImages(task.commandText, qwenResult.content)
+    task.role === "artist" && shouldGenerateArtistImages(task.commandText, qwenResult.content, task.speedMode)
       ? await callArtistImageMcp({
           role: task.role,
           commandText: task.commandText,
@@ -170,11 +178,107 @@ async function runProviderTask(task: ProviderTaskInput, onProgress: (output: str
   };
 }
 
-function shouldGenerateArtistImages(commandText: string, artistOutput: string): boolean {
+async function runDeepSeekClaudeCode(
+  task: ProviderTaskInput,
+  model: string,
+  canReuseClaudeSession: boolean,
+  onProgress: (output: string) => void,
+): Promise<string> {
+  if (canReuseClaudeSession && process.env.CARVIS_CLAUDE_CODE_USE_SDK !== "0") {
+    try {
+      const agent = new ClaudeCodeWarmSdkAgent({
+        env: {
+          ...process.env,
+          ANTHROPIC_MODEL: model,
+        },
+        cwd: process.cwd(),
+        model,
+        maxBudgetUsd: process.env.CARVIS_REAL_PROVIDER_MAX_BUDGET_USD ?? "0.20",
+        timeoutMs: Number(process.env.CARVIS_REAL_PROVIDER_TIMEOUT_MS ?? 240_000),
+        systemPrompt: task.systemPrompt,
+        persistSession: canReuseClaudeSession,
+        resume: canReuseClaudeSession ? sharedClaudeSessionId : undefined,
+      });
+
+      const result = await agent.query(task.prompt);
+      agent.close();
+      if (canReuseClaudeSession) {
+        sharedClaudeSessionId = result.sessionId ?? sharedClaudeSessionId;
+        sharedClaudeSessionRunId = task.runId;
+      }
+      onProgress(
+        `provider:${task.role}: deepseek claude-code sdk finished session=${
+          canReuseClaudeSession ? (sharedClaudeSessionId ?? "unknown") : "isolated"
+        } worker_pid=${process.pid}`,
+      );
+      return result.output.trim();
+    } catch (error) {
+      if (process.env.CARVIS_CLAUDE_CODE_SDK_FALLBACK === "0") {
+        throw error;
+      }
+      onProgress(
+        `provider:${task.role}: deepseek claude-code sdk fallback: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  const result = await runClaudeCodePrint(task.prompt, {
+    env: {
+      ...process.env,
+      ANTHROPIC_MODEL: model,
+    },
+    model,
+    maxBudgetUsd: process.env.CARVIS_REAL_PROVIDER_MAX_BUDGET_USD ?? "0.20",
+    timeoutMs: Number(process.env.CARVIS_REAL_PROVIDER_TIMEOUT_MS ?? 240_000),
+    cwd: process.cwd(),
+    systemPrompt: task.systemPrompt,
+  });
+  const output = result.stdout.trim();
+  onProgress(`provider:${task.role}: deepseek claude-code print finished exit=${String(result.exitCode)} worker_pid=${process.pid}`);
+
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `DeepSeek Claude Code exited ${String(result.exitCode)} stdout=${output.slice(0, 600)} stderr=${result.stderr.trim().slice(0, 600)}`,
+    );
+  }
+
+  return output;
+}
+
+function shouldReuseClaudeSession(task: ProviderTaskInput): boolean {
+  const mode = task.speedMode ?? process.env.CARVIS_SPEED_MODE ?? "auto";
+
+  return mode !== "fast" && !isSimpleTask(task.commandText);
+}
+
+function shouldGenerateArtistImages(
+  commandText: string,
+  artistOutput: string,
+  speedMode: "auto" | "fast" | "full" | undefined,
+): boolean {
   if (/不需要生图|不要生图|无需生图|禁止生图|不需要图片|不要图片/.test(commandText)) {
     return false;
   }
+  const mode = speedMode ?? process.env.CARVIS_SPEED_MODE ?? "auto";
+  if (mode === "fast") {
+    return false;
+  }
+  if (mode !== "full" && isSimpleTask(commandText)) {
+    return false;
+  }
+  if (mode === "auto") {
+    return /图片|图像|生图|视觉|素材|游戏|game|HTML|html|网页|展示页|预览/i.test(commandText) ||
+      /ARTIST_IMAGE_MCP_PLAN|assets|图片|image/i.test(artistOutput);
+  }
+
   return true;
+}
+
+function isSimpleTask(commandText: string): boolean {
+  const text = commandText.trim();
+
+  return (text.length <= 80 || /一句话|简单|快速|验证|测试|只回复|不要生成文件|不用生成文件|无需生成文件/i.test(text)) &&
+    !/图片|图像|生图|视觉|游戏|game|HTML|html|网页|展示页|预览/i.test(text);
 }
 
 function writeMessage(message: unknown): void {

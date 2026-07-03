@@ -19,6 +19,8 @@ export interface ClaudeCodeWarmSdkOptions {
   timeoutMs?: number;
   systemPrompt?: string;
   initializeTimeoutMs?: number;
+  persistSession?: boolean;
+  resume?: string;
 }
 
 export interface ClaudeCodeWarmSdkResult {
@@ -37,6 +39,7 @@ export interface ClaudeCodeWarmSdkSpawn {
 export class ClaudeCodeWarmSdkAgent {
   private warm: WarmQuery | undefined;
   private lastSpawn: ClaudeCodeWarmSdkSpawn | undefined;
+  private resumeSessionId: string | undefined;
 
   constructor(private readonly options: ClaudeCodeWarmSdkOptions = {}) {}
 
@@ -73,6 +76,7 @@ export class ClaudeCodeWarmSdkAgent {
     const query = warm.query(prompt);
     const querySpawn = this.lastSpawn;
     const result = await collectSdkResult(query, this.options.timeoutMs ?? 180_000);
+    this.resumeSessionId = result.sessionId ?? this.resumeSessionId;
 
     await this.warmup();
     return {
@@ -107,7 +111,8 @@ export class ClaudeCodeWarmSdkAgent {
         "You are a smoke test responder. Output exactly the requested text and nothing else.",
       tools: [],
       permissionMode: "dontAsk",
-      persistSession: false,
+      persistSession: this.options.persistSession ?? false,
+      resume: this.options.resume ?? this.resumeSessionId,
       pathToClaudeCodeExecutable: env.CARVIS_CLAUDE_CODE_BIN,
       extraArgs,
       spawnClaudeCodeProcess: (spawnOptions) => this.spawnClaudeCodeProcess(spawnOptions, env),

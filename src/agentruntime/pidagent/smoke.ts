@@ -6,6 +6,13 @@ const pool = new PersistentPidAgentPool({
     args: ["dist/agentruntime/pidagent/mockWorker.js"],
   }),
 });
+const sharedPool = new PersistentPidAgentPool({
+  agentKey: (role) => (role === "engineer" || role === "writer" ? "writer-engineer" : role),
+  createCommand: () => ({
+    command: "node",
+    args: ["dist/agentruntime/pidagent/mockWorker.js"],
+  }),
+});
 
 try {
   const manager = pool.getAgent("manager");
@@ -30,12 +37,23 @@ try {
   assert(writer.retained, "writer should be retained after task");
   assert(pool.getAgents().length === 2, "pool should keep two retained agents");
 
+  const sharedWriter = sharedPool.getAgent("writer");
+  const sharedEngineer = sharedPool.getAgent("engineer");
+  const sharedWriterResult = await sharedWriter.runTask({ input: "writer phase" });
+  const sharedEngineerResult = await sharedEngineer.runTask({ input: "engineer phase" });
+
+  assert(sharedWriter.pid === sharedEngineer.pid, "writer and engineer should be able to share one worker PID");
+  assert(sharedWriterResult.pid === sharedEngineerResult.pid, "shared worker should report the same PID for both roles");
+
   await pool.shutdown();
+  await sharedPool.shutdown();
   assert(pool.getAgents().length === 0, "pool should be empty after shutdown");
+  assert(sharedPool.getAgents().length === 0, "shared pool should be empty after shutdown");
 
   console.log("[pidagent:smoke] ok");
 } finally {
   await pool.shutdown();
+  await sharedPool.shutdown();
 }
 
 function assert(condition: boolean, message: string): asserts condition {

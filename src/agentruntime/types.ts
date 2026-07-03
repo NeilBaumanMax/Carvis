@@ -40,7 +40,7 @@ export interface AgentRuntimeOptions {
   pidTaskInputBuilder?: RuntimePidTaskInputBuilder;
   pidAgentPool?: PersistentPidAgentPool;
   pidTaskTimeoutMs?: number;
-  pidTaskMaxAttempts?: number;
+  pidTaskMaxAttempts?: number | ((context: RuntimeRoleContext) => number);
   pidOutputValidator?: RuntimePidOutputValidator;
   engineerRunsAfterFailedReview?: boolean;
   outputWriter?: RuntimeOutputWriter;
@@ -64,6 +64,7 @@ export interface RuntimePidAgent extends AgentRuntimeState {
 export interface RuntimeQueuedCommand {
   requestId: string;
   commandText: string;
+  speedMode?: "auto" | "fast" | "full";
 }
 
 export const MANAGER_ROLE: AgentRole = "manager";
