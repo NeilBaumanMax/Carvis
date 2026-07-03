@@ -47,7 +47,9 @@ function createDefaultComponents(env: NodeJS.ProcessEnv): readonly SetupComponen
 }
 
 function readAgentRuntimeEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<string, string>> | undefined {
-  const values: Record<string, string> = {};
+  const values: Record<string, string> = {
+    PATH: env.CARVIS_AGENTRUNTIME_PATH ?? defaultNixSystemPath(env.PATH),
+  };
 
   for (const key of [
     "CARVIS_AGENTRUNTIME_REAL_PROVIDERS",
@@ -140,4 +142,14 @@ function readPositiveInt(value: string | undefined, fallback: number): number {
   }
 
   return parsed;
+}
+
+function defaultNixSystemPath(path: string | undefined): string {
+  const entries = [
+    ...(path ?? "").split(":").filter((entry) => entry.length > 0),
+    "/run/current-system/sw/bin",
+    "/run/wrappers/bin",
+  ];
+
+  return [...new Set(entries)].join(":");
 }

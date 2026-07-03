@@ -11,6 +11,7 @@ const fileList = document.querySelector('#fileList');
 
 let draftTimer = 0;
 let latestHistory = [];
+let currentFolder = null;
 
 init();
 
@@ -141,23 +142,40 @@ function renderHistory() {
       </span>
       <span>›</span>
     `;
-    button.addEventListener('click', () => openFiles(item));
+    button.addEventListener('click', () => openFolder(item.path, item.title));
     historyList.append(button);
   }
 }
 
-async function openFiles(item) {
+async function openFolder(path, title) {
+  currentFolder = { path, title };
   drawer.hidden = false;
-  drawerTitle.textContent = item.title;
+  drawerTitle.textContent = title;
   fileList.innerHTML = '<p class="muted">读取文件...</p>';
   try {
-    const payload = await fetchJSON(`/api/files?root=history&path=${encodeURIComponent(item.path)}`);
-    fileList.innerHTML = '';
-    for (const file of payload.items || []) {
+    const payload = await fetchJSON(`/api/files?root=history&path=${encodeURIComponent(path)}`);
+    fileList.innerHTML = renderFolderToolbar(path);
+
+    const items = payload.items || [];
+    if (items.length === 0) {
+      fileList.insertAdjacentHTML('beforeend', '<p class="muted">这个文件夹是空的。</p>');
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const file of items) {
       const row = document.createElement('div');
       row.className = 'file-item';
       if (file.kind === 'dir') {
-        row.innerHTML = `<strong>${escapeHTML(file.name)}</strong><small>文件夹</small>`;
+        row.classList.add('folder-item');
+        row.innerHTML = `
+          <span>
+            <strong>${escapeHTML(file.name)}</strong>
+            <small>文件夹</small>
+          </span>
+          <span>›</span>
+        `;
+        row.addEventListener('click', () => openFolder(file.path, file.name));
       } else {
         row.innerHTML = `
           <span>
@@ -170,12 +188,41 @@ async function openFiles(item) {
           </span>
         `;
       }
-      fileList.append(row);
+      fragment.append(row);
     }
+    fileList.append(fragment);
   } catch (error) {
     fileList.innerHTML = `<p class="muted">读取失败：${escapeHTML(error.message)}</p>`;
   }
 }
+
+function renderFolderToolbar(path) {
+  const parent = parentPath(path);
+  const name = path.split('/').filter(Boolean).at(-1) || '历史任务';
+  return `
+    <div class="folder-toolbar">
+      <button class="folder-back" type="button" ${parent === null ? 'disabled' : ''}>上一级</button>
+      <span>${escapeHTML(name)}</span>
+    </div>
+  `;
+}
+
+function parentPath(path) {
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length <= 1) return null;
+  return parts.slice(0, -1).join('/');
+}
+
+fileList.addEventListener('click', (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || !target.classList.contains('folder-back')) {
+    return;
+  }
+  if (!currentFolder) return;
+  const parent = parentPath(currentFolder.path);
+  if (parent === null) return;
+  void openFolder(parent, parent.split('/').at(-1) || '历史任务');
+});
 
 async function fetchJSON(url) {
   const response = await fetch(url);

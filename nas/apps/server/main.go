@@ -87,6 +87,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/files", s.handleFiles)
 	mux.HandleFunc("/preview", s.handlePreview)
 	mux.HandleFunc("/raw", s.handleRaw)
+	mux.HandleFunc("/rawfs/", s.handleRawFS)
 	mux.Handle("/", http.FileServer(http.Dir(s.cfg.ClientDir)))
 }
 
@@ -244,9 +245,9 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
 	case ".html", ".htm":
-		s.renderHTMLFrame(w, r.URL.RawQuery)
+		s.renderHTMLFrame(w, defaultString(r.URL.Query().Get("root"), "output"), r.URL.Query().Get("path"))
 	case ".pdf":
-		s.renderPDFFrame(w, r.URL.RawQuery)
+		s.renderPDFFrame(w, defaultString(r.URL.Query().Get("root"), "output"), r.URL.Query().Get("path"))
 	case ".docx":
 		s.renderTextPreview(w, "Word Preview", extractDocxText(path))
 	case ".xlsx":
@@ -263,6 +264,34 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleRaw(w http.ResponseWriter, r *http.Request) {
 	path, err := s.safePath(defaultString(r.URL.Query().Get("root"), "output"), r.URL.Query().Get("path"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
+	if contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	}
+	http.ServeFile(w, r, path)
+}
+
+func (s *Server) handleRawFS(w http.ResponseWriter, r *http.Request) {
+	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/rawfs/"), "/", 2)
+	if len(parts) != 2 {
+		writeError(w, http.StatusBadRequest, errors.New("rawfs path must include root and path"))
+		return
+	}
+	rootName, err := url.PathUnescape(parts[0])
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	relative, err := url.PathUnescape(parts[1])
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	path, err := s.safePath(rootName, relative)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -331,12 +360,12 @@ func (s *Server) rootFor(rootName string) (string, error) {
 	}
 }
 
-func (s *Server) renderHTMLFrame(w http.ResponseWriter, rawQuery string) {
-	writeHTML(w, "HTML Preview", `<iframe class="preview-frame" sandbox="allow-scripts allow-forms" src="/raw?`+html.EscapeString(rawQuery)+`"></iframe>`)
+func (s *Server) renderHTMLFrame(w http.ResponseWriter, rootName, relative string) {
+	writeHTML(w, "HTML Preview", `<iframe class="preview-frame" sandbox="allow-scripts allow-forms" src="`+html.EscapeString(rawFSURL(rootName, relative))+`"></iframe>`)
 }
 
-func (s *Server) renderPDFFrame(w http.ResponseWriter, rawQuery string) {
-	writeHTML(w, "PDF Preview", `<iframe class="preview-frame" src="/raw?`+html.EscapeString(rawQuery)+`"></iframe>`)
+func (s *Server) renderPDFFrame(w http.ResponseWriter, rootName, relative string) {
+	writeHTML(w, "PDF Preview", `<iframe class="preview-frame" src="`+html.EscapeString(rawFSURL(rootName, relative))+`"></iframe>`)
 }
 
 func (s *Server) renderTextPreview(w http.ResponseWriter, title string, result textResult) {
@@ -564,6 +593,16 @@ func pathJoinURL(base, name string) string {
 		return name
 	}
 	return strings.Trim(strings.TrimRight(base, "/")+"/"+name, "/")
+}
+
+func rawFSURL(rootName, relative string) string {
+	parts := []string{"", "rawfs", url.PathEscape(rootName)}
+	for _, part := range strings.Split(relative, "/") {
+		if part != "" {
+			parts = append(parts, url.PathEscape(part))
+		}
+	}
+	return strings.Join(parts, "/")
 }
 
 func findLANIP() string {

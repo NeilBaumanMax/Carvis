@@ -38,10 +38,21 @@ export function mergeClaudeCodeEnv(
 ): NodeJS.ProcessEnv {
   return {
     ...env,
+    PATH: withNixSystemPath(env.PATH),
     ...createDeepSeekClaudeCodeEnv(env),
   };
 }
 
 export function hasDeepSeekClaudeCodeToken(env: NodeJS.ProcessEnv): boolean {
   return Boolean(env.ANTHROPIC_AUTH_TOKEN ?? env.DEEPSEEK_API_KEY);
+}
+
+function withNixSystemPath(path: string | undefined): string {
+  const entries = [
+    ...(path ?? "").split(":").filter((entry) => entry.length > 0),
+    "/run/current-system/sw/bin",
+    "/run/wrappers/bin",
+  ];
+
+  return [...new Set(entries)].join(":");
 }
