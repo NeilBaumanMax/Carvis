@@ -46,10 +46,24 @@ export interface ElectronShellState {
   outputs: ElectronOutputEntry[];
   submittedCommands: string[];
   recentEvents: string[];
+  remoteDraft?: ElectronRemoteDraft;
+  remoteAccess?: ElectronRemoteAccess;
 }
 
 export interface ElectronSubmitCommandOptions {
   requestId?: string;
+}
+
+export interface ElectronRemoteDraft {
+  text: string;
+  updatedAt: string;
+  source: "electron" | "nas" | "api";
+}
+
+export interface ElectronRemoteAccess {
+  ip: string;
+  electronApiUrl: string;
+  phoneUrl: string;
 }
 
 export interface ElectronShellStateSubscription {

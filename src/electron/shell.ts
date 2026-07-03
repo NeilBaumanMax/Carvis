@@ -13,6 +13,7 @@ import type { MessageBus, MessageBusSubscription } from "../messagebus/index.js"
 import type {
   ElectronOutputEntry,
   ElectronRuntimeDisplayState,
+  ElectronRemoteAccess,
   ElectronShellState,
   ElectronShellStateSubscription,
   ElectronSubmitCommandOptions,
@@ -33,6 +34,11 @@ export class ElectronShell {
       outputs: [],
       submittedCommands: [],
       recentEvents: [],
+      remoteDraft: {
+        text: "",
+        updatedAt: new Date(0).toISOString(),
+        source: "electron",
+      },
     };
 
     this.subscribeToRuntimeEvents();
@@ -60,6 +66,20 @@ export class ElectronShell {
 
     this.state.submittedCommands.push(normalizedCommand);
     this.rememberEvent(`command.submitted:${normalizedCommand}`);
+  }
+
+  setRemoteDraft(text: string, source: "electron" | "nas" | "api" = "api"): void {
+    this.state.remoteDraft = {
+      text,
+      updatedAt: new Date().toISOString(),
+      source,
+    };
+    this.rememberEvent(`remote.draft:${source}`);
+  }
+
+  setRemoteAccess(access: ElectronRemoteAccess): void {
+    this.state.remoteAccess = access;
+    this.rememberEvent(`remote.access:${access.phoneUrl}`);
   }
 
   getState(): ElectronShellState {
@@ -353,5 +373,7 @@ function cloneState(state: ElectronShellState): ElectronShellState {
     })),
     submittedCommands: [...state.submittedCommands],
     recentEvents: [...state.recentEvents],
+    remoteDraft: state.remoteDraft === undefined ? undefined : { ...state.remoteDraft },
+    remoteAccess: state.remoteAccess === undefined ? undefined : { ...state.remoteAccess },
   };
 }

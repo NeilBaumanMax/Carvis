@@ -1,5 +1,5 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 
 import type {
   SetupComponentConfig,
@@ -12,6 +12,7 @@ const componentDescriptions: Record<SetupComponentName, string> = {
   messagebus: "Carvis Message Bus",
   agentruntime: "Carvis Agent Runtime",
   electron: "Carvis Electron Shell",
+  nas: "Carvis NAS Remote Control",
 };
 
 export function createSystemdUserUnits(
@@ -35,8 +36,8 @@ export function createSystemdUserUnits(
       content: [
         "[Unit]",
         "Description=Carvis MVP",
-        "Requires=carvis-messagebus.service carvis-agentruntime.service carvis-electron.service",
-        "After=carvis-messagebus.service carvis-agentruntime.service carvis-electron.service",
+        `Requires=${unitList(components)}`,
+        `After=${unitList(components)}`,
         "",
         "[Install]",
         "WantedBy=default.target",
@@ -70,6 +71,7 @@ export async function uninstallSystemdUserUnits(unitDir: string): Promise<string
     "carvis-messagebus.service",
     "carvis-agentruntime.service",
     "carvis-electron.service",
+    "carvis-nas.service",
     "carvis.target",
   ];
 
@@ -84,6 +86,8 @@ function createComponentUnit(
   component: SetupComponentConfig,
   options: Required<SystemdUnitOptions>,
 ): SystemdUnitFile {
+  const executable = resolveExecutable(component.command, options);
+
   return {
     filename: `carvis-${component.name}.service`,
     content: [
@@ -94,7 +98,7 @@ function createComponentUnit(
       "[Service]",
       "Type=simple",
       `WorkingDirectory=${escapeSystemdValue(options.workingDirectory)}`,
-      `ExecStart=${escapeSystemdExec([options.nodePath, ...component.args])}`,
+      `ExecStart=${escapeSystemdExec([executable, ...component.args])}`,
       `Environment=CARVIS_MESSAGEBUS_PORT=${options.messagebusPort}`,
       ...environmentFileLines(component.environmentFile),
       ...environmentLines(component.environment),
@@ -117,10 +121,33 @@ function dependencyLines(component: SetupComponentName): string[] {
     return ["Requires=carvis-messagebus.service", "After=carvis-messagebus.service"];
   }
 
+  if (component === "electron") {
+    return [
+      "Requires=carvis-messagebus.service carvis-agentruntime.service",
+      "After=carvis-messagebus.service carvis-agentruntime.service",
+    ];
+  }
+
   return [
-    "Requires=carvis-messagebus.service carvis-agentruntime.service",
-    "After=carvis-messagebus.service carvis-agentruntime.service",
+    "Requires=carvis-messagebus.service carvis-agentruntime.service carvis-electron.service",
+    "After=carvis-messagebus.service carvis-agentruntime.service carvis-electron.service",
   ];
+}
+
+function unitList(components: readonly SetupComponentConfig[]): string {
+  return components.map((component) => `carvis-${component.name}.service`).join(" ");
+}
+
+function resolveExecutable(command: string, options: Required<SystemdUnitOptions>): string {
+  if (command === "node") {
+    return options.nodePath;
+  }
+
+  if (command.includes("/") && !isAbsolute(command)) {
+    return resolve(options.workingDirectory, command);
+  }
+
+  return command;
 }
 
 function environmentFileLines(environmentFile: string | undefined): string[] {

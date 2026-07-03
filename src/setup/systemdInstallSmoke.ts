@@ -28,10 +28,11 @@ try {
       "carvis-agentruntime.service",
       "carvis-electron.service",
       "carvis-messagebus.service",
+      "carvis-nas.service",
       "carvis.target",
     ],
   );
-  assert(units.length === 4, "installer should return four unit files");
+  assert(units.length === 5, "installer should return five unit files");
 
   const target = await readFile(join(unitDir, "carvis.target"), "utf8");
   const runtime = await readFile(join(unitDir, "carvis-agentruntime.service"), "utf8");
@@ -73,7 +74,7 @@ try {
   });
   const remainingCliFiles = await readdir(cliUnitDir);
 
-  assert(uninstallResult.stdout.includes("uninstalled 4 units"), "CLI uninstall should report removed units");
+  assert(uninstallResult.stdout.includes("uninstalled 5 units"), "CLI uninstall should report removed units");
   assert(remainingCliFiles.length === 0, "CLI uninstall should remove all carvis units");
 
   try {

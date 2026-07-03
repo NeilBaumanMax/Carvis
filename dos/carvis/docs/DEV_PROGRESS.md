@@ -1,5 +1,80 @@
 # Carvis Development Progress
 
+## 2026-07-03 / NAS remote control and Electron HTTP API / 开工计划
+
+### 本轮目标
+
+- 在 `carvis/` 下新增 `nas/`，与现有 Electron/messagebus/agentruntime 系统同级。
+- 把 Electron 原输入任务框和“开始协同”封装为 HTTP API，供 NAS Go server 和手机网页调用。
+- 手机 Web 输入文字时，Electron 输入框实时同步，并在办公室画面上浮现输入文字。
+- 手机点击启动时，Electron 触发同一套协同动画和 `command.submitted`。
+- Electron 右上角显示当前局域网 IP 和手机应打开的远程 Web URL。
+- NAS Go server 按白名单读取真实 `output/history` 路径，不复制产物，并提供移动端预览入口。
+
+### 涉及层
+
+- `01-electron`
+- `02-messagebus`
+- `07-output`
+- `nas/apps/client`
+- `nas/apps/server`
+
+### 本次完成
+
+- 新增 `src/electron/remoteApi.ts`，提供：
+  - `GET /api/health`
+  - `GET /api/state`
+  - `POST /api/input`
+  - `POST /api/submit`
+- `ElectronShellState` 新增 `remoteDraft` 和 `remoteAccess`，并修正 `cloneState()` 保留这些字段。
+- Electron 启动时监听 `0.0.0.0:45932`，默认手机 URL 为 `http://<LAN IP>:8765`。
+- React UI 监听 `remoteDraft`，把手机 Web 输入实时回填到右侧输入框，并在办公室画面上显示短暂浮字。
+- React UI 监听 `submittedCommands` 增量，远程提交时也启动同一套协同动画。
+- 顶部右上角新增 IP 和远程 Web URL 展示。
+- `src/setup` 已纳入 `nas` 组件，`carvis.target` 现在 Requires/After `carvis-nas.service`。
+- NixOS 桌面快捷脚本 `~/.local/bin/start-carvis.sh` 已改为按顺序重启 messagebus、agentruntime、electron、nas。
+- 新增 `nas/` 结构：
+  - `apps/client`：手机控制网页，参考 `nas/docs/reference-ui.jpg` 的像素木质面板风格。
+  - `apps/server`：Go 标准库 server，转发 Electron API，读取 output/history，支持 txt/md/html/pdf/docx/xlsx/csv/json 等预览。
+  - `config`：`app.yaml`、`remote.yaml`、`electron.yaml`、`paths.yaml`。
+  - `infra`：nginx、docker、systemd 示例。
+  - `packages`：共享类型和协议说明。
+  - `docs`：架构说明和参考 UI 图。
+
+### 当前验证
+
+- 本地 `npm run typecheck`：通过。
+- 本地 `npm run build`：通过。
+- NixOS `npm run build`：通过。
+- NixOS `carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`：active。
+- NixOS Electron API `GET http://127.0.0.1:45932/api/health`：通过。
+- NixOS Electron API `POST /api/input` 后，`GET /api/state` 返回：
+  - `remoteDraft.text = "手机端实时输入测试二"`
+  - `remoteAccess.ip = "192.168.137.59"`
+  - `remoteAccess.phoneUrl = "http://192.168.137.59:8765"`
+- NixOS `electron:visual-smoke`：通过，截图 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`，1280x720。
+- NixOS 使用临时 Go 1.22.12 工具链构建 `nas/carvis-nas-server`：通过。
+- NixOS `carvis-nas.service` 已由 setup 安装并纳入 `carvis.target`。
+- NixOS 重启后验收：`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`、`carvis-nas.service` 均 active。
+- NixOS 重启后端口：`127.0.0.1:45931`、`0.0.0.0:45932`、`*:8765` 均监听。
+- 手机 URL `http://192.168.137.59:8765/api/config`：通过。
+- 重启后 `POST http://192.168.137.59:8765/api/input` 可更新 Electron `remoteDraft.text = "重启后手机端实时输入验证"`。
+- NAS 历史列表 `GET /api/history`：通过，返回 35 条。
+- NAS 预览 smoke：txt/html/pdf/docx/xlsx 均返回预览页，docx/xlsx 文本抽取命中 `Hello Word Preview` / `Hello Excel Preview`。
+- 本地 `npm test`：通过。
+- NixOS 重启后 `electron:visual-smoke`：通过，截图 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`，1280x720。
+
+### 未完成
+
+- NixOS 没有全局 `go` 命令；当前用 `/tmp/carvis-go/go/bin/go` 临时工具链构建 NAS server。若 `/tmp` 被清理，下次修改 Go server 后需要重新放置 Go 工具链或安装系统 Go。
+- `spectacle` 桌面截图曾崩溃，未拿到持久 Electron 窗口的远程浮字截图；已用 Electron API state、NAS API 和 visual smoke 验证主要链路。
+
+### 下次优先任务
+
+1. 若 nginx 已配置 `carvis.lan`，设置 `CARVIS_NAS_PUBLIC_URL` 或 `CARVIS_NGINX_URL` 后重启 Electron/NAS，让右上角显示最终域名。
+2. 后续把 Go 工具链纳入 NixOS profile 或项目构建说明，避免依赖 `/tmp/carvis-go`。
+3. 需要真实手机实测时，直接打开 `http://192.168.137.59:8765`。
+
 ## 2026-07-03 / Install carvisui as Electron UI / 开工计划
 
 ### 本轮目标

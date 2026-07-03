@@ -1,4 +1,4 @@
-export type SetupComponentName = "messagebus" | "agentruntime" | "electron";
+export type SetupComponentName = "messagebus" | "agentruntime" | "electron" | "nas";
 
 export type SetupMode = "plan" | "spawn";
 

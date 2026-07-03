@@ -7,7 +7,7 @@ const config = loadSetupConfig({
 
 const successfulRun = await runSetupSupervisor(config, async () => ({}));
 assert(successfulRun.ok, "setup should succeed when all components start");
-assertSequence(successfulRun.started, ["messagebus", "agentruntime", "electron"]);
+assertSequence(successfulRun.started, ["messagebus", "agentruntime", "electron", "nas"]);
 
 const failingStarter: ComponentStarter = async (component) => {
   if (component.name === "agentruntime") {

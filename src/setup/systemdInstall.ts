@@ -103,6 +103,7 @@ async function readUnitStatuses(unitDir: string): Promise<Array<{ filename: stri
     "carvis-messagebus.service",
     "carvis-agentruntime.service",
     "carvis-electron.service",
+    "carvis-nas.service",
     "carvis.target",
   ];
 

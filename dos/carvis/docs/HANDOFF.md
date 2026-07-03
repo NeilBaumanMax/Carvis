@@ -60,6 +60,131 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-03 / NAS remote control and Electron HTTP API / 接力记录
+
+### 当前状态
+
+- 本地仓库已新增 `carvis/nas/`，作为 NAS/手机远程控制系统主体。
+- Electron 新增 HTTP API：
+  - 默认监听 `0.0.0.0:45932`。
+  - `GET /api/health`
+  - `GET /api/state`
+  - `POST /api/input`
+  - `POST /api/submit`
+- Electron state 已包含：
+  - `remoteDraft`：手机 Web 实时输入草稿。
+  - `remoteAccess`：局域网 IP、Electron API URL、手机 Web URL。
+- Electron UI 右上角显示 `IP` 和 `phoneUrl`。
+- 手机/远程输入通过 `remoteDraft` 同步到 Electron 右侧输入框，并在办公室画面上显示短暂浮字。
+- 远程 submit 会通过 `submittedCommands` 增量触发 Electron 同一套协同动画。
+- NixOS 远端运行目录仍是 `/home/howtion/carvis-remote-smoke`。
+- NixOS 当前 Electron API 已验证：
+  - `remoteAccess.ip = 192.168.137.59`
+  - `remoteAccess.phoneUrl = http://192.168.137.59:8765`
+- NixOS 当前 services active：
+  - `carvis-messagebus.service`
+  - `carvis-agentruntime.service`
+  - `carvis-electron.service`
+  - `carvis-nas.service`
+- NixOS 当前监听：
+  - `127.0.0.1:45931` messagebus
+  - `0.0.0.0:45932` Electron remote API
+  - `*:8765` NAS phone web
+- NixOS `carvis.target` 已 enabled/active，Requires/After 包含 `carvis-nas.service`。
+- NixOS 已重启验收，四个服务开机后均 active。
+- 桌面快捷脚本 `~/.local/bin/start-carvis.sh` 已改为重启四个服务，包含 NAS。
+
+### 本轮完成
+
+- 新增 `src/electron/remoteApi.ts`。
+- 更新 `src/electron/browserMain.ts` 启动/关闭 remote API。
+- 更新 `src/electron/types.ts`、`src/electron/shell.ts`，补 `remoteDraft/remoteAccess` 和 clone。
+- 更新 `src/electron/carvisui/src/App.tsx`，加入右上角 URL 和远程浮字。
+- 更新 `src/electron/carvisui/src/hooks/useAgentWorkflow.ts`，远程 submit 也触发协同动画。
+- 更新 `src/electron/carvisui/src/styles/pixel-office.css` 和 `vite-env.d.ts`。
+- 新增 NAS 目录：
+  - `nas/apps/client/index.html`
+  - `nas/apps/client/styles.css`
+  - `nas/apps/client/app.js`
+  - `nas/apps/server/main.go`
+  - `nas/config/*.yaml`
+  - `nas/infra/nginx/carvis.conf`
+  - `nas/infra/systemd/carvis-nas.service`
+  - `nas/infra/docker/Dockerfile`
+  - `nas/packages/*`
+  - `nas/docs/ARCHITECTURE.md`
+  - `nas/docs/reference-ui.jpg`
+- `src/setup` 已增加 `nas` 组件，systemd installer/status/uninstall/smoke 均覆盖 `carvis-nas.service`。
+- 修复 setup systemd 生成器：非 Node 相对命令会解析为 WorkingDirectory 下的绝对路径，避免 `ExecStart=nas/carvis-nas-server` 被 systemd 判为 bad unit。
+- NixOS 使用 `/tmp/carvis-go/go/bin/go` 编译 `nas/carvis-nas-server`。
+- NixOS 通过 setup 重新安装 user units，并重启 NixOS 验证自启动。
+
+### 未完成
+
+- NixOS 没有全局 `go` 命令；当前依赖 `/tmp/carvis-go/go/bin/go` 这个临时 Go 1.22.12 工具链。若 `/tmp` 被清理，下次改 Go server 前需要重新放置 Go 或安装系统 Go。
+- `spectacle` 截图远程浮字时崩溃，未生成持久窗口截图；已用 Electron API state、NAS API 和 visual smoke 验证链路。
+
+### 下次优先任务
+
+1. 若用户要 nginx 域名，把 `CARVIS_NAS_PUBLIC_URL` 或 `CARVIS_NGINX_URL` 改为最终 `carvis.lan`，重启 Electron/NAS。
+2. 把 Go 工具链纳入 NixOS profile 或文档化 `/tmp/carvis-go` 重新安装步骤。
+3. 若要截图验收远程浮字，先修 `spectacle` 或改用 X11 截图工具。
+
+### 必读文档
+
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `nas/README.md`
+- `nas/docs/ARCHITECTURE.md`
+- `nas/packages/protocol/remote-control.md`
+
+### 关键文件
+
+- `src/electron/remoteApi.ts`
+- `src/electron/browserMain.ts`
+- `src/electron/shell.ts`
+- `src/electron/types.ts`
+- `src/electron/carvisui/src/App.tsx`
+- `src/electron/carvisui/src/hooks/useAgentWorkflow.ts`
+- `nas/apps/server/main.go`
+- `nas/apps/client/app.js`
+- `src/setup/config.ts`
+- `src/setup/systemd.ts`
+- `src/setup/systemdInstall.ts`
+- `src/setup/systemdSmoke.ts`
+- `src/setup/systemdInstallSmoke.ts`
+
+### 测试基线
+
+- 本地 `npm run typecheck`：通过。
+- 本地 `npm run build`：通过。
+- 本地 `npm run setup:systemd-smoke`：通过。
+- 本地 `npm run setup:systemd-install-smoke`：通过。
+- NixOS `npm run build`：通过。
+- NixOS `nas/carvis-nas-server` Go build：通过。
+- NixOS `carvis.target` setup install：通过，target 包含 `carvis-nas.service`。
+- NixOS 重启后四服务自启动：通过。
+- 本地 `npm test`：通过。
+- NixOS Electron API `GET /api/health`：通过。
+- NixOS Electron API `POST /api/input` + `GET /api/state`：通过。
+- NixOS NAS `GET http://192.168.137.59:8765/api/config`：通过。
+- NixOS NAS `GET /api/history`：通过。
+- NixOS NAS txt/html/pdf/docx/xlsx preview smoke：通过。
+- NixOS 重启后 `electron:visual-smoke`：通过。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 最新提交：本轮尚未提交，执行 `git status --short` 可见改动。
+- 已 push：否。
+- 备份分支：`origin/backup/mvp-nixos-20260702-020835`
+
+### 风险提醒
+
+- 不要把真实 API Key 或 `/home/howtion/.config/carvis/agentruntime.env` 写进仓库。
+- NAS server 只应通过 `paths.yaml` 白名单访问 output/history，不能开放任意绝对路径。
+- Electron remote API 当前监听 `0.0.0.0:45932`，同网段可访问；正式部署如有安全要求，需要加局域网限制或简单 token。
+
 ## 2026-07-03 / carvisui Electron replacement / 接力记录
 
 ### 当前状态

@@ -3,6 +3,7 @@ import { loadSetupConfig, runSetupSupervisor } from "./index.js";
 const smokePort = String(48_000 + Math.floor(Math.random() * 1_000));
 const baseConfig = loadSetupConfig({
   CARVIS_SETUP_MODE: "spawn",
+  CARVIS_NAS_ENABLED: "0",
 });
 const config = {
   ...baseConfig,

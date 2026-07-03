@@ -1,0 +1,5 @@
+output_root: ../output/runs
+history_root: ../output/runs
+cache_root: data/cache
+index_root: data/index
+logs_root: data/logs

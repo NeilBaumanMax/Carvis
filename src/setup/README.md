@@ -9,6 +9,7 @@
   1. `messagebus`
   2. `agentruntime`
   3. `electron`
+  4. `nas`
 - Stop startup when a required component fails.
 - Emit a simple event trail for smoke tests and logs.
 - Provide smoke coverage for the NixOS systemd user-service setup.
@@ -30,4 +31,9 @@ Environment:
 ```text
 CARVIS_SETUP_MODE=plan | spawn
 CARVIS_SETUP_TIMEOUT_MS=15000
+CARVIS_NAS_ENABLED=1
+CARVIS_NAS_PUBLIC_URL=http://<lan-ip>:8765
+CARVIS_ELECTRON_API_URL=http://127.0.0.1:45932
+CARVIS_OUTPUT_ROOT=/path/to/output/runs
+CARVIS_HISTORY_ROOT=/path/to/output/runs
 ```

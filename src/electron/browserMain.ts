@@ -8,6 +8,7 @@ import { createRemoteMessageBus } from "../messagebus/index.js";
 import { createElectronShell } from "./shell.js";
 import { createElectronBrowserWindow, fitWindowToWorkArea, type ElectronBrowserModule } from "./browserWindow.js";
 import { writeElectronRendererPreload } from "./renderer.js";
+import { startElectronRemoteApi, type ElectronRemoteApiHandle } from "./remoteApi.js";
 import type { ElectronShellState } from "./types.js";
 
 interface ElectronRuntimeModule extends ElectronBrowserModule {
@@ -37,6 +38,7 @@ const gamePreviewWindows = new Set<InstanceType<ElectronRuntimeModule["BrowserWi
 const openedGamePreviewPaths = new Set<string>();
 let openWindowCount = 0;
 let isBackfillingOutput = false;
+let remoteApi: ElectronRemoteApiHandle | undefined;
 
 electron.ipcMain.handle("carvis:get-state", () => shell.getState());
 electron.ipcMain.handle("carvis:submit-command", async (_event, commandText) => {
@@ -55,6 +57,7 @@ shell.onStateChanged((state) => {
 
 void electron.app.whenReady().then(async () => {
   await delay(readStartDelayMs(process.env.CARVIS_ELECTRON_START_DELAY_MS));
+  remoteApi = await startElectronRemoteApi(shell);
   await openWindow();
   await backfillExistingOutput();
 });
@@ -66,6 +69,7 @@ electron.app.on("activate", () => {
 });
 
 electron.app.on("window-all-closed", () => {
+  void remoteApi?.close();
   shell.dispose();
   bus.close();
   electron.app.quit();

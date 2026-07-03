@@ -37,6 +37,18 @@ type CarvisOutputEntry = {
   readyAt: string;
 };
 
+type CarvisRemoteDraft = {
+  text: string;
+  updatedAt: string;
+  source: 'electron' | 'nas' | 'api';
+};
+
+type CarvisRemoteAccess = {
+  ip: string;
+  electronApiUrl: string;
+  phoneUrl: string;
+};
+
 type CarvisShellState = {
   panels: CarvisPanel[];
   runtime: {
@@ -49,6 +61,8 @@ type CarvisShellState = {
   outputs: CarvisOutputEntry[];
   submittedCommands: string[];
   recentEvents: string[];
+  remoteDraft?: CarvisRemoteDraft;
+  remoteAccess?: CarvisRemoteAccess;
 };
 
 type CarvisBridge = {

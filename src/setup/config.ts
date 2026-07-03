@@ -9,7 +9,7 @@ export function loadSetupConfig(env: NodeJS.ProcessEnv): SetupConfig {
 }
 
 function createDefaultComponents(env: NodeJS.ProcessEnv): readonly SetupComponentConfig[] {
-  return [
+  const components: SetupComponentConfig[] = [
     {
       name: "messagebus",
       command: "node",
@@ -32,6 +32,18 @@ function createDefaultComponents(env: NodeJS.ProcessEnv): readonly SetupComponen
       environment: readElectronEnvironment(env),
     },
   ];
+
+  if (env.CARVIS_NAS_ENABLED !== "0") {
+    components.push({
+      name: "nas",
+      command: env.CARVIS_NAS_BIN ?? "nas/carvis-nas-server",
+      args: [],
+      required: true,
+      environment: readNasEnvironment(env),
+    });
+  }
+
+  return components;
 }
 
 function readAgentRuntimeEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<string, string>> | undefined {
@@ -70,6 +82,29 @@ function readElectronEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<string
     "CARVIS_ELECTRON_START_DELAY_MS",
     "DISPLAY",
     "XAUTHORITY",
+  ]) {
+    const value = env[key];
+
+    if (value !== undefined && value.length > 0) {
+      values[key] = value;
+    }
+  }
+
+  return Object.keys(values).length === 0 ? undefined : values;
+}
+
+function readNasEnvironment(env: NodeJS.ProcessEnv): Readonly<Record<string, string>> | undefined {
+  const values: Record<string, string> = {};
+
+  for (const key of [
+    "CARVIS_NAS_CONFIG_DIR",
+    "CARVIS_NAS_HOST",
+    "CARVIS_NAS_PORT",
+    "CARVIS_NAS_PUBLIC_URL",
+    "CARVIS_NGINX_URL",
+    "CARVIS_ELECTRON_API_URL",
+    "CARVIS_OUTPUT_ROOT",
+    "CARVIS_HISTORY_ROOT",
   ]) {
     const value = env[key];
 

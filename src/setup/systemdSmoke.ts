@@ -15,6 +15,7 @@ assertSequence(
     "carvis-messagebus.service",
     "carvis-agentruntime.service",
     "carvis-electron.service",
+    "carvis-nas.service",
     "carvis.target",
   ],
 );
@@ -22,6 +23,7 @@ assertSequence(
 const messagebus = mustUnit("carvis-messagebus.service");
 const runtime = mustUnit("carvis-agentruntime.service");
 const electron = mustUnit("carvis-electron.service");
+const nas = mustUnit("carvis-nas.service");
 const target = mustUnit("carvis.target");
 
 assert(messagebus.includes("Description=Carvis Message Bus"), "messagebus description should render");
@@ -47,10 +49,31 @@ assert(
   electron.includes("WorkingDirectory=/home/howtion/carvis"),
   "component units should include working directory",
 );
+assert(nas.includes("Description=Carvis NAS Remote Control"), "nas description should render");
+assert(nas.includes("ExecStart=/home/howtion/carvis/nas/carvis-nas-server"), "nas ExecStart should render");
+assert(
+  nas.includes("Requires=carvis-messagebus.service carvis-agentruntime.service carvis-electron.service") &&
+    nas.includes("After=carvis-messagebus.service carvis-agentruntime.service carvis-electron.service"),
+  "nas should depend on electron API stack",
+);
 assert(
   target.includes("WantedBy=default.target") &&
-    target.includes("Requires=carvis-messagebus.service carvis-agentruntime.service carvis-electron.service"),
+    target.includes("Requires=carvis-messagebus.service carvis-agentruntime.service carvis-electron.service carvis-nas.service"),
   "target should require all services and install into default.target",
+);
+
+const withoutNasConfig = loadSetupConfig({
+  CARVIS_NAS_ENABLED: "0",
+});
+const withoutNasUnits = createSystemdUserUnits(withoutNasConfig.components, {
+  workingDirectory: "/home/howtion/carvis",
+  nodePath: "/run/current-system/sw/bin/node",
+  messagebusPort: 45931,
+});
+
+assert(
+  !withoutNasUnits.some((unit) => unit.filename === "carvis-nas.service"),
+  "nas unit should be disableable",
 );
 
 const browserConfig = loadSetupConfig({
@@ -91,6 +114,25 @@ assert(
 assert(
   providerRuntime.includes("Environment=CARVIS_AGENTRUNTIME_REAL_PROVIDERS=1"),
   "runtime unit should include real provider mode flag",
+);
+
+const nasConfig = loadSetupConfig({
+  CARVIS_NAS_PUBLIC_URL: "http://192.168.137.59:8765",
+  CARVIS_ELECTRON_API_URL: "http://127.0.0.1:45932",
+  CARVIS_OUTPUT_ROOT: "/home/howtion/carvis/output/runs",
+});
+const nasUnits = createSystemdUserUnits(nasConfig.components, {
+  workingDirectory: "/home/howtion/carvis",
+  nodePath: "/run/current-system/sw/bin/node",
+  messagebusPort: 45931,
+});
+const configuredNas = nasUnits.find((unit) => unit.filename === "carvis-nas.service")?.content ?? "";
+
+assert(
+  configuredNas.includes("Environment=CARVIS_NAS_PUBLIC_URL=http://192.168.137.59:8765") &&
+    configuredNas.includes("Environment=CARVIS_ELECTRON_API_URL=http://127.0.0.1:45932") &&
+    configuredNas.includes("Environment=CARVIS_OUTPUT_ROOT=/home/howtion/carvis/output/runs"),
+  "nas unit should include remote control environment",
 );
 
 console.log("[setup:systemd-smoke] ok");

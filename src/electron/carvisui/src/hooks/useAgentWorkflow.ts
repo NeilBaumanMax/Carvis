@@ -30,6 +30,7 @@ export function useAgentWorkflow() {
   const [shellState, setShellState] = useState<CarvisShellState | undefined>();
   const [running, setRunning] = useState(false);
   const previousOutputsCount = useRef(0);
+  const previousSubmittedCount = useRef(0);
   const previousLatestOutput = useRef<Partial<Record<CarvisAgentRole, string>>>({});
   const animatedEvents = useRef(new Set<string>());
   const bubbleTimers = useRef<Partial<Record<AgentId, number>>>({});
@@ -120,6 +121,7 @@ export function useAgentWorkflow() {
 
     const state = await bridge.getState();
     previousOutputsCount.current = state.outputs.length;
+    previousSubmittedCount.current = state.submittedCommands.length;
     setShellState(state);
   }, [appendLog]);
 
@@ -132,8 +134,44 @@ export function useAgentWorkflow() {
     return () => unsubscribe?.();
   }, [bootstrapState]);
 
+  const startVisualWorkflow = useCallback(
+    async (task: string, submitToCarvis: boolean) => {
+      resetAgents();
+      setRunning(true);
+      appendLog(`[用户] 提交任务：${task}`);
+
+      showBubble('manager', '收到任务，正在拆分给文员、设计、调研，并等待他们返回后交给技术。', 'thinking');
+
+      if (submitToCarvis) {
+        await window.carvis?.submitCommand(task);
+      }
+
+      await sleep(520);
+      await Promise.all([
+        sendEnvelope('manager', 'clerk', '文员任务'),
+        sendEnvelope('manager', 'designer', '设计任务'),
+        sendEnvelope('manager', 'researcher', '调研任务'),
+      ]);
+
+      for (const id of workerAgents) {
+        showBubble(id, '收到任务，开始处理公开进度。', 'thinking');
+      }
+    },
+    [appendLog, resetAgents, sendEnvelope, showBubble],
+  );
+
   useEffect(() => {
     if (!shellState) return;
+
+    const submittedCount = shellState.submittedCommands.length;
+    if (submittedCount > previousSubmittedCount.current) {
+      previousSubmittedCount.current = submittedCount;
+      const remoteTask = shellState.submittedCommands.at(-1);
+
+      if (remoteTask && !running) {
+        void startVisualWorkflow(remoteTask, false);
+      }
+    }
 
     const nextOutputsCount = shellState.outputs.length;
     if (nextOutputsCount > previousOutputsCount.current) {
@@ -180,7 +218,7 @@ export function useAgentWorkflow() {
         void sendEnvelope('manager', 'tech', '交给技术');
       }
     }
-  }, [appendLog, running, sendEnvelope, setAgent, shellState, showBubble]);
+  }, [appendLog, running, sendEnvelope, setAgent, shellState, showBubble, startVisualWorkflow]);
 
   const runWorkflow = useCallback(
     async (rawTask: string) => {
@@ -188,25 +226,9 @@ export function useAgentWorkflow() {
       const task = rawTask.trim();
       if (!task) return;
 
-      resetAgents();
-      setRunning(true);
-      appendLog(`[用户] 提交任务：${task}`);
-
-      showBubble('manager', '收到任务，正在拆分给文员、设计、调研，并等待他们返回后交给技术。', 'thinking');
-
-      await window.carvis?.submitCommand(task);
-      await sleep(520);
-      await Promise.all([
-        sendEnvelope('manager', 'clerk', '文员任务'),
-        sendEnvelope('manager', 'designer', '设计任务'),
-        sendEnvelope('manager', 'researcher', '调研任务'),
-      ]);
-
-      for (const id of workerAgents) {
-        showBubble(id, '收到任务，开始处理公开进度。', 'thinking');
-      }
+      await startVisualWorkflow(task, true);
     },
-    [appendLog, resetAgents, running, sendEnvelope, showBubble],
+    [running, startVisualWorkflow],
   );
 
   const openPath = useCallback((path: string | undefined) => {
@@ -242,6 +264,8 @@ export function useAgentWorkflow() {
     outputLogs,
     currentOutput,
     history,
+    remoteDraft: shellState?.remoteDraft,
+    remoteAccess: shellState?.remoteAccess,
     running,
     runWorkflow,
     openPath,
