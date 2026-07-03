@@ -70,8 +70,8 @@ export async function createElectronBrowserWindow(
   options: CreateElectronBrowserWindowOptions,
 ): Promise<ElectronBrowserWindowResult> {
   const rendererPath = await resolveElectronRendererPath(options.outputDir, options.state);
-  const fullscreen = options.fullscreen ?? process.env.CARVIS_ELECTRON_FULLSCREEN === "1";
-  const kiosk = options.kiosk ?? fullscreen;
+  const fullscreen = options.fullscreen ?? process.env.CARVIS_ELECTRON_FULLSCREEN !== "0";
+  const kiosk = options.kiosk ?? process.env.CARVIS_ELECTRON_KIOSK === "1";
   const bounds = fitWindowToWorkArea(options.electron, options.width ?? 1000, options.height ?? 640);
   const window = new options.electron.BrowserWindow({
     title: options.title ?? "Carvis",
@@ -97,9 +97,11 @@ export async function createElectronBrowserWindow(
 
   if (options.show !== false) {
     window.once("ready-to-show", () => {
-      window.setFullScreen?.(fullscreen);
-      window.setKiosk?.(kiosk);
       window.show();
+      window.setFullScreen?.(fullscreen);
+      if (kiosk) {
+        window.setKiosk?.(true);
+      }
     });
   }
 

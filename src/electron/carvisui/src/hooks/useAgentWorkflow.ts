@@ -21,6 +21,7 @@ const carvisToUiRole: Record<CarvisAgentRole, AgentId> = {
 };
 
 const workerAgents: AgentId[] = ['clerk', 'designer', 'researcher'];
+const bubbleIdleDelayMs = 20_000;
 
 export function useAgentWorkflow() {
   const [agents, setAgents] = useState<Record<AgentId, AgentState>>(initialAgents);
@@ -31,6 +32,18 @@ export function useAgentWorkflow() {
   const previousOutputsCount = useRef(0);
   const previousLatestOutput = useRef<Partial<Record<CarvisAgentRole, string>>>({});
   const animatedEvents = useRef(new Set<string>());
+  const bubbleTimers = useRef<Partial<Record<AgentId, number>>>({});
+
+  const setAgent = useCallback((id: AgentId, patch: Partial<AgentState>) => {
+    setAgents((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
+  }, []);
+
+  const clearBubbleTimers = useCallback(() => {
+    for (const timer of Object.values(bubbleTimers.current)) {
+      if (timer !== undefined) window.clearTimeout(timer);
+    }
+    bubbleTimers.current = {};
+  }, []);
 
   const resetAgents = useCallback(() => {
     setAgents(
@@ -52,11 +65,33 @@ export function useAgentWorkflow() {
     setOutputLogs([]);
     previousLatestOutput.current = {};
     animatedEvents.current.clear();
-  }, []);
+    clearBubbleTimers();
+  }, [clearBubbleTimers]);
 
-  const setAgent = useCallback((id: AgentId, patch: Partial<AgentState>) => {
-    setAgents((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
-  }, []);
+  const showBubble = useCallback(
+    (id: AgentId, text: string, status: AgentStatus) => {
+      if (bubbleTimers.current[id] !== undefined) {
+        window.clearTimeout(bubbleTimers.current[id]);
+      }
+
+      setAgent(id, {
+        status,
+        bubbleText: text,
+        bubbleVisible: true,
+      });
+
+      bubbleTimers.current[id] = window.setTimeout(() => {
+        setAgent(id, {
+          status: 'idle',
+          bubbleVisible: false,
+        });
+        bubbleTimers.current[id] = undefined;
+      }, bubbleIdleDelayMs);
+    },
+    [setAgent],
+  );
+
+  useEffect(() => () => clearBubbleTimers(), [clearBubbleTimers]);
 
   const appendLog = useCallback((line: string) => {
     setOutputLogs((logs) => [...logs.slice(-30), line]);
@@ -70,7 +105,7 @@ export function useAgentWorkflow() {
       setEnvelopes((current) => [...current, { id, from, to, label, active: true }]);
       await sleep(3600);
       setEnvelopes((current) => current.filter((envelope) => envelope.id !== id));
-      if (to !== 'output') setAgent(to, { status: 'thinking' });
+      if (to !== 'output') setAgent(to, { status: 'idle' });
     },
     [setAgent],
   );
@@ -121,18 +156,10 @@ export function useAgentWorkflow() {
       const uiRole = carvisToUiRole[panel.role];
       const latestOutput = panel.latestOutput?.trim();
 
-      setAgent(uiRole, {
-        status: mapCarvisStatus(panel.role, panel.status, running),
-      });
-
       if (latestOutput && latestOutput !== previousLatestOutput.current[panel.role]) {
         previousLatestOutput.current[panel.role] = latestOutput;
         const publicLine = lastUsefulLine(latestOutput);
-        setAgent(uiRole, {
-          status: mapCarvisStatus(panel.role, 'working', true),
-          bubbleText: publicLine,
-          bubbleVisible: true,
-        });
+        showBubble(uiRole, publicLine, mapCarvisStatus(panel.role, 'working', true));
         appendLog(`[${initialAgents[uiRole].name}] ${publicLine}`);
       }
 
@@ -147,13 +174,13 @@ export function useAgentWorkflow() {
         void sendEnvelope(uiRole, 'manager', `${initialAgents[uiRole].name}返回`);
       }
 
-      const engineerStartKey = `${panel.role}:engineer-start:${panel.lastHeartbeatAt ?? ''}`;
-      if (running && panel.role === 'engineer' && panel.status === 'working' && !animatedEvents.current.has(engineerStartKey)) {
+      const engineerStartKey = `${panel.role}:engineer-start:${panel.lastHeartbeatAt ?? latestOutput ?? ''}`;
+      if (running && panel.role === 'engineer' && isEngineerActive(panel, latestOutput) && !animatedEvents.current.has(engineerStartKey)) {
         animatedEvents.current.add(engineerStartKey);
         void sendEnvelope('manager', 'tech', '交给技术');
       }
     }
-  }, [appendLog, running, sendEnvelope, setAgent, shellState]);
+  }, [appendLog, running, sendEnvelope, setAgent, shellState, showBubble]);
 
   const runWorkflow = useCallback(
     async (rawTask: string) => {
@@ -165,11 +192,7 @@ export function useAgentWorkflow() {
       setRunning(true);
       appendLog(`[用户] 提交任务：${task}`);
 
-      setAgent('manager', {
-        status: 'thinking',
-        bubbleVisible: true,
-        bubbleText: '收到任务，正在拆分给文员、设计、调研，并等待他们返回后交给技术。',
-      });
+      showBubble('manager', '收到任务，正在拆分给文员、设计、调研，并等待他们返回后交给技术。', 'thinking');
 
       await window.carvis?.submitCommand(task);
       await sleep(520);
@@ -180,10 +203,10 @@ export function useAgentWorkflow() {
       ]);
 
       for (const id of workerAgents) {
-        setAgent(id, { status: 'thinking', bubbleVisible: true, bubbleText: '收到任务，开始处理公开进度。' });
+        showBubble(id, '收到任务，开始处理公开进度。', 'thinking');
       }
     },
-    [appendLog, resetAgents, running, sendEnvelope, setAgent],
+    [appendLog, resetAgents, running, sendEnvelope, showBubble],
   );
 
   const openPath = useCallback((path: string | undefined) => {
@@ -209,9 +232,9 @@ export function useAgentWorkflow() {
       }));
   }, [shellState]);
 
-  const onBubbleComplete = useCallback((agentId: AgentId) => {
-    setAgent(agentId, { bubbleVisible: running });
-  }, [running, setAgent]);
+  const onBubbleComplete = useCallback((_agentId: AgentId) => {
+    // The bubble remains visible until the 20 second idle timer hides it.
+  }, []);
 
   return {
     agents,
@@ -226,8 +249,20 @@ export function useAgentWorkflow() {
   };
 }
 
+function isEngineerActive(panel: CarvisPanel, latestOutput: string | undefined): boolean {
+  return (
+    panel.status === 'starting' ||
+    panel.status === 'assigned' ||
+    panel.status === 'working' ||
+    (latestOutput !== undefined && latestOutput.length > 0)
+  );
+}
+
 function mapCarvisStatus(role: CarvisAgentRole, status: CarvisAgentStatus, runActive: boolean): AgentStatus {
-  if (!runActive && (status === 'ready' || status === 'retained' || status === 'idle')) return 'idle';
+  if (status === 'ready' || status === 'retained' || status === 'idle' || status === 'waiting' || status === 'shutdown') {
+    return 'idle';
+  }
+  if (!runActive) return 'idle';
   if (role === uiToCarvisRole.tech && (status === 'working' || status === 'assigned')) return 'producing';
   if (status === 'starting' || status === 'assigned' || status === 'working') return 'thinking';
   if (status === 'done') return 'done';

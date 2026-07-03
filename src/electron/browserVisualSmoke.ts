@@ -155,7 +155,7 @@ async function runVisualSmoke(): Promise<void> {
     liveWindow = window;
 
     console.log("[electron:visual-smoke] window loaded");
-    await delay(1_000);
+    await delay(2_000);
     const submitted = await window.webContents.executeJavaScript(`(async () => {
       const input = document.querySelector(".input-row input");
       const button = document.querySelector(".input-actions button");
@@ -207,10 +207,9 @@ async function runVisualSmoke(): Promise<void> {
     const pngStat = await stat(pngPath);
 
     assert(result.htmlPath.endsWith("dist/electron/carvisui/index.html"), "visual smoke should load carvisui");
-    assert(!window.isFullScreen(), "visual smoke window should be windowed");
-    assert(!window.isKiosk(), "visual smoke window should be non-kiosk");
-    assert(imageSize.width >= 900, `screenshot width should match Carvis window, got ${imageSize.width}`);
-    assert(imageSize.height >= 600, `screenshot height should match Carvis window, got ${imageSize.height}`);
+    assert(window.isFullScreen(), "visual smoke window should default to fullscreen");
+    assert(imageSize.width >= 1200, `screenshot width should look fullscreen, got ${imageSize.width}`);
+    assert(imageSize.height >= 700, `screenshot height should look fullscreen, got ${imageSize.height}`);
     assert(pngStat.size > 10_000, `screenshot should be non-empty, got ${pngStat.size} bytes`);
 
     window.close();
