@@ -17,7 +17,7 @@ created -> parallel_roles_working -> engineer_building -> output_ready -> retain
 - Subscribe to `command.submitted` from messagebus.
 - Create run state and a task queue.
 - Prewarm retained provider workers. `writer` and `engineer` share one worker key so engineer can resume the writer Claude Code session only within the same non-fast/simple run; UI lifecycle events remain separate, and new runs/fast tasks are isolated from previous Claude sessions.
-- Run `manager`, `writer`, `artist`, and `researcher` in parallel; then run `engineer`.
+- Run `manager`, `writer`, `artist`, and `researcher` in parallel; then run `engineer`. Manager runs once as a scope/monitor role and writes handoff material for engineer; it is not a repeating letter loop.
 - Apply per-command speed mode from Electron/NAS: `fast`, `auto`, or `full`.
 - Retain provider PID agents after each role finishes.
 - Publish heartbeat and lifecycle events through messagebus.

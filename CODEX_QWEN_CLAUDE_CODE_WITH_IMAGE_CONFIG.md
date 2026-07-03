@@ -155,9 +155,9 @@ CARVIS_CLAUDE_CODE_SDK_FALLBACK=1
 
 ## 6. Researcher Web Search
 
-当前实现使用 OpenAI-compatible Chat Completions 的 `enable_search: true` 和 `search_options.forced_search`，只在 researcher 路由开启。不要让 Qwen 在未开启搜索时声称已联网检索。
+当前实现使用 OpenAI-compatible Chat Completions 的 `enable_search: true` 和 `search_options.forced_search`，只在 researcher 路由开启。默认 `QWEN_RESEARCHER_MODEL=qwen-plus`，可按当前阿里云账号实际可用模型覆盖。不要让 Qwen 在未开启搜索时声称已联网检索。
 
-阿里云 Responses API 的 `web_search` / `web_extractor` / `code_interpreter` 工具只支持特定模型，例如 `qwen3.7-plus`、`qwen3.6-plus`、`qwen3.5-plus`、对应 flash 版本，以及思考模式下的 `qwen3-max`。如果后续迁移到 Responses API，应同时开启 `web_search`、`web_extractor` 和 `code_interpreter`，并把 `QWEN_RESEARCHER_MODEL` 设置为支持工具的模型。
+阿里云 Responses API 的 `web_search` / `web_extractor` / `code_interpreter` 工具只支持特定模型，例如 `qwen3.7-plus`、`qwen3.6-plus`、`qwen3.5-plus`、对应 flash 版本，以及思考模式下的 `qwen3-max`。当前代码不是 Responses API 工具调用路径；如果后续迁移到 Responses API，应同时开启 `web_search`、`web_extractor` 和 `code_interpreter`，并把 `QWEN_RESEARCHER_MODEL` 设置为官方支持工具的模型。
 
 ## 7. 验证命令
 

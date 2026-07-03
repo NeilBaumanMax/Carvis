@@ -1,6 +1,6 @@
 # carvis
 
-Carvis is a local multi-agent Electron workflow for generating playable browser outputs and HTML reports from five retained role workers.
+Carvis is a local multi-agent Electron workflow for generating playable browser outputs and HTML reports from five visible roles. In real provider mode those roles currently use four retained provider worker processes because `writer` and `engineer` share one worker key.
 
 ## Current Runtime Shape
 
@@ -36,7 +36,7 @@ The manager is a monitor/scope role, not a second review gate.
 The runtime supports this with:
 
 - PID worker quality validation and retry (`CARVIS_REAL_PROVIDER_MAX_ATTEMPTS`)
-- retained provider workers, with `writer`/`engineer` sharing a worker/session path
+- retained provider workers, with `writer`/`engineer` sharing a worker/session path within the same non-fast/simple run
 - layered workplace context: `common/`, `skills/`, `task_state.json`, `handoff_to_engineer.json`, `evidence_index.json`
 - provider usage recording in each role's `usage.json`
 - extraction of engineer fenced HTML into `output/runs/<run>/game-preview.html`
@@ -52,11 +52,11 @@ Remote test path:
 Verified on NixOS:
 
 - `carvis-messagebus.service`, `carvis-agentruntime.service`, and `carvis-electron.service` active
-- five retained `providerWorker` processes active
+- four retained `providerWorker` processes active for five visible roles (`writer` and `engineer` share one worker)
 - DeepSeek Claude Code route works for manager, writer, and engineer
 - Qwen text route works for artist and researcher; researcher search must use explicit Qwen web search support, not model-invented citations
 - Qwen Image route works through artist-image MCP and writes local image assets
-- four current regression tasks produced `output/runs/.../game-preview.html` and passed browser screenshot checks
+- recent regression tasks produced `output/runs/.../game-preview.html` and passed browser checks
 
 Recent manual verification:
 
