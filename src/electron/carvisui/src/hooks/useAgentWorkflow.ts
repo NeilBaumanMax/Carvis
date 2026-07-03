@@ -174,7 +174,7 @@ export function useAgentWorkflow() {
         void sendEnvelope(uiRole, 'manager', `${initialAgents[uiRole].name}返回`);
       }
 
-      const engineerStartKey = `${panel.role}:engineer-start:${panel.lastHeartbeatAt ?? latestOutput ?? ''}`;
+      const engineerStartKey = 'engineer-start';
       if (running && panel.role === 'engineer' && isEngineerActive(panel, latestOutput) && !animatedEvents.current.has(engineerStartKey)) {
         animatedEvents.current.add(engineerStartKey);
         void sendEnvelope('manager', 'tech', '交给技术');
