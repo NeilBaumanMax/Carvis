@@ -36,6 +36,7 @@ const rendererTargets = new Set<{ send(channel: string, state: ElectronShellStat
 const gamePreviewWindows = new Set<InstanceType<ElectronRuntimeModule["BrowserWindow"]>>();
 const openedGamePreviewPaths = new Set<string>();
 let openWindowCount = 0;
+let isBackfillingOutput = false;
 
 electron.ipcMain.handle("carvis:get-state", () => shell.getState());
 electron.ipcMain.handle("carvis:submit-command", async (_event, commandText) => {
@@ -47,7 +48,9 @@ shell.onStateChanged((state) => {
   for (const target of rendererTargets) {
     target.send("carvis:state", state);
   }
-  void openLatestGamePreview(state);
+  if (!isBackfillingOutput) {
+    void openLatestGamePreview(state);
+  }
 });
 
 void electron.app.whenReady().then(async () => {
@@ -94,7 +97,7 @@ async function openWindow(): Promise<void> {
 }
 
 async function openLatestGamePreview(state: ElectronShellState): Promise<void> {
-  if (process.env.CARVIS_AUTO_OPEN_GAME_PREVIEW === "0") {
+  if (process.env.CARVIS_AUTO_OPEN_GAME_PREVIEW !== "1") {
     return;
   }
 
@@ -113,47 +116,50 @@ async function openLatestGamePreview(state: ElectronShellState): Promise<void> {
 }
 
 async function backfillExistingOutput(): Promise<void> {
-  if (process.env.CARVIS_ELECTRON_BACKFILL_OUTPUT !== "1") {
+  if (process.env.CARVIS_ELECTRON_BACKFILL_OUTPUT === "0") {
     return;
   }
 
   const outputRoot = resolve(process.env.CARVIS_OUTPUT_ROOT ?? join("output", "runs"));
-  const latestOutputRoot = await findLatestOutputRoot(outputRoot);
+  const outputRoots = await findOutputRoots(outputRoot);
 
-  if (latestOutputRoot === undefined) {
-    return;
+  isBackfillingOutput = true;
+  try {
+    for (const runOutputRoot of outputRoots) {
+      const outputPath = join(runOutputRoot, "final-report.md");
+      const runManifestPath = join(runOutputRoot, "manifest.json");
+      const rootManifestPath = join(outputRoot, "manifest.json");
+      const gamePreviewPath = join(runOutputRoot, "game-preview.html");
+
+      if (!(await pathExists(outputPath))) {
+        continue;
+      }
+
+      await shell.registerOutputReady({
+        outputPath,
+        manifestPath: (await pathExists(runManifestPath))
+          ? runManifestPath
+          : (await pathExists(rootManifestPath))
+            ? rootManifestPath
+            : undefined,
+        gamePreviewPath: (await pathExists(gamePreviewPath)) ? gamePreviewPath : undefined,
+      });
+    }
+  } finally {
+    isBackfillingOutput = false;
   }
-
-  const outputPath = join(latestOutputRoot, "final-report.md");
-  const runManifestPath = join(latestOutputRoot, "manifest.json");
-  const rootManifestPath = join(outputRoot, "manifest.json");
-  const gamePreviewPath = join(latestOutputRoot, "game-preview.html");
-
-  if (!(await pathExists(outputPath))) {
-    return;
-  }
-
-  await shell.registerOutputReady({
-    outputPath,
-    manifestPath: (await pathExists(runManifestPath))
-      ? runManifestPath
-      : (await pathExists(rootManifestPath))
-        ? rootManifestPath
-        : undefined,
-    gamePreviewPath: (await pathExists(gamePreviewPath)) ? gamePreviewPath : undefined,
-  });
 }
 
-async function findLatestOutputRoot(outputRoot: string): Promise<string | undefined> {
+async function findOutputRoots(outputRoot: string): Promise<string[]> {
   if (await pathExists(join(outputRoot, "final-report.md"))) {
-    return outputRoot;
+    return [outputRoot];
   }
 
   let entries: string[];
   try {
     entries = await readdir(outputRoot);
   } catch {
-    return undefined;
+    return [];
   }
 
   const candidates = await Promise.all(
@@ -171,11 +177,10 @@ async function findLatestOutputRoot(outputRoot: string): Promise<string | undefi
       }
     }),
   );
-  const latest = candidates
+  return candidates
     .filter((candidate): candidate is { path: string; mtimeMs: number } => candidate !== undefined)
-    .sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
-
-  return latest?.path;
+    .sort((a, b) => a.mtimeMs - b.mtimeMs)
+    .map((candidate) => candidate.path);
 }
 
 async function pathExists(path: string): Promise<boolean> {

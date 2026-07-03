@@ -67,6 +67,10 @@ export class ElectronShell {
   }
 
   async registerOutputReady(payload: OutputReadyPayload, readyAt = new Date().toISOString()): Promise<void> {
+    if (this.state.outputs.some((output) => output.outputPath === payload.outputPath)) {
+      return;
+    }
+
     this.state.outputs.push(await createOutputEntry(payload, readyAt));
     this.rememberEvent(`output.ready:${payload.outputPath}`);
   }

@@ -90,10 +90,10 @@ try {
   assert(calls.shown, "BrowserWindow should show after ready-to-show");
   assert(!calls.fullscreen, "BrowserWindow should stay windowed before show");
   assert(!calls.kiosk, "BrowserWindow should stay out of kiosk mode before show");
-  assert(html.includes("data-carvis-shell"), "loaded HTML should contain Carvis shell");
-  assert(html.includes("data-role=\"manager\""), "loaded HTML should render role panels");
-  assert(html.includes("window.carvis?.submitCommand"), "loaded HTML should submit commands through preload API");
-  assert(html.includes("window.carvis?.onState"), "loaded HTML should subscribe to live state");
+  assert(result.htmlPath.endsWith("dist/electron/carvisui/index.html"), "BrowserWindow should load built carvisui");
+  assert(html.includes("<title>Carvis</title>"), "loaded HTML should use Carvis title");
+  assert(html.includes('id="root"'), "loaded HTML should contain React root");
+  assert(html.includes("./assets/index-"), "loaded HTML should reference built UI assets");
 
   console.log("[electron:browser-smoke] ok");
 } finally {

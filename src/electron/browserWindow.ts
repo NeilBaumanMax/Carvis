@@ -1,3 +1,6 @@
+import { access } from "node:fs/promises";
+import { resolve } from "node:path";
+
 import type { ElectronShellState } from "./types.js";
 import { writeElectronRendererSnapshot } from "./renderer.js";
 
@@ -66,7 +69,7 @@ export interface ElectronBrowserWindowResult {
 export async function createElectronBrowserWindow(
   options: CreateElectronBrowserWindowOptions,
 ): Promise<ElectronBrowserWindowResult> {
-  const snapshot = await writeElectronRendererSnapshot(options.outputDir, options.state);
+  const rendererPath = await resolveElectronRendererPath(options.outputDir, options.state);
   const fullscreen = options.fullscreen ?? process.env.CARVIS_ELECTRON_FULLSCREEN === "1";
   const kiosk = options.kiosk ?? fullscreen;
   const bounds = fitWindowToWorkArea(options.electron, options.width ?? 1000, options.height ?? 640);
@@ -100,12 +103,35 @@ export async function createElectronBrowserWindow(
     });
   }
 
-  await window.loadFile(snapshot.htmlPath);
+  await window.loadFile(rendererPath);
 
   return {
     window,
-    htmlPath: snapshot.htmlPath,
+    htmlPath: rendererPath,
   };
+}
+
+async function resolveElectronRendererPath(
+  outputDir: string,
+  state: ElectronShellState,
+): Promise<string> {
+  const configuredPath = process.env.CARVIS_ELECTRON_UI_HTML;
+  const builtPath = configuredPath ?? resolve("dist", "electron", "carvisui", "index.html");
+
+  if (await pathExists(builtPath)) {
+    return builtPath;
+  }
+
+  return (await writeElectronRendererSnapshot(outputDir, state)).htmlPath;
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function fitWindowToWorkArea(

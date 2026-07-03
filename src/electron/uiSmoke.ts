@@ -1,98 +1,47 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFile, readdir } from "node:fs/promises";
+import { join, resolve } from "node:path";
 
-import { createMessageBus } from "../messagebus/index.js";
-import type { AgentRole } from "../shared/types/agent.js";
-import type {
-  AgentLifecyclePayload,
-  AgentOutputPayload,
-  OutputReadyPayload,
-  RuntimeHeartbeatPayload,
-} from "../shared/types/events.js";
-import { createElectronShell, writeElectronRendererSnapshot } from "./index.js";
+const uiRoot = resolve("dist", "electron", "carvisui");
+const html = await readFile(join(uiRoot, "index.html"), "utf8");
+const assetNames = await readdir(join(uiRoot, "assets"));
+const jsAsset = assetNames.find((name) => name.endsWith(".js") && name.startsWith("index-"));
+const cssAsset = assetNames.find((name) => name.endsWith(".css") && name.startsWith("index-"));
 
-const bus = createMessageBus();
-const shell = createElectronShell(bus);
-const smokeRoot = await mkdtemp(join(tmpdir(), "carvis-electron-ui-"));
-const roles: AgentRole[] = ["manager", "writer", "artist", "researcher", "engineer"];
+assert(jsAsset !== undefined, "built carvisui should include JS bundle");
+assert(cssAsset !== undefined, "built carvisui should include CSS bundle");
+assert(html.includes("<title>Carvis</title>"), "HTML title should be Carvis");
+assert(html.includes('id="root"'), "HTML should include React root");
 
-try {
-  await bus.publish<RuntimeHeartbeatPayload>({
-    type: "runtime.heartbeat",
-    source: "agentruntime",
-    target: "electron",
-    runId: "run-ui-smoke-1",
-    payload: {
-      activePidCount: 2,
-      idlePidCount: 1,
-      retainedPidCount: 2,
-      queueDepth: 0,
-    },
-  });
+const js = await readFile(join(uiRoot, "assets", jsAsset), "utf8");
+const css = await readFile(join(uiRoot, "assets", cssAsset), "utf8");
 
-  for (const [index, role] of roles.entries()) {
-    await bus.publish<AgentLifecyclePayload>({
-      type: "agent.ready",
-      source: "agentruntime",
-      target: "electron",
-      runId: "run-ui-smoke-1",
-      agentId: role,
-      payload: {
-        role,
-        status: index === 4 ? "working" : "retained",
-        pid: 42_000 + index,
-        workplacePath: `workplaces/${role}`,
-      },
-    });
+for (const label of ["主管 Manager", "文员", "设计师", "调查员", "技术员"]) {
+  assert(js.includes(label), `UI bundle should include role label ${label}`);
+}
 
-    await bus.publish<AgentOutputPayload>({
-      type: "agent.output",
-      source: "agentruntime",
-      target: "electron",
-      runId: "run-ui-smoke-1",
-      agentId: role,
-      payload: {
-        stream: "stdout",
-        text: `${role} ui smoke output`,
-      },
-    });
+for (const text of ["输入任务", "输出结果", "历史任务", "打开位置", "开始协同"]) {
+  assert(js.includes(text), `UI bundle should include panel text ${text}`);
+}
+
+for (const api of ["submitCommand", "openOutput", "onState", "getState"]) {
+  assert(js.includes(api), `UI bundle should use preload API ${api}`);
+}
+
+assert(!js.includes("仿真世界"), "UI bundle should not keep old app title");
+assert(css.includes("office-bg-no-desks-1465x903.png"), "CSS should reference pixel office background");
+assert(await assetExists("assets/generated-ui/office-bg-no-desks-1465x903.png"), "office background asset should exist");
+assert(await assetExists("assets/generated-motion/manager-sending.webp"), "manager sending motion should exist");
+assert(await assetExists("assets/generated-motion/tech-sending.webp"), "tech output motion should exist");
+
+console.log("[electron:ui-smoke] ok");
+
+async function assetExists(relativePath: string): Promise<boolean> {
+  try {
+    await readFile(join(uiRoot, relativePath));
+    return true;
+  } catch {
+    return false;
   }
-
-  await bus.publish<OutputReadyPayload>({
-    type: "output.ready",
-    source: "agentruntime",
-    target: "electron",
-    runId: "run-ui-smoke-1",
-    payload: {
-      outputPath: "output/final-report.md",
-      manifestPath: "output/manifest.json",
-      gamePreviewPath: "output/game-preview.html",
-    },
-  });
-
-  const snapshot = await writeElectronRendererSnapshot(smokeRoot, shell.getState());
-  const html = await readFile(snapshot.htmlPath, "utf8");
-
-  assert(html.includes('data-carvis-shell'), "HTML should include app root");
-  assert(html.includes('data-command-form'), "HTML should include command form");
-  assert(html.includes('class="command-input"'), "HTML should include command input");
-  assert(html.includes('class="command-button"'), "HTML should include command button");
-  assert(html.includes("@media (max-width: 620px)"), "HTML should include mobile layout rule");
-  assert(html.includes("output/final-report.md"), "HTML should include output link");
-  assert(html.includes("output/game-preview.html"), "HTML should include game preview link");
-  assert(html.includes("Open Game"), "HTML should include game preview action");
-  assert(html.includes("Open Folder"), "HTML should include folder action");
-
-  for (const role of roles) {
-    assert(html.includes(`data-role="${role}"`), `${role} panel should render`);
-    assert(html.includes(`${role} ui smoke output`), `${role} output should render`);
-  }
-
-  console.log("[electron:ui-smoke] ok");
-} finally {
-  shell.dispose();
-  await rm(smokeRoot, { recursive: true, force: true });
 }
 
 function assert(condition: boolean, message: string): asserts condition {

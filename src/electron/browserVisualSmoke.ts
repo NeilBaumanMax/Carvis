@@ -157,10 +157,12 @@ async function runVisualSmoke(): Promise<void> {
     console.log("[electron:visual-smoke] window loaded");
     await delay(1_000);
     const submitted = await window.webContents.executeJavaScript(`(async () => {
-      const input = document.querySelector("input[name='command']");
-      const form = document.querySelector("[data-command-form]");
-      input.value = "visual smoke live submit";
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      const input = document.querySelector(".input-row input");
+      const button = document.querySelector(".input-actions button");
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+      valueSetter.call(input, "visual smoke live submit");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      button.click();
       await new Promise((resolve) => setTimeout(resolve, 300));
       return input.value;
     })()`);
@@ -182,20 +184,18 @@ async function runVisualSmoke(): Promise<void> {
         text: "manager live renderer update ok",
       },
     });
-    await delay(300);
-    const managerText = await window.webContents.executeJavaScript(
-      `document.querySelector("[data-role='manager'] .latest")?.textContent`,
-    );
+    await delay(1_500);
+    const managerText = await window.webContents.executeJavaScript(`document.body.textContent`);
 
     assert(
       typeof managerText === "string" && managerText.includes("manager live renderer update ok"),
       "visual smoke should live-update role output",
     );
     await window.webContents.executeJavaScript(
-      `document.querySelector("[data-output-open]")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))`,
+      `Array.from(document.querySelectorAll("button")).find((button) => button.textContent.includes("打开位置"))?.click()`,
     );
     await delay(300);
-    assert(openedOutputs.includes("output/game-preview.html"), "visual smoke should request game preview open");
+    assert(openedOutputs.includes("output"), "visual smoke should request output folder open");
 
     const image = await window.webContents.capturePage();
     const png = image.toPNG();
@@ -206,11 +206,11 @@ async function runVisualSmoke(): Promise<void> {
     console.log("[electron:visual-smoke] screenshot captured");
     const pngStat = await stat(pngPath);
 
-    assert(result.htmlPath.endsWith("electron-shell.html"), "visual smoke should load renderer HTML");
-    assert(window.isFullScreen(), "visual smoke window should be fullscreen");
-    assert(window.isKiosk(), "visual smoke window should be kiosk fullscreen");
-    assert(imageSize.width >= 1200, `screenshot width should look fullscreen, got ${imageSize.width}`);
-    assert(imageSize.height >= 700, `screenshot height should look fullscreen, got ${imageSize.height}`);
+    assert(result.htmlPath.endsWith("dist/electron/carvisui/index.html"), "visual smoke should load carvisui");
+    assert(!window.isFullScreen(), "visual smoke window should be windowed");
+    assert(!window.isKiosk(), "visual smoke window should be non-kiosk");
+    assert(imageSize.width >= 900, `screenshot width should match Carvis window, got ${imageSize.width}`);
+    assert(imageSize.height >= 600, `screenshot height should match Carvis window, got ${imageSize.height}`);
     assert(pngStat.size > 10_000, `screenshot should be non-empty, got ${pngStat.size} bytes`);
 
     window.close();

@@ -1,5 +1,77 @@
 # Carvis Construction Log
 
+## 2026-07-03 / Install carvisui as Electron UI
+
+### 本轮计划回放
+
+- 把用户提供的 `/home/howtion/桌面/郑州黑客松/carvisui/carvisUI/carvisUI/` React/Vite 前端替换进 Carvis Electron。
+- 角色映射：主管=`manager`，设计=`artist`，文员=`writer`，调研=`researcher`，技术=`engineer`。
+- 保留 UI 已有像素办公室、气泡流式文字、信件轨迹和动作状态。
+- 右侧只保留输入、当前 output、历史 output 文件夹打开。
+- 在 NixOS 上运行，跑四个测试任务并截图验证。
+
+### 本次修改
+
+- 新增 `src/electron/carvisui/`，纳入用户 UI 源码和当前实际引用的素材目录。
+- 新增 UI 独立 `tsconfig.json` 和 Vite 构建配置，`npm run build` 现在同时构建主进程和 Electron UI。
+- BrowserWindow 优先加载 `dist/electron/carvisui/index.html`，旧 renderer snapshot 保留为 fallback。
+- preload 仍是唯一 IPC 边界；UI 通过 `window.carvis.getState/submitCommand/openOutput/onState` 接入 Carvis。
+- UI hook 从模拟 workflow 改为监听真实 `ElectronShellState`，把 Carvis role/status/output 映射为 UI 角色、气泡和信件动作。
+- 右侧 output 展示最新 run 的 `game-preview.html`、`final-report.md`、`manifest.json` 并可打开位置；历史区列出所有回填 output run 文件夹。
+- Electron 启动默认回填所有历史 output，但不再自动打开历史或新产物预览；需要显式 `CARVIS_AUTO_OPEN_GAME_PREVIEW=1` 才自动打开，避免盖住主 UI。
+- 修复 Vite `file://` 下 React 运行时图片路径，新增 `assetPath()`。
+- 更新 `electron:ui-smoke`、`electron:browser-smoke`、`electron:visual-smoke` 以验证新 UI。
+
+### 验证结果
+
+- 本地 `npm run typecheck`：通过。
+- 本地 `npm run build`：通过。
+- 本地 `npm run electron:ui-smoke`：通过。
+- 本地 `npm run electron:browser-smoke`：通过。
+- 本地 `npm test`：通过。
+- NixOS `npm run build`：通过。
+- NixOS `electron:visual-smoke`：通过，截图 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`，本地副本 `/tmp/carvis-electron-visual-smoke.png`。
+- NixOS services：`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service` 均 active。
+- NixOS 主 UI 截图：`/tmp/carvis-ui-final-main.png`，显示 `Carvis`、五角色静止、右侧输入/output/history。
+
+### 四个 NixOS 测试任务
+
+- 测试 1 galgame：`output/runs/20260702-232642-req-ui-test1-1783034802445-测试1：请五个角色协作生成一个原创中文-galgame，主题灵感`
+  - 标题：`金羽 — 视觉小说`
+  - `game-preview.html` 约 42KB，脚本语法检查通过，引用 assets。
+- 测试 2 冒险闯关：`output/runs/20260702-233749-req-ui-test2-1783035469308-测试2：请五个角色协作生成一个原创中文冒险闯关游戏，主题气质受到`
+  - 标题：`夜奔 · 逃出规城`
+  - `game-preview.html` 约 57KB，脚本语法检查通过，包含 canvas，引用 assets。
+- 测试 3 类 Bazaar 商店/自动战斗：`output/runs/20260702-234356-req-ui-test3-1783035836764-测试3：请五个角色协作生成一个原创中文浏览器游戏，玩法结构参考-`
+  - 标题：`星尘商路 — 浮岛商战录`
+  - `game-preview.html` 约 45KB，脚本语法检查通过，引用 assets，命中购买/刷新/战斗/金币。
+- 测试 4 open-yachiyo 文档 HTML：`output/runs/20260702-235047-req-ui-test4-1783036247181-测试4：请五个角色协作整理-GitHub-仓库-sdyzjx-o`
+  - 标题：`open-yachiyo 仓库分析文档`
+  - `game-preview.html` 约 26KB，脚本语法检查通过，引用 assets，命中 open-yachiyo/脚手架/目录结构/文件用途/安装/启动。
+
+### 测试指标判断
+
+- 本轮涉及层：`01-electron`、`02-messagebus`、`03-agentruntime`、`07-output`。
+- 应执行测试：typecheck/build、Electron UI/browser smoke、NixOS 真实服务运行、四个真实任务、截图。
+- 实际执行测试：全部完成。
+- 残余风险：主 UI 是 1000x640，在 1280x720 任务栏环境下历史区底部只露出首条，需要后续做更紧凑响应式；当前不影响输入、output 展示和打开路径。
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 开发前状态：工作区干净，远端分支存在。
+- 本轮提交：`feat: install carvisui electron renderer`，最终提交号以 `git log -1` 为准。
+- push 状态：提交后 push 到 `origin/backup/mvp-nixos-20260702-020835`。
+
+### 回滚判断
+
+- 是否需要回滚：否。
+- 回滚方式：`git revert <本轮提交>`，或设置 `CARVIS_ELECTRON_UI_HTML` 指向旧/备用 HTML 后重启 Electron。
+
+### 下一步
+
+- 后续可继续压缩 1000x640 下右侧历史区布局，并增加真实服务窗口 capture 脚本。
+
 ## 2026-07-03 / NixOS readback and documentation drift fix
 
 ### 本轮计划回放

@@ -1,5 +1,46 @@
 # 01 Electron Progress
 
+## 2026-07-03 / Install carvisui as production Electron renderer / 开工计划
+
+### 当前目标
+
+- 用用户提供的 `carvisui` React/Vite 页面替换当前 Electron renderer。
+- 保留 UI 已经写好的像素办公室、角色动作、气泡流式文字和信件轨迹。
+- 把 UI 角色映射到 Carvis 真实角色：主管=`manager`，文员=`writer`，设计=`artist`，调研=`researcher`，技术=`engineer`。
+- 右侧面板接入真实 Electron shell：输入提交到 messagebus，output 展示本轮生成文件，历史展示全部已有 output run 文件夹并可打开。
+- 左上角标题改为 `Carvis`。
+
+### 计划改动
+
+- Electron 主进程继续只通过 preload 暴露受控 IPC，不让 renderer 直接管理 PID 或读写 workplace。
+- BrowserWindow 加载构建后的 `carvisui` 静态页面；保留旧 HTML snapshot 作为 smoke fallback/测试辅助。
+- UI hook 由模拟 workflow 改成监听 `ElectronShellState`，根据 agent lifecycle/output/output.ready 推动状态、气泡和信件动画。
+- 新增或调整 UI smoke，确认新页面可渲染、可提交命令、可打开 output/history。
+
+### 验收指标
+
+- NixOS `carvis-electron.service` 打开的窗口显示 `Carvis` 和用户 UI，而不是旧五列终端面板。
+- 未提交任务时五角色静止。
+- 提交任务后 manager/writer/artist/researcher/engineer 的公开输出进入对应气泡，角色动作按 UI 轨迹推进。
+- output 区展示最新 run 文件，历史区可打开历史 run 文件夹。
+- NixOS 截图验证页面无明显空白、重叠或资源丢失。
+
+### 本次完成
+
+- `carvisui` React/Vite 页面已成为默认 Electron renderer。
+- BrowserWindow 默认加载 `dist/electron/carvisui/index.html`，旧 snapshot renderer 仅作为 fallback。
+- UI 通过 preload IPC 接入 Carvis shell state 和命令提交。
+- `assetPath()` 修复 Electron `file://` 下图标、角色、气泡、信件图片路径。
+- output/history 默认从 `output/runs/*` 回填，历史回填不会自动打开预览窗口。
+- `CARVIS_AUTO_OPEN_GAME_PREVIEW` 改为显式 `1` 才自动打开，默认只在右侧 output 提供打开入口。
+
+### 当前验证
+
+- 本地 `npm test`：通过。
+- NixOS `electron:visual-smoke`：通过，截图 `/tmp/carvis-electron-visual-smoke/carvis-electron-visual-smoke.png`。
+- NixOS 主 UI 截图 `/tmp/carvis-ui-final-main.png`：显示 `Carvis`、五角色像素办公室、右侧输入/output/history。
+- NixOS 四个真实任务均生成 output，并在 history/output 中可见。
+
 ## 2026-07-03 / NixOS readback and drift fix / 开工计划
 
 ### 当前目标

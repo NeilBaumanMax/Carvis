@@ -60,6 +60,99 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-03 / carvisui Electron replacement / 接力记录
+
+### 当前状态
+
+- 已把用户 UI `/home/howtion/桌面/郑州黑客松/carvisui/carvisUI/carvisUI/` 集成进 `carvis`。
+- Electron 默认 renderer：`dist/electron/carvisui/index.html`。
+- 旧 `renderer.ts` snapshot 仍保留为 fallback/兼容测试辅助。
+- NixOS 远端运行目录：`/home/howtion/carvis-remote-smoke`。
+- NixOS services active：`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`。
+- `carvis-agentruntime.service` 仍保留 5 个 `providerWorker`。
+- UI 映射：
+  - 主管 -> `manager`
+  - 文员 -> `writer`
+  - 设计 -> `artist`
+  - 调研 -> `researcher`
+  - 技术 -> `engineer`
+- UI 右侧只保留输入、output、历史；output/history 通过 preload 打开路径。
+- `CARVIS_AUTO_OPEN_GAME_PREVIEW` 默认不自动打开预览，避免盖住主 UI；只有显式设为 `1` 才自动打开。
+- NixOS 主 UI 截图：`/tmp/carvis-ui-final-main.png`。
+
+### 本轮完成
+
+- 新增 `src/electron/carvisui/`，复制用户 UI 源码和实际引用素材。
+- 新增 React/Vite 构建链：`build:ui`、`typecheck:ui`。
+- `npm run build` 现在同时构建主进程和 UI。
+- BrowserWindow 优先加载新 UI。
+- UI hook 接入真实 `ElectronShellState`，按角色输出驱动气泡和动作。
+- 修复 Electron `file://` 下运行时图片断图问题。
+- 启动时回填所有历史 output run。
+- 修复历史 output 回填触发自动打开多个旧预览窗口的问题。
+- 更新 Electron smoke/visual smoke 断言。
+
+### 未完成
+
+- 还没有把右侧 panel 在 1000x640 下进一步压缩；当前历史区底部只露出首条，但可滚动。
+- 还没有做专门的真实常驻 Electron 窗口 capture 脚本；当前用 `spectacle` 桌面截图和 `electron:visual-smoke` BrowserWindow 截图验证。
+
+### 下次优先任务
+
+1. 继续优化 `carvisui` 右侧 output/history 在 1000x640 下的可见高度。
+2. 增加 NixOS health check 脚本，统一检查 services、5 个 providerWorker、最新 output、最新 UI 截图。
+3. 若用户要恢复自动预览，改为右侧按钮触发，不建议默认自动打开。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/CODEX_START_HERE.md`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+
+### 关键文件
+
+- `src/electron/carvisui/src/App.tsx`
+- `src/electron/carvisui/src/hooks/useAgentWorkflow.ts`
+- `src/electron/carvisui/src/components/RightPanel.tsx`
+- `src/electron/browserWindow.ts`
+- `src/electron/browserMain.ts`
+- `src/electron/browserVisualSmoke.ts`
+- `src/electron/uiSmoke.ts`
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过。
+- `npm run build`：通过。
+- `npm run electron:ui-smoke`：通过。
+- `npm run electron:browser-smoke`：通过。
+- `npm test`：通过。
+- NixOS `npm run build`：通过。
+- NixOS `electron:visual-smoke`：通过。
+- NixOS 四个真实任务：通过，均生成 `game-preview.html` 和 `manifest.json`，HTML script 语法检查通过。
+
+### NixOS 四个任务产物
+
+- 测试 1：`output/runs/20260702-232642-req-ui-test1-1783034802445-测试1：请五个角色协作生成一个原创中文-galgame，主题灵感`
+- 测试 2：`output/runs/20260702-233749-req-ui-test2-1783035469308-测试2：请五个角色协作生成一个原创中文冒险闯关游戏，主题气质受到`
+- 测试 3：`output/runs/20260702-234356-req-ui-test3-1783035836764-测试3：请五个角色协作生成一个原创中文浏览器游戏，玩法结构参考-`
+- 测试 4：`output/runs/20260702-235047-req-ui-test4-1783036247181-测试4：请五个角色协作整理-GitHub-仓库-sdyzjx-o`
+
+### GitHub 状态
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 本轮提交：`feat: install carvisui electron renderer`，最终提交号以 `git log -1` 为准。
+- 本轮 push：提交后 push 到 `origin/backup/mvp-nixos-20260702-020835`。
+- 备份分支：`origin/backup/mvp-nixos-20260702-020835`
+
+### 风险提醒
+
+- 不要把 `/home/howtion/.config/carvis/agentruntime.env` 或任何 API Key 写进仓库。
+- `src/electron/carvisui/public/assets/source`、`tmp`、`dist` 没有纳入 carvis，只复制了当前 UI 实际引用素材。
+- `CARVIS_AUTO_OPEN_GAME_PREVIEW` 默认关闭是有意设计，符合“右侧 output 可打开，其余旧功能先不要”。
+
 ## 2026-07-03 / NixOS readback and documentation drift fix / 接力记录
 
 ### 当前状态

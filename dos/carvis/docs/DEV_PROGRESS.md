@@ -1,5 +1,75 @@
 # Carvis Development Progress
 
+## 2026-07-03 / Install carvisui as Electron UI / 开工计划
+
+### 本轮目标
+
+- 把用户提供的 `/home/howtion/桌面/郑州黑客松/carvisui/carvisUI/carvisUI/` 前端页面安装到 Carvis Electron。
+- 在 NixOS 上运行新 UI，替换原 Electron 页面。
+- 角色映射固定为：主管 -> `manager`，设计 -> `artist`，文员 -> `writer`，调研 -> `researcher`，技术 -> `engineer`。
+- 保留 UI 已有动作与信件轨迹：未开始时静止，开始思考时头顶气泡流式显示公开进度，主管分发信件，三角色返回主管，主管交给技术，技术交给 output。
+- 右侧只保留 UI 中已有入口：输入框、当前 output、历史 output 文件夹打开；原 Electron 其他功能先隐藏。
+- 左上角标题从“仿真世界”改为 `Carvis`。
+- 在 NixOS 上跑四个测试任务直到不出现 UI/运行 bug，并截图验证。
+
+### 涉及层
+
+- `01-electron`
+- `02-messagebus`
+- `03-agentruntime`
+- `07-output`
+- NixOS user service 部署与截图验收
+
+### 计划修改
+
+- 把 `carvisui` 的 React/Vite UI 作为 Electron renderer 资源接入项目。
+- 扩展 Electron preload：提交任务、接收 state、打开 output 路径，必要时补充打开文件夹/历史 output 能力。
+- 修改 UI workflow hook：从模拟任务改为驱动 Carvis 实际 `ElectronShellState`，并按 Carvis phase/agent output 推动动作状态。
+- 修改右侧面板：当前 output 展示本轮生成文件并可打开位置；历史区列出已有 `output/runs/*` 文件夹并可打开。
+- 补充 smoke/visual 验证，至少覆盖新 UI title、角色映射、提交命令、output/history 打开入口。
+
+### 测试计划
+
+- 本地 `npm run typecheck`
+- 本地 `npm run build`
+- 本地 Electron smoke/UI smoke 可通过。
+- 同步到 NixOS 后 `npm run build`。
+- 重启 `carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`。
+- 在 NixOS Electron 中跑四个测试任务，确认 output 生成、历史可见、截图无明显 UI 错误。
+
+### GitHub 备份计划
+
+- 当前分支：`backup/mvp-nixos-20260702-020835`
+- 开发前状态：工作区干净，`origin/backup/mvp-nixos-20260702-020835` 已存在。
+- 本轮不写入真实 API Key；测试通过后再提交并 push。
+
+### 回滚预案
+
+- 若新 UI 影响 Electron 启动，可回滚 Electron renderer 加载路径与 UI 资源目录，恢复 `renderer.ts` 生成页面。
+- 若 NixOS 远端启动失败，恢复远端上一版 rsync 内容或从当前 GitHub 备份分支重新部署。
+
+### 本次完成
+
+- 已把 `carvisui` 安装为 Electron 默认 renderer。
+- 左上角标题已改为 `Carvis`。
+- 已完成 UI 角色映射：主管/文员/设计/调研/技术 -> manager/writer/artist/researcher/engineer。
+- UI 通过 preload 接入真实 `getState`、`submitCommand`、`openOutput`、`onState`。
+- 右侧 output/history 接入真实 `output/runs/*`，可打开本次输出位置和历史文件夹。
+- 自动打开 game preview 改为默认关闭，避免旧预览窗口盖住主 UI。
+- NixOS 已同步、构建、重启 `carvis-electron.service`。
+
+### 当前验证
+
+- `npm run typecheck`：通过。
+- `npm run build`：通过。
+- `npm run electron:ui-smoke`：通过。
+- `npm run electron:browser-smoke`：通过。
+- `npm test`：通过。
+- NixOS `npm run build`：通过。
+- NixOS `electron:visual-smoke`：通过。
+- NixOS 四个测试任务：均生成 `game-preview.html` 和 `manifest.json`，脚本语法检查通过。
+- NixOS 主 UI 截图：`/tmp/carvis-ui-final-main.png`。
+
 ## 2026-07-03 / NixOS readback and documentation drift fix / 开工计划
 
 ### 本轮目标
