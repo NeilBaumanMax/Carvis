@@ -1,5 +1,21 @@
 # 00 Setup Progress
 
+## 2026-07-04 / Phase 3+4 / 开工计划
+
+### 当前目标
+
+- 让 setup spawn 模式拉起真实 Electron 窗口，而不是只拉起终端 mock shell。
+
+### 计划改动
+
+- 保持 setup 启动顺序不变。
+- 调整 `electron:start` 指向真实 Electron 入口。
+
+### 验收指标
+
+- `npm run setup:smoke` 通过。
+- `npm start` 后 setup 仍按 `messagebus -> agentruntime -> electron` 启动，并出现窗口。
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 当前目标

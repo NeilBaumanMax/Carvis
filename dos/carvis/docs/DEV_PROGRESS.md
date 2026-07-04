@@ -1,5 +1,51 @@
 # Carvis Development Progress
 
+## 2026-07-04 / Phase 3+4 / 开工计划
+
+### 本轮目标
+
+- 解决 `npm start` 只在终端运行、用户看不到窗口的问题。
+- 接入真实 Electron 依赖和可见窗口入口。
+- 保持 Electron 只展示本地状态，不直接管理 PID、不绕过 messagebus 调度 Agent。
+
+### 涉及层
+
+- `01-electron`
+- `00-setup`
+- `docs`
+
+### 计划修改
+
+- `package.json`
+- `package-lock.json`
+- `src/electron/*`
+- `src/setup/*`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run electron:smoke`
+- `npm run setup:smoke`
+- `npm run start:full:smoke`
+- `npm start`，确认出现真实 Electron 窗口
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`1e9ba54a62368079445def9783c8cf767fb1fc2b`
+- 备份分支：`backup/pre-visible-electron-20260704-1029`
+- 远端状态：待 push 到 `origin`，不使用 `upstream`
+
+### 回滚预案
+
+- 优先使用 `git revert <visible-electron-commit>` 回滚本轮代码和文档提交。
+- 如仅需回滚未提交文件，移除 Electron 依赖和本轮新增窗口入口，并恢复 `electron:start` 到 mock shell。
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 本轮目标

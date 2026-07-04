@@ -1,5 +1,23 @@
 # 01 Electron Progress
 
+## 2026-07-04 / Phase 3+4 / 开工计划
+
+### 当前目标
+
+- 把 Electron mock shell 升级为真实可见窗口，让用户运行 `npm start` 后能看到界面。
+
+### 计划改动
+
+- 添加 Electron 依赖。
+- 新增 Electron main process 和 HTML 渲染内容。
+- 调整 `electron:start` 脚本为真实 Electron 启动。
+
+### 验收指标
+
+- `npm start` 后出现真实窗口。
+- 窗口显示五个 workplace 面板。
+- Electron 仍不直接管理 PID、不调用 Claude Code CLI。
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 当前目标
