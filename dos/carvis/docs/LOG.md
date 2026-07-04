@@ -1,5 +1,52 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 6 / workplaces 隔间
+
+### 本轮计划回放
+
+- 为 manager/writer/artist/researcher/engineer 各建独立 workplace 目录
+- 固定 `input.md` / `plan.md` / `log.md` / `result.md` 文件结构
+- 强制角色写隔离：每个角色只能写自身 workplace
+- 工程师 Agent 可读所有前置角色 workplace
+- 建立 `workplaces:smoke`
+
+### 执行记录
+
+#### 代码新增/变更
+
+- `src/agentruntime/workplaces/manager.ts`：WorkplaceManager 核心实现
+  - `initAll()` / `initRole()`：递归创建目录 + 默认文件
+  - `writeFile()` / `appendFile()` / `readFile()` / `fileExists()`：文件 CRUD
+  - `verifyPath(role, path)`：检查路径是否在角色 workplace 内
+  - `getPriorRoles(role)`：基于 ROLE_FLOW 计算前置角色列表
+  - `collectPriorResults(role)`：聚合所有前置角色 result.md
+- `src/agentruntime/workplaces/index.ts`：barrel export
+- `src/agentruntime/workplaces/smoke.ts`：smoke test（7 项检查）
+- `package.json`：新增 `workplaces:smoke` 脚本
+
+#### 测试
+
+- `npm run typecheck`：通过
+- `npm run workplaces:smoke`：7/7 通过
+  - initAll 创建 5 角色 × 4 文件 = 20 个文件
+  - 角色隔离验证：writer 无法写入 engineer 目录
+  - 前置角色计算：engineer → [manager, writer, artist, researcher]
+  - collectPriorResults 正确聚合 4 个角色结果
+
+#### 文档
+
+- `DEV_PROGRESS.md`：Phase 6 计划
+- `LOG.md`：本轮记录
+- `HANDOFF.md`：接力更新
+- `dos/carvis/docs/progress/layers/06-workplaces.md`：层级文档
+
+### Git 状态
+
+- 施工前基线：`c108ad9`
+- 备份分支：`backup/pre-phase6-workplaces-20260704-1700`（已 push）
+
+---
+
 ## 2026-07-04 / Phase 5 / Claude Code CLI PID 封装
 
 ### 本轮计划回放

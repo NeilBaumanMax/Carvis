@@ -2,6 +2,53 @@
 
 ## 2026-07-04
 
+## 2026-07-04 / Phase 6 / 开工计划
+
+### 本轮目标
+
+- 完成 Phase 6：`src/agentruntime/workplaces` 角色隔间管理。
+- 为 manager/writer/artist/researcher/engineer 各建独立 workplace 目录。
+- 固定 `input.md` / `plan.md` / `log.md` / `result.md` 文件结构。
+- 强制角色写隔离：每个角色只能写自身 workplace。
+- 工程师 Agent 可读所有前置角色 workplace。
+- 建立 `workplaces:smoke`。
+
+### 涉及层
+
+- `06-workplaces`
+- `03-agentruntime`（scheduler 调用 workplace 初始化）
+- `docs`
+
+### 计划新增
+
+- `src/agentruntime/workplaces/manager.ts`（目录初始化、读写、角色隔离检查）
+- `src/agentruntime/workplaces/index.ts`（barrel export）
+- `src/agentruntime/workplaces/smoke.ts`（smoke test）
+- `package.json`（新增 workplaces:smoke 脚本）
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/06-workplaces.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run workplaces:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`c108ad9`
+- 备份分支：`backup/pre-phase6-workplaces-20260704-1700`
+- 远端状态：已 push
+
+### 回滚预案
+
+- `git revert <phase6-commit>` 回滚本轮提交
+- 或删除本轮新增 `src/agentruntime/workplaces/*`，还原 `package.json` 和文档追加
+
+---
+
 ## 2026-07-04 / Phase 5 / 开工计划
 
 ### 本轮目标

@@ -60,6 +60,76 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-04 / Phase 6 / 接力记录
+
+### 当前状态
+
+- Phase 6 workplaces 隔间已完成。
+- `src/agentruntime/workplaces/manager.ts` 提供完整的 WorkplaceManager：
+  - `initAll()` / `initRole()` 为 5 个角色创建独立目录和 4 个固定文件（input/plan/log/result.md）
+  - `writeFile()` / `appendFile()` / `readFile()` / `fileExists()` 文件 CRUD
+  - `verifyPath(role, path)` 角色写隔离校验
+  - `getPriorRoles(role)` 基于 ROLE_FLOW 计算前置角色列表（engineer 得到 manager+writer+artist+researcher）
+  - `collectPriorResults(role)` 聚合所有前置角色 result.md
+
+### 本轮完成
+
+- 新增 `src/agentruntime/workplaces/manager.ts`、`index.ts`、`smoke.ts`。
+- `package.json` 新增 `workplaces:smoke` 脚本。
+- smoke 7/7 通过：20 个文件创建、角色隔离验证、前置角色计算、结果聚合。
+
+### 未完成
+
+- scheduler 仍使用 mock Agent 执行，尚未接入真实 Claude Code CLI 子进程。
+- WorkplaceManager 尚未接入 scheduler 在执行前调用 `initAll()`。
+- agentruntime 侧 MCP 桥接。
+
+### 下次优先任务
+
+1. Phase 7：output 汇总与预览 — 技术 Agent 汇总生成最终产物到 `output/`，messagebus 广播 `output.ready`，Electron 预览产物。
+2. 在 scheduler 集成 WorkplaceManager，执行前 `initAll()`。
+3. 将 scheduler 的 mock 执行替换为真实 `createClaudeCodeAgent`。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/06-workplaces.md`
+
+### 关键文件
+
+- `src/agentruntime/workplaces/manager.ts`（WorkplaceManager 核心）
+- `src/agentruntime/workplaces/smoke.ts`（7 项冒烟测试）
+- `src/agentruntime/scheduler.ts`（调度核心，需集成 WorkplaceManager）
+- `src/agentruntime/pool.ts`（AgentPool，已有 workplacePath）
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run workplaces:smoke`：通过
+- `npm run claudecode:smoke`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 基线提交：`c108ad9`
+- 备份分支：`backup/pre-phase6-workplaces-20260704-1700`
+- push 状态：收尾回写提交后 push 到 `main`
+
+### 风险提醒
+
+- scheduler 仍为 mock 执行，Phase 7 需要将 mock 替换为真实 CLI 子进程。
+- WorkplaceManager 使用 `ROLE_FLOW` 推算前置角色，若 ROLE_FLOW 结构变化需同步维护 `getPriorRoles()`。
+- 角色隔离在 WorkplaceManager 层校验，scheduler 集成时需要确保 Agent 通过 WorkplaceManager 做 I/O，不能直接 `fs.writeFile()` 绕过。
+
+---
+
 ## 2026-07-04 / Phase 5 / 接力记录
 
 ### 当前状态
