@@ -2,6 +2,61 @@
 
 ## 2026-07-04
 
+## 2026-07-04 / Phase 8 / 完成
+
+### 通过条件
+
+- [x] `npm run typecheck` 通过
+- [x] `npm test` 全部 8 个 smoke 通过
+- [x] E2E 链路：submitTask → 7 阶段推进 → output 产物 → heartbeat → shutdown
+- [x] 备份分支 `backup/pre-phase8-e2e-20260704-1730`
+
+### 产出
+
+- `src/e2e/smoke.ts`
+- `package.json`（新增 `test` / `e2e:smoke`）
+- `dos/carvis/docs/progress/layers/08-e2e.md`
+
+---
+
+## 2026-07-04 / Phase 8 / 开工计划
+
+### 本轮目标
+
+- Phase 8 集成验收：端到端链路验证。
+- 实现 `src/e2e/smoke.ts`：完整走通「提交任务 → 5 角色状态流转 → output 产物 → output.ready 事件 → shutdown」。
+- 建立 `npm test` 一键回归全部 smoke suite。
+- 建立 `npm run e2e:smoke`。
+- 确认全部 8 个 smoke 通过。
+
+### 涉及层
+
+- `08-e2e`
+- `docs`
+
+### 计划新增/变更
+
+- `src/e2e/smoke.ts`（E2E 集成测试）
+- `src/e2e/index.ts`（barrel export）
+- `package.json`（新增 test / e2e:smoke）
+- 无需修改已有模块代码（纯测试层）
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/08-e2e.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm test`（全部 8 个 smoke）
+
+### GitHub 备份计划
+
+- 基线提交：`7dbf807`
+- 备份分支：`backup/pre-phase8-e2e-20260704-1730`（已 push）
+
+---
+
 ## 2026-07-04 / Phase 7 / 开工计划
 
 ### 本轮目标

@@ -28,6 +28,38 @@
 1. <next task>
 2. <next task>
 
+---
+
+## 2026-07-04 / Phase 8 / 接力记录
+
+### 当前状态
+
+- 全部 8 个 smoke suite 通过：setup / messagebus / electron / agentruntime / claudecode / workplaces / output / e2e
+- `npm test` 一键回归可用
+- E2E 链路验证通过：submitTask → 7 阶段推进 → output 产物 → heartbeat → shutdown
+- scheduler 仍用 mock Agent 执行，Claude Code CLI 已封装但未接入
+- Electron 前端为占位内容
+
+### 本轮完成
+
+- 新增 `src/e2e/smoke.ts`：端到端集成 smoke（8 项断言）
+- 新增 `npm test`：一键运行全部 8 个 smoke
+- 新增 `npm run e2e:smoke`
+- 备份分支 `backup/pre-phase8-e2e-20260704-1730`
+
+### 未完成
+
+- scheduler 仍 mock Agent，非真实 Claude Code CLI
+- Electron 前端未订阅 runtime 事件
+
+### 下次优先任务
+
+1. 接入真实 Claude Code CLI，替换 scheduler 中的 mock 执行
+2. Electron 前端接入 agent.* / output.ready 事件，实时展示状态
+3. 或根据用户需求推进下一阶段
+
+---
+
 ### 必读文档
 
 - <doc path>

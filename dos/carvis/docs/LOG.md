@@ -1,5 +1,49 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 8 / 集成验收
+
+### 本轮计划回放
+
+- 实现 `src/e2e/smoke.ts`：端到端集成测试
+- 建立 `npm test` 一键回归（全部 8 个 smoke）
+- 建立 `npm run e2e:smoke`
+- 验证完整链路：提交任务 → 5 角色 → output 产物 → output.ready 事件 → shutdown
+
+### 实施记录
+
+#### 新增文件
+
+- `src/e2e/smoke.ts`（E2E 集成 smoke）
+- `src/e2e/index.ts`（barrel export）
+
+#### 变更文件
+
+- `package.json`（新增 `test` 和 `e2e:smoke` 脚本）
+
+#### 测试结果
+
+| Suite | 结果 |
+|---|---|
+| setup:smoke | ok |
+| messagebus:smoke | ok |
+| electron:smoke | ok |
+| agentruntime:smoke | ok |
+| claudecode:smoke | ok |
+| workplaces:smoke | ok |
+| output:smoke | ok |
+| e2e:smoke | ok |
+
+`npm test`：ALL 8 SMOKES PASSED，无回归。
+
+### 遗留项与下一步
+
+- scheduler 仍使用 mock Agent 执行（`executeSequential` / `executeParallel` 为 setTimeout 模拟）
+- Claude Code CLI 已封装但未接入真实 Agent 执行
+- Electron 前端为占位内容，未订阅 `agent.*` / `output.ready` 事件
+- 下一步：可考虑接入真实 Claude Code CLI 替换 mock 执行（需 Phase 9 或更高）
+
+---
+
 ## 2026-07-04 / Phase 7 / output 汇总与预览
 
 ### 本轮计划回放
