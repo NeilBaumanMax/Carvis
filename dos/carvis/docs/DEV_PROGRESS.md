@@ -1,5 +1,46 @@
 # Carvis Development Progress
 
+## 2026-07-04 / macOS App launcher PATH fix / 开工计划
+
+### 本轮目标
+
+- 修复 Finder 双击 `macos/Carvis.app` 没反应的问题。
+- 让 App 启动脚本在 Finder/LaunchServices 环境下也能找到 `node` 和 `npm`。
+
+### 涉及层
+
+- `00-setup`
+- `macOS launcher`
+- `docs`
+
+### 计划修改
+
+- `scripts/macos/open-carvis.sh`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+
+### 测试计划
+
+- `bash -n scripts/macos/open-carvis.sh`
+- `open macos/Carvis.app`
+- `scripts/macos/status-carvis.sh`
+- `scripts/macos/stop-carvis.sh`
+- `npm run typecheck`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`aa97a55f471d13fb3be7804d89f409f9ef515d4f`
+- 备份分支：`backup/pre-app-launcher-path-fix-20260704-1347`
+- 远端状态：待 push 到 `origin`，不使用 `upstream`
+
+### 回滚预案
+
+- 优先使用 `git revert <app-launcher-path-fix-commit>` 回滚本轮提交。
+- 如仅需回滚未提交文件，还原 `scripts/macos/open-carvis.sh`。
+
 ## 2026-07-04 / launchd manual-only / 开工计划
 
 ### 本轮目标

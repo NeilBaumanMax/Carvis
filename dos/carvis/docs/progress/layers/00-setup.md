@@ -1,5 +1,20 @@
 # 00 Setup Progress
 
+## 2026-07-04 / macOS App launcher PATH fix / 开工计划
+
+### 当前目标
+
+- 修复 Finder 双击 App 时找不到 `npm` 导致无反应的问题。
+
+### 计划改动
+
+- 在 `scripts/macos/open-carvis.sh` 中设置 macOS GUI 常见 PATH。
+- 启动前显式检查 `node` 和 `npm`。
+
+### 验收指标
+
+- `open macos/Carvis.app` 后 `scripts/macos/status-carvis.sh` 显示 Carvis 正在运行。
+
 ## 2026-07-04 / launchd manual-only / 开工计划
 
 ### 当前目标
