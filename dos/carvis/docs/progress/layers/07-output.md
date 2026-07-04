@@ -16,6 +16,15 @@
 - `npm run full:smoke` 通过。
 - output ready payload 包含 manifest 路径。
 
+### 本次完成
+
+- agentruntime mock 和 real 编排都会写入 `final-report.md` 和 `manifest.json`。
+- `output.ready` payload 包含 `manifestPath`。
+
+### 验证结果
+
+- `npm run full:smoke`：通过。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标

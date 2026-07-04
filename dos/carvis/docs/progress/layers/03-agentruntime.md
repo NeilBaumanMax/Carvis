@@ -19,6 +19,18 @@
 - `npm run full:smoke` 通过。
 - 没有真实 token/CLI 时默认不破坏 `npm start`。
 
+### 本次完成
+
+- 新增 `runCommand`，根据 `CARVIS_CLAUDE_MODE` 选择 mock 或 real。
+- 新增 `runRealCommand`，按 manager -> writer/artist/researcher -> engineer 编排真实 Claude Code CLI 调用。
+- mock 编排新增 workplaces 和 output 文件写入。
+- 新增 `full:smoke` 验证完整 mock 多角色流程。
+
+### 验证结果
+
+- `npm run agentruntime:smoke`：通过。
+- `npm run full:smoke`：通过。
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 当前目标

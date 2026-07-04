@@ -1,7 +1,7 @@
 # CODEX START HERE: Carvis 多 Agent 可视化系统施工说明
 
 > 本文件是新的 Codex / Coding Agent 接手 `carvis` 时必须先读的入口文档。  
-> 目标是在 NixOS 上建设一个多进程调配多个 Claude Code Agent 的可视化协同工作系统。
+> 目标是在 macOS 上建设一个多进程调配多个 Claude Code Agent 的可视化协同工作系统。
 
 ---
 
@@ -11,12 +11,18 @@
 
 项目目标：
 
-用 TypeScript 写主体代码，通过 NixOS 自启动脚本拉起本地多进程系统，让 Electron 前端通过消息总线观察和控制 `agentruntime`，由 `agentruntime` 调度多个 Claude Code CLI PID Agent 在独立 workplace 中协同完成任务，最终由技术 Agent 汇总产物到 `output/`，Electron 负责预览和打开产物。
+用 TypeScript 写主体代码，通过 macOS 自启动脚本拉起本地多进程系统，让 Electron 前端通过消息总线观察和控制 `agentruntime`，由 `agentruntime` 调度多个 Claude Code CLI PID Agent 在独立 workplace 中协同完成任务，最终由技术 Agent 汇总产物到 `output/`，Electron 负责预览和打开产物。
+
+启动方式：
+
+```text
+macOS 上使用 launchd User Agent 实现开机自启，或通过 npm start 手动启动。
+```
 
 启动后固定拉起三类进程：
 
 ```text
-src/setup        -> NixOS 启动与进程拉起
+src/setup        -> macOS 启动与进程拉起
 src/electron     -> 可视化前端
 src/messagebus   -> 本地消息总线
 src/agentruntime -> 多 Agent 管理运行时
@@ -73,7 +79,7 @@ Phase 8: output 产物汇总与 Electron 预览
 ```text
 不直接写 Electron 业务 UI
 不直接写 Claude Code CLI 调用代码
-不直接写 NixOS systemd 服务
+不直接写 launchd plist（留到部署阶段）
 不引入数据库
 不引入远端队列
 不写复杂权限系统
@@ -88,7 +94,7 @@ Phase 8: output 产物汇总与 Electron 预览
 ## 3. 核心运行流
 
 ```text
-NixOS boot
+macOS boot
   -> src/setup 启动脚本
   -> 拉起 messagebus
   -> 拉起 agentruntime

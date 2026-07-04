@@ -32,11 +32,17 @@
 
 项目名：`carvis`
 
-目标：用 TypeScript 在 NixOS 上运行一个多进程、多 Agent、可视化协同工作系统。
+目标：用 TypeScript 在 macOS 上运行一个多进程、多 Agent、可视化协同工作系统。
+
+启动方式：
+
+```text
+macOS 上使用 launchd User Agent 实现开机自启，或通过 npm start 手动启动。
+```
 
 核心能力：
 
-- NixOS 自启动后运行 `src/setup` 启动脚本。
+- macOS 自启动后运行 `src/setup` 启动脚本。
 - `setup` 拉起 Electron、messagebus、agentruntime 三类核心进程。
 - Electron 通过 messagebus 发送命令、读取状态并显示多个工作隔间。
 - 用户在类似 GPT Web 端的输入框中按回车提交命令。
@@ -146,7 +152,7 @@
 
 职责：
 
-- NixOS 自启动入口
+- macOS 自启动入口
 - 拉起 `messagebus`
 - 拉起 `agentruntime`
 - 拉起 `electron`

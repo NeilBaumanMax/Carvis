@@ -42,7 +42,7 @@ npm run claudecode:smoke
 - GitHub 回滚策略存在
 - 测试指标文档存在
 - 分层进度日志存在
-- 文档中明确 TypeScript、NixOS、Electron、messagebus、agentruntime、Claude Code CLI、DeepSeek 边界
+- 文档中明确 TypeScript、macOS、Electron、messagebus、agentruntime、Claude Code CLI、DeepSeek 边界
 
 验证方式：
 
@@ -153,6 +153,7 @@ npm run agentruntime:smoke
 - 不把真实 `ANTHROPIC_AUTH_TOKEN` 写入日志或仓库
 - 可启动测试子进程
 - 可捕获 stdout、stderr、exit code
+- stdout/stderr 可通过 `agent.output.stream` 广播
 - 可在不退出 PID 的情况下标记任务完成
 - 可统一关闭 PID
 

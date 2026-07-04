@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.carvis</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/neil/Agent/Carvis</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CARVIS_SETUP_MODE</key>
+    <string>spawn</string>
+    <key>CARVIS_SETUP_HOLD_OPEN</key>
+    <string>1</string>
+    <key>ANTHROPIC_AUTH_TOKEN</key>
+    <string>REPLACE_WITH_DEEPSEEK_API_KEY</string>
+  </dict>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>node</string>
+    <string>dist/main.js</string>
+  </array>
+
+  <key>StandardOutPath</key>
+  <string>/Users/neil/Library/Logs/Carvis/stdout.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/neil/Library/Logs/Carvis/stderr.log</string>
+</dict>
+</plist>

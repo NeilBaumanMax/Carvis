@@ -1,6 +1,6 @@
 # Setup Layer
 
-`src/setup` is the NixOS startup boundary for Carvis.
+`src/setup` is the macOS startup boundary for Carvis.
 
 Responsibilities:
 

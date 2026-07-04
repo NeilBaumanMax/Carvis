@@ -52,6 +52,7 @@ run.phase.changed
 agent.starting
 agent.ready
 agent.output
+agent.output.stream
 agent.error
 agent.done
 agent.retained

@@ -60,6 +60,85 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-04 / Phase 5-7 / 接力记录
+
+### 当前状态
+
+- 项目目标已迁移为 macOS。
+- `npm start` 仍可打开 Mac Electron 窗口。
+- 已新增 launchd User Agent 配置样例：`launchd/com.carvis.plist`。
+- agentruntime 现在有 mock/real 两条路径：默认 mock，`CARVIS_CLAUDE_MODE=real` 调用真实 Claude Code CLI。
+
+### 本轮完成
+
+- 新增 Claude Code CLI wrapper：`src/agentruntime/claudecode/agent.ts`。
+- 新增 `agent.output.stream` 事件。
+- 新增 workplaces 文件读写 API 和五个角色目录。
+- 新增 agentruntime `runCommand`、`runRealCommand`、`writeTaskFile`、`readRoleOutput`。
+- mock 编排现在会写 role output、final report 和 manifest。
+- 新增 `claudecode:smoke`、`workplaces:smoke`、`full:smoke`。
+
+### 未完成
+
+- 未执行真实 Claude Code CLI 调用，因为当前没有真实 `ANTHROPIC_AUTH_TOKEN`。
+- Electron 窗口输入框还没有接入跨进程 messagebus。
+- messagebus 仍是内存实现。
+- launchd plist 还未安装到 `~/Library/LaunchAgents/`。
+
+### 下次优先任务
+
+1. 配置真实 DeepSeek token 后运行 `CARVIS_CLAUDE_MODE=real npm run claudecode:smoke`。
+2. 接通 Electron 输入框 -> messagebus -> agentruntime。
+3. 实现本地跨进程 messagebus 传输。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+- `dos/carvis/docs/progress/layers/06-workplaces.md`
+
+### 关键文件
+
+- `launchd/com.carvis.plist`
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/claudecode/agent.ts`
+- `src/agentruntime/workplaces/index.ts`
+- `src/shared/types/events.ts`
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run setup:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run electron:smoke`：通过
+- `npm run claudecode:smoke`：通过
+- `npm run workplaces:smoke`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run full:smoke`：通过
+- `npm run start:full:smoke`：通过
+- `npm start`：通过，打开真实 Electron 窗口并可 Ctrl+C 停止
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`f3664a75b0edbe984c38f565bf57e895a75306a3`
+- 开发前计划提交：`adaa965`
+- 开发前备份分支：`backup/pre-macos-phase5-7-20260704-1107`
+- 当前 push 目标：`origin`
+- `upstream`：只读，不允许 push
+- 当前 push 状态：收尾提交后 push 到 `origin/main`
+
+### 风险提醒
+
+- `CARVIS_CLAUDE_MODE=real` 需要真实 `ANTHROPIC_AUTH_TOKEN`，不要把 token 写入仓库。
+- launchd plist 里的 token 是占位符，安装前必须替换为本机安全加载方式。
+- 并行运行多个 `npm run build` 可能竞争 `dist`，测试应优先串行执行。
+
 ## 2026-07-04 / Phase 3+4 / 接力记录
 
 ### 当前状态

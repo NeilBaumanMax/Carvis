@@ -7,6 +7,7 @@ export type CarvisEventType =
   | "agent.starting"
   | "agent.ready"
   | "agent.output"
+  | "agent.output.stream"
   | "agent.error"
   | "agent.done"
   | "agent.retained"
@@ -54,6 +55,7 @@ export type CarvisEventPayloadByType = {
   "agent.starting": unknown;
   "agent.ready": unknown;
   "agent.output": AgentOutputPayload;
+  "agent.output.stream": AgentOutputPayload;
   "agent.error": unknown;
   "agent.done": unknown;
   "agent.retained": unknown;

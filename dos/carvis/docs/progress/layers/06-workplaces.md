@@ -18,6 +18,16 @@
 - 每个角色只写自己的 workplace。
 - engineer 可读前置角色产物。
 
+### 本次完成
+
+- 创建 `workplaces/manager`、`workplaces/writer`、`workplaces/artist`、`workplaces/researcher`、`workplaces/engineer`。
+- 新增 `src/agentruntime/workplaces/index.ts`。
+- 新增 `writeTaskFile`、`writePlan`、`writeRoleOutput`、`readRoleOutput`。
+
+### 验证结果
+
+- `npm run workplaces:smoke`：通过。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标

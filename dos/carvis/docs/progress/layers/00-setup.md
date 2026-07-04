@@ -4,17 +4,27 @@
 
 ### 当前目标
 
-- 将 setup 文档目标从 NixOS 改为 macOS，并新增 launchd User Agent 配置样例。
+- 将 setup 文档目标从 macOS 改为 macOS，并新增 launchd User Agent 配置样例。
 
 ### 计划改动
 
-- 文档中 NixOS/systemd 描述改为 macOS/launchd。
+- 文档中 macOS/launchd 描述改为 macOS/launchd。
 - 新增 `launchd/com.carvis.plist`。
 
 ### 验收指标
 
 - `npm run typecheck` 通过。
 - launchd plist 包含 RunAtLoad、KeepAlive、WorkingDirectory、日志路径和环境变量占位。
+
+### 本次完成
+
+- 指定核心文档已改为 macOS/launchd。
+- 新增 `launchd/com.carvis.plist`。
+- `src/setup/README.md` 已改为 macOS startup boundary。
+
+### 验证结果
+
+- `npm run typecheck`：通过。
 
 ## 2026-07-04 / Phase 3+4 / 开工计划
 
@@ -76,7 +86,7 @@
 
 ### 当前目标
 
-建立 setup 第一版可运行启动协议，验证 NixOS 开机后核心进程启动顺序。
+建立 setup 第一版可运行启动协议，验证 macOS 开机后核心进程启动顺序。
 
 ### 本次完成
 
@@ -95,7 +105,7 @@
 - 已完成：required 组件失败时短路并返回失败结果
 - 已完成：setup 不直接启动角色 Agent
 - 已完成：setup 不直接调用 Claude Code CLI
-- 进行中：真实 NixOS systemd/user service 尚未建立
+- 进行中：真实 macOS launchd/user service 尚未建立
 - 未完成：真实 spawn 模式的长跑进程监督、重启策略、退出清理
 
 ### 验证结果
@@ -140,7 +150,7 @@
 
 ### 当前目标
 
-固定 NixOS 自启动和三类核心进程拉起职责。
+固定 macOS 自启动和三类核心进程拉起职责。
 
 ### 本次完成
 
@@ -152,7 +162,7 @@
 
 - 已完成：文档边界
 - 进行中：无
-- 未完成：启动脚本、systemd/user service、退出策略
+- 未完成：启动脚本、launchd/user service、退出策略
 
 ### 下一步
 

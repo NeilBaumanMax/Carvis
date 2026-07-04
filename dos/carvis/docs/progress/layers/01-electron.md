@@ -105,7 +105,7 @@
 
 ### 下一步
 
-- 拿到 SSH 凭据后在 NixOS 目标机复测。
+- macOS 本机 Electron 窗口已作为当前优先验证目标。
 - Phase 4 开始实现 agentruntime 调度核心和 heartbeat 发布。
 
 ## 2026-07-01 / Phase 0 / 初始化

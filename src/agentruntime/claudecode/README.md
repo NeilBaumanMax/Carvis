@@ -18,3 +18,26 @@ CLAUDE_CODE_EFFORT_LEVEL=max
 ```
 
 真实 Key 只能放在本机环境变量或本地 secret 文件中，不能写进仓库。
+
+## Current wrapper
+
+`agent.ts` starts a Claude Code CLI PID Agent with `child_process.spawn`, writes the role prompt to stdin, captures stdout/stderr, and streams output through messagebus as `agent.output.stream`.
+
+Runtime mode:
+
+```text
+CARVIS_CLAUDE_MODE=mock  -> use mock orchestration path
+CARVIS_CLAUDE_MODE=real  -> call the real claude CLI through agent.ts
+```
+
+Timeout:
+
+```text
+CARVIS_AGENT_TIMEOUT_MS=300000
+```
+
+CLI command override:
+
+```text
+CARVIS_CLAUDECODE_BIN=claude
+```

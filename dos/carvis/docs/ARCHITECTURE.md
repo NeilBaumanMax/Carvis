@@ -2,10 +2,12 @@
 
 ## 总览
 
-Carvis 是一个用 TypeScript 编写、运行在 NixOS 上的本地多进程多 Agent 协同系统。
+Carvis 是一个用 TypeScript 编写、运行在 macOS 上的本地多进程多 Agent 协同系统。
+
+macOS 上使用 launchd User Agent 实现开机自启，或通过 `npm start` 手动启动。
 
 ```text
-NixOS
+macOS
   -> setup
       -> messagebus
       -> agentruntime

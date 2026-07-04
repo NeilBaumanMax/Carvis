@@ -1,5 +1,135 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 5-7 / macOS launchd 与真实 Agent 封装
+
+### 本轮计划回放
+
+- 将项目目标文档从 NixOS/systemd 迁移为 macOS/launchd。
+- 新增 launchd User Agent 配置。
+- 实现 Claude Code CLI PID Agent 真实封装，保留 mock fallback。
+- 建立 workplaces 工作隔间和 output 文件写入。
+- 新增 agentruntime 真实多角色编排入口和 smoke 测试。
+
+### 开工检查
+
+- 已读取 `CODEX_MASTER_REQUIREMENTS.md`
+- 已读取 `docs/WORKFLOW.md`
+- 已读取 `docs/TEST_METRICS.md`
+- 已读取 `docs/progress/layers/03-agentruntime.md`
+- 已读取 `docs/progress/layers/04-claudecode.md`
+- 已读取 `docs/progress/layers/06-workplaces.md`
+- 已读取 `docs/progress/layers/07-output.md`
+- 当前分支：`main`
+- 开发前基线提交：`f3664a75b0edbe984c38f565bf57e895a75306a3`
+- 开发前计划提交：`adaa965`
+- 开发前备份分支：`backup/pre-macos-phase5-7-20260704-1107`
+- 远端备份状态：已 push 到 `origin`
+- `upstream` 状态：用户要求只读，本轮未 push、未创建分支、未修改
+
+### 本次修改
+
+- 指定文档中 NixOS/systemd 目标改为 macOS/launchd。
+- 新增 `launchd/com.carvis.plist`，包含 RunAtLoad、KeepAlive、WorkingDirectory、环境变量和日志路径。
+- 新增 `agent.output.stream` 事件类型。
+- 新增 Claude Code CLI 子进程封装。
+- 新增 workplaces 文件读写模块和五个角色目录。
+- agentruntime 新增 mock/real 运行模式、真实角色编排和 output 文件写入。
+- 新增 `claudecode:smoke`、`workplaces:smoke`、`full:smoke`。
+
+### 修改文件
+
+- `dos/carvis/CODEX_START_HERE.md`
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/ARCHITECTURE.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/LAYER_CONTRACT.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+- `dos/carvis/docs/progress/layers/06-workplaces.md`
+- `dos/carvis/docs/progress/layers/07-output.md`
+- `launchd/com.carvis.plist`
+- `package.json`
+- `src/shared/types/events.ts`
+- `src/setup/README.md`
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/smoke.ts`
+- `src/agentruntime/fullSmoke.ts`
+- `src/agentruntime/claudecode/README.md`
+- `src/agentruntime/claudecode/agent.ts`
+- `src/agentruntime/claudecode/smoke.ts`
+- `src/agentruntime/workplaces/index.ts`
+- `src/agentruntime/workplaces/smoke.ts`
+- `workplaces/*/.gitkeep`
+
+### 验证结果
+
+- `npm run typecheck`：通过
+- `npm run setup:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run electron:smoke`：通过
+- `npm run claudecode:smoke`：通过
+- `npm run workplaces:smoke`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run full:smoke`：通过
+- `npm run start:full:smoke`：通过
+- `npm start`：通过，真实 Electron 窗口 ready-to-show 并 html loaded
+- `CARVIS_CLAUDE_MODE=real`：未运行，原因是当前未提供真实 `ANTHROPIC_AUTH_TOKEN`
+
+### 测试日志
+
+- 第 1 次：`npm run typecheck`，通过
+- 第 1 次：`npm run claudecode:smoke`，通过，mock Node 子进程输出被捕获并通过 `agent.output.stream` 广播
+- 第 1 次：`npm run workplaces:smoke`，通过，临时目录内写读 role output 成功
+- 第 1 次：`npm run agentruntime:smoke`，通过，mock/real 开关默认 mock，角色最终 retained
+- 第 1 次：并行执行 `npm run full:smoke`，失败，错误为并行 `npm run build` 造成 `dist` 导出竞争
+- 失败修复：改为单独复测 `npm run full:smoke`
+- 第 2 次：`npm run full:smoke`，通过，写入 final report 和 manifest
+- 第 1 次：`npm run start:full:smoke`，通过，三类核心进程可启动并关闭
+- 第 1 次：`npm start`，通过，真实 Electron 窗口启动并加载 HTML；Ctrl+C 后无残留 Carvis 子进程
+
+### 测试指标判断
+
+- 本轮涉及层：`00-setup`、`03-agentruntime`、`04-claudecode`、`06-workplaces`、`07-output`
+- 应执行测试：`npm run typecheck`、`npm run claudecode:smoke`、`npm run workplaces:smoke`、`npm run agentruntime:smoke`、`npm run full:smoke`、`npm run start:full:smoke`
+- 实际执行测试：`npm run typecheck`、`npm run setup:smoke`、`npm run messagebus:smoke`、`npm run electron:smoke`、`npm run claudecode:smoke`、`npm run workplaces:smoke`、`npm run agentruntime:smoke`、`npm run full:smoke`、`npm run start:full:smoke`、`npm start`
+- 未执行项及原因：真实 Claude Code CLI 调用未执行，原因是当前未提供真实 DeepSeek `ANTHROPIC_AUTH_TOKEN`
+
+### 文档漂移检查
+
+- 指定核心文档已改为 macOS/launchd。
+- 历史 LOG/HANDOFF 中保留过去 NixOS 远端调试记录，不改写历史事实。
+- `LAYER_CONTRACT.md` 已补充 `agent.output.stream`。
+- `TEST_METRICS.md` 已补充 claudecode stream 验收。
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`f3664a75b0edbe984c38f565bf57e895a75306a3`
+- 开发前计划提交：`adaa965`
+- 开发前备份分支：`backup/pre-macos-phase5-7-20260704-1107`
+- 本轮提交：本次收尾提交
+- push 目标：`origin`
+- push 状态：收尾提交后 push 到 `origin/main`
+- `upstream`：只读，未修改
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需回滚，优先使用 `git revert <phase5-7-commit>`
+- 回滚后复测：`npm run typecheck`、`npm run claudecode:smoke`、`npm run workplaces:smoke`、`npm run agentruntime:smoke`、`npm run full:smoke`
+
+### 下一步
+
+- 提供真实 DeepSeek token 后执行 `CARVIS_CLAUDE_MODE=real npm run claudecode:smoke`。
+- 将 Electron 窗口输入框接入真实 messagebus。
+- 将 messagebus 从内存协议推进到跨进程传输。
+
 ## 2026-07-04 / Phase 3+4 / Mac 可见 Electron 窗口
 
 ### 本轮计划回放

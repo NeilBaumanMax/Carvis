@@ -4,7 +4,7 @@
 
 ### 本轮目标
 
-- 将项目文档从 NixOS 目标迁移为 macOS 目标，并补充 launchd User Agent 配置。
+- 将项目文档从 macOS 目标迁移为 macOS 目标，并补充 launchd User Agent 配置。
 - 实现 Claude Code CLI PID Agent 的真实封装，保留 mock fallback。
 - 建立 workplaces 工作隔间文件读写能力。
 - 为 agentruntime 增加真实多角色协作编排入口，默认可继续用 mock 路径稳定运行。
@@ -61,6 +61,29 @@
 
 - 优先使用 `git revert <phase5-7-commit>` 回滚本轮代码和文档提交。
 - 如仅需回滚未提交文件，删除本轮新增的 launchd、claudecode agent、workplaces 模块和 smoke 脚本，恢复 agentruntime mock-only 状态。
+
+### 本次完成
+
+- 指定核心文档已从 NixOS/systemd 目标改为 macOS/launchd 目标。
+- 新增 `launchd/com.carvis.plist`，作为 macOS User Agent 开机自启配置样例。
+- 新增 `src/agentruntime/claudecode/agent.ts`，支持真实 Claude Code CLI 子进程启动、stdin prompt、stdout/stderr 收集、超时和 `agent.output.stream`。
+- 新增 `CARVIS_CLAUDE_MODE=mock|real` 运行模式，默认 mock，真实模式需要 `ANTHROPIC_AUTH_TOKEN`。
+- 新增 `workplaces/manager|writer|artist|researcher|engineer` 目录和 TypeScript 文件读写 API。
+- agentruntime 新增 `runCommand`、`runRealCommand`、`writeTaskFile`、`readRoleOutput`。
+- mock 编排现在也会写入 workspace 文件和 output manifest/final report。
+- 新增 `claudecode:smoke`、`workplaces:smoke`、`full:smoke`。
+
+### 当前未完成
+
+- 真实 Claude Code CLI 模式未在本机执行，因为当前没有提供真实 `ANTHROPIC_AUTH_TOKEN`。
+- Electron 窗口输入框尚未接入跨进程 messagebus。
+- messagebus 仍是内存实现，尚不是真实 IPC/WebSocket。
+
+### 下一步
+
+1. 提供 DeepSeek API token 后运行 `CARVIS_CLAUDE_MODE=real npm run claudecode:smoke` 和真实 agentruntime smoke。
+2. 把 Electron 窗口输入框接入 messagebus。
+3. 将 messagebus 从内存协议推进到本地跨进程传输。
 
 ## 2026-07-04 / Phase 3+4 / 开工计划
 
@@ -264,7 +287,7 @@
 - `runtime.heartbeat` 会更新 Electron runtime 展示状态。
 - `output.ready` 会创建 output 展示入口。
 - `npm run typecheck`、`npm run electron:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke` 均通过。
-- 远程 SSH 调试已连接 `howtion@192.168.137.59`，确认 NixOS、Node、npm、git 可用。
+- 远程 SSH 调试已连接 `howtion@192.168.137.59`，确认 macOS、Node、npm、git 可用。
 - 已连接远端 WiFi `kyle`，默认出网路由走 `wlan0`，有线保留用于 SSH。
 - 已同步到远端 `~/carvis-remote-smoke`，远端干净 `npm ci` 后，`npm run typecheck`、`npm run electron:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke` 均通过。
 
@@ -374,7 +397,7 @@
 ### 进行中
 
 - 建立面向 `carvis` 的施工文档脚手架
-- 将 catnip 单 Agent CLI 文档模式迁移为 NixOS 多进程多 Agent 可视化系统文档模式
+- 将 catnip 单 Agent CLI 文档模式迁移为 macOS 多进程多 Agent 可视化系统文档模式
 
 ### 已完成
 
@@ -399,7 +422,7 @@
 - 绑定 GitHub remote：`git@github.com:howtion0/carvis.git`
 - 推送开发前备份分支：`backup/pre-carvis-bootstrap-20260701-203039`
 - 推送 Phase 1 开发前备份分支：`backup/pre-phase1-setup-20260701-203615`
-- 已连接 NixOS 主机：`howtion@192.168.137.59`
+- 已连接 macOS 主机：`howtion@192.168.137.59`
 - 创建 TypeScript 工程骨架：`package.json`、`tsconfig.json`、`src/main.ts`、`src/bootstrap.ts`
 - 创建共享类型：Agent、Run、MessageBus event envelope
 - 创建 `src/agentruntime/claudecode/deepseekClaudeCodeEnv.ts`
