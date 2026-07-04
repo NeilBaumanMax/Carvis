@@ -30,6 +30,37 @@
 
 ---
 
+## 2026-07-04 / Phase 9 / Claude Code CLI 接入
+
+### 当前状态
+
+- 全部 8 个 smoke suite 通过
+- scheduler 支持双模式：`executionMode: "mock"`（默认）/ `"claude"`（真实 CLI）
+- Claude 模式：AgentManager → spawnClaudeCode → 写入 input.md → waitForExit → 写入 result.md
+- CLI 不可用时自动降级到 mock
+- `npm run e2e:claude-smoke` 可用（无 CLI 时优雅跳过）
+
+### 本轮完成
+
+- 新增 `ExecutionMode` 类型 + `claudeTimeoutMs` 配置项
+- scheduler 新增 `executeSequentialClaude` / `executeParallelClaude`
+- 新增 `e2e/claude-smoke.ts`（6 项断言，无 CLI 优雅跳过）
+- 备份分支 `backup/pre-phase9-claudecli-20260704-1800`
+
+### 未完成
+
+- 需要有效 API Key（keys.txt）才能真实运行 Claude 模式
+- Electron 前端未订阅 runtime 事件
+- MCP 层未开工
+
+### 下次优先任务
+
+1. 在 keys.txt 配置 API Key 后运行 `npm run e2e:claude-smoke` 验证真实 Claude 链路
+2. Phase 10: MCP 工具协议层
+3. 或根据用户需求推进下一阶段
+
+---
+
 ## 2026-07-04 / Phase 8 / 接力记录
 
 ### 当前状态

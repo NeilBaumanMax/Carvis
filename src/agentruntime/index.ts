@@ -18,6 +18,7 @@ export type {
   RuntimeConfig,
   SchedulerState,
   TaskItem,
+  ExecutionMode,
 } from "./types.js";
 
 // Claude Code CLI adapter

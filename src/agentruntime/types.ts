@@ -1,12 +1,16 @@
 import type { AgentRole, AgentRuntimeState, AgentStatus } from "../shared/types/agent.js";
 import type { RunPhase } from "../shared/types/run.js";
 
+export type ExecutionMode = "mock" | "claude";
+
 export interface RuntimeConfig {
   heartbeatIntervalMs: number;
   poolSize: number;
   workplaceRoot: string;
   outputDir: string;
   shutdownTimeoutMs: number;
+  executionMode: ExecutionMode;
+  claudeTimeoutMs: number;
 }
 
 export interface TaskItem {
@@ -65,6 +69,8 @@ export function defaultRuntimeConfig(overrides?: Partial<RuntimeConfig>): Runtim
     workplaceRoot: overrides?.workplaceRoot ?? "workplaces",
     outputDir: overrides?.outputDir ?? "output",
     shutdownTimeoutMs: overrides?.shutdownTimeoutMs ?? 5_000,
+    executionMode: overrides?.executionMode ?? "mock",
+    claudeTimeoutMs: overrides?.claudeTimeoutMs ?? 120_000,
   };
 }
 

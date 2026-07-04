@@ -2,6 +2,30 @@
 
 ## 2026-07-04
 
+## 2026-07-04 / Phase 9 / 完成
+
+### 通过条件
+
+- [x] `npm run typecheck` 通过
+- [x] `npm test` 全部 8 个 smoke 通过（零回归）
+- [x] `npm run e2e:claude-smoke` 优雅跳过（无 CLI 环境）
+- [x] 备份分支 `backup/pre-phase9-claudecli-20260704-1800`
+
+### 产出
+
+- `src/agentruntime/types.ts`：新增 `ExecutionMode`、`claudeTimeoutMs`
+- `src/agentruntime/scheduler.ts`：双模式调度（mock/claude），`executeSequentialClaude` / `executeParallelClaude`
+- `src/e2e/claude-smoke.ts`：claude 模式端到端 smoke（无 CLI 时优雅跳过）
+- `package.json`：新增 `e2e:claude-smoke`
+
+### 架构决策
+
+- scheduler 保持 mock 为默认模式（`executionMode: "mock"`）
+- 设置 `executionMode: "claude"` 时自动检测 CLI 可用性，不可用时降级为 mock
+- Claude Agent 输出通过 messagebus 广播，result.md 写入执行摘要而非完整输出
+
+---
+
 ## 2026-07-04 / Phase 8 / 完成
 
 ### 通过条件

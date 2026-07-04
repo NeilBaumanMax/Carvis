@@ -1,5 +1,39 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 9 / Claude Code CLI 接入
+
+### 本轮计划回放
+
+- 扩增 RuntimeConfig：ExecutionMode 类型（mock / claude）
+- 重写 scheduler 支持双模式：`executeSequentialClaude` / `executeParallelClaude`
+- Claude 模式：通过 AgentManager 启动真实 Claude Code 子进程
+- 写入 workplace input.md → waitForExit → 写入 result.md
+- 自动降级：CLI 不可用时 fallback 到 mock
+
+### 实施记录
+
+#### 变更文件
+
+- `src/agentruntime/types.ts`：新增 `ExecutionMode`、`claudeTimeoutMs`
+- `src/agentruntime/scheduler.ts`：新增 `executeSequentialClaude` / `executeParallelClaude`
+- `src/agentruntime/index.ts`：导出 `isClaudeCodeAvailable`
+- `src/e2e/claude-smoke.ts`：claude 模式 E2E smoke
+- `package.json`：新增 `e2e:claude-smoke`
+
+#### 测试结果
+
+| Suite | 结果 |
+|---|---|
+| `npm test`（8 smokes） | ALL PASSED，零回归 |
+| `npm run e2e:claude-smoke` | SKIP（优雅降级，无 CLI） |
+
+### 遗留项与下一步
+
+- Claude CLI 需在 `keys.txt` 配置有效的 API Key 才能真实运行
+- 需要 Phase 10+ 接入 MCP 或 Electron 前端事件订阅
+
+---
+
 ## 2026-07-04 / Phase 8 / 集成验收
 
 ### 本轮计划回放
