@@ -1,5 +1,23 @@
 # 00 Setup Progress
 
+## 2026-07-04 / launchd manual-only / 开工计划
+
+### 当前目标
+
+- 完善 launchd 安装和手动管理脚本，同时禁止开机自启动。
+
+### 计划改动
+
+- `RunAtLoad` 改为 false。
+- `KeepAlive` 改为 false。
+- 新增 launchd install/start/stop/status/uninstall 脚本。
+
+### 验收指标
+
+- plist 通过 `plutil -lint`。
+- shell 脚本通过 `bash -n`。
+- 不存在开机自动启动配置。
+
 ## 2026-07-04 / macOS launchd / 开工计划
 
 ### 当前目标

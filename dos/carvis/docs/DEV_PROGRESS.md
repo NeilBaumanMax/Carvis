@@ -1,5 +1,47 @@
 # Carvis Development Progress
 
+## 2026-07-04 / launchd manual-only / 开工计划
+
+### 本轮目标
+
+- 完善 macOS launchd 安装与手动管理流程。
+- 明确禁止开机自启动：launchd 配置不得 `RunAtLoad`，不得 `KeepAlive` 自动重启。
+- 提供 install/start/stop/status/uninstall 脚本，用户手动启动 Carvis。
+
+### 涉及层
+
+- `00-setup`
+- `docs`
+- `launchd`
+
+### 计划修改
+
+- `launchd/com.carvis.plist`
+- `scripts/launchd/*`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+
+### 测试计划
+
+- `plutil -lint launchd/com.carvis.plist`
+- `bash -n scripts/launchd/*.sh`
+- `npm run typecheck`
+- `npm run start:full:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`05735f5843bc8a75af0a808cae97dad989deebf1`
+- 备份分支：`backup/pre-launchd-manual-only-20260704-1135`
+- 远端状态：待 push 到 `origin`，不使用 `upstream`
+
+### 回滚预案
+
+- 优先使用 `git revert <launchd-manual-commit>` 回滚本轮提交。
+- 如仅需回滚未提交文件，恢复 `launchd/com.carvis.plist` 并删除 `scripts/launchd`。
+
 ## 2026-07-04 / Phase 5-7 / 开工计划
 
 ### 本轮目标
