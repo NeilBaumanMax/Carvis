@@ -64,7 +64,7 @@
 
 ### 本次完成
 
-- 指定核心文档已从 NixOS/systemd 目标改为 macOS/launchd 目标。
+- 指定核心文档已改为 macOS/launchd 目标。
 - 新增 `launchd/com.carvis.plist`，作为 macOS User Agent 开机自启配置样例。
 - 新增 `src/agentruntime/claudecode/agent.ts`，支持真实 Claude Code CLI 子进程启动、stdin prompt、stdout/stderr 收集、超时和 `agent.output.stream`。
 - 新增 `CARVIS_CLAUDE_MODE=mock|real` 运行模式，默认 mock，真实模式需要 `ANTHROPIC_AUTH_TOKEN`。
