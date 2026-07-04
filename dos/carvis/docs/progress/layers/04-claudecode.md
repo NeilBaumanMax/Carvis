@@ -1,5 +1,23 @@
 # 04 ClaudeCode Progress
 
+## 2026-07-04 / Phase 5 / 开工计划
+
+### 当前目标
+
+- 实现 Claude Code CLI PID Agent 真实封装。
+
+### 计划改动
+
+- 新增 `src/agentruntime/claudecode/agent.ts`。
+- 使用 `child_process.spawn` 启动 `claude`，通过 DeepSeek Anthropic 兼容环境变量注入。
+- 支持 stdout/stderr 捕获、超时、非零退出码分类和 messagebus 流式输出。
+
+### 验收指标
+
+- `npm run claudecode:smoke` 通过。
+- mock claude 命令可被启动并捕获输出。
+- 真实模式通过 `CARVIS_CLAUDE_MODE=real` 显式启用。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标

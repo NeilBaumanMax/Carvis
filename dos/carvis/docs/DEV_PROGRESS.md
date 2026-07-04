@@ -1,5 +1,67 @@
 # Carvis Development Progress
 
+## 2026-07-04 / Phase 5-7 / 开工计划
+
+### 本轮目标
+
+- 将项目文档从 NixOS 目标迁移为 macOS 目标，并补充 launchd User Agent 配置。
+- 实现 Claude Code CLI PID Agent 的真实封装，保留 mock fallback。
+- 建立 workplaces 工作隔间文件读写能力。
+- 为 agentruntime 增加真实多角色协作编排入口，默认可继续用 mock 路径稳定运行。
+
+### 涉及层
+
+- `00-setup`
+- `03-agentruntime`
+- `04-claudecode`
+- `06-workplaces`
+- `07-output`
+- `docs`
+
+### 计划修改
+
+- `dos/carvis/CODEX_START_HERE.md`
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/ARCHITECTURE.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+- `dos/carvis/docs/progress/layers/06-workplaces.md`
+- `dos/carvis/docs/progress/layers/07-output.md`
+- `launchd/com.carvis.plist`
+- `src/shared/types/events.ts`
+- `src/agentruntime/claudecode/*`
+- `src/agentruntime/workplaces/*`
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/smoke.ts`
+- `package.json`
+- `workplaces/*/.gitkeep`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run claudecode:smoke`
+- `npm run workplaces:smoke`
+- `npm run agentruntime:smoke`
+- `npm run full:smoke`
+- `npm run start:full:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`f3664a75b0edbe984c38f565bf57e895a75306a3`
+- 备份分支：`backup/pre-macos-phase5-7-20260704-1107`
+- 远端状态：待 push 到 `origin`，不使用 `upstream`
+
+### 回滚预案
+
+- 优先使用 `git revert <phase5-7-commit>` 回滚本轮代码和文档提交。
+- 如仅需回滚未提交文件，删除本轮新增的 launchd、claudecode agent、workplaces 模块和 smoke 脚本，恢复 agentruntime mock-only 状态。
+
 ## 2026-07-04 / Phase 3+4 / 开工计划
 
 ### 本轮目标

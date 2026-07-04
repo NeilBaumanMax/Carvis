@@ -1,5 +1,24 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-04 / Phase 5-7 / 开工计划
+
+### 当前目标
+
+- 在保留 mock 编排的同时，新增真实 Claude Code CLI 多角色编排入口。
+- 通过 `CARVIS_CLAUDE_MODE=mock|real` 控制运行路径。
+
+### 计划改动
+
+- 新增 `runRealCommand`。
+- 将 manager -> writer/artist/researcher -> engineer 的流程接到 claudecode wrapper 和 workplaces 文件读写。
+- 新增 full smoke，默认使用 mock 路径验证完整流程。
+
+### 验收指标
+
+- `npm run agentruntime:smoke` 通过。
+- `npm run full:smoke` 通过。
+- 没有真实 token/CLI 时默认不破坏 `npm start`。
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 当前目标

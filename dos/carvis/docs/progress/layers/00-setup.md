@@ -1,5 +1,21 @@
 # 00 Setup Progress
 
+## 2026-07-04 / macOS launchd / 开工计划
+
+### 当前目标
+
+- 将 setup 文档目标从 NixOS 改为 macOS，并新增 launchd User Agent 配置样例。
+
+### 计划改动
+
+- 文档中 NixOS/systemd 描述改为 macOS/launchd。
+- 新增 `launchd/com.carvis.plist`。
+
+### 验收指标
+
+- `npm run typecheck` 通过。
+- launchd plist 包含 RunAtLoad、KeepAlive、WorkingDirectory、日志路径和环境变量占位。
+
 ## 2026-07-04 / Phase 3+4 / 开工计划
 
 ### 当前目标

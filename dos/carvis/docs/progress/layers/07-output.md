@@ -1,5 +1,21 @@
 # 07 Output Progress
 
+## 2026-07-04 / Phase 7 / 开工计划
+
+### 当前目标
+
+- 让真实/模拟编排最终生成 output manifest 和 final report，并广播 `output.ready`。
+
+### 计划改动
+
+- 在 agentruntime 编排中写入 `output/manifest.json` 和 `output/final-report.md`。
+- full smoke 验证 output 文件存在。
+
+### 验收指标
+
+- `npm run full:smoke` 通过。
+- output ready payload 包含 manifest 路径。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标
