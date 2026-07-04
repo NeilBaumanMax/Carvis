@@ -60,6 +60,81 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-04 / Phase 4 / 接力记录
+
+### 当前状态
+
+- 项目现在可以用 `npm start` 做本地完整启动。
+- `npm start` 会 build 后以 spawn 模式拉起 messagebus、agentruntime、Electron mock 三类核心进程。
+- 启动后前台保持运行，按 Ctrl+C 会触发 shutdown。
+- `npm run start:plan` 保留原 plan 模式。
+
+### 本轮完成
+
+- 新增 messagebus 长跑入口：`src/messagebus/main.ts`。
+- 新增 Electron mock 长跑入口：`src/electron/main.ts`。
+- 新增 agentruntime 最小状态机、heartbeat、长跑入口和 smoke test。
+- setup spawn 模式现在会保存子进程并支持统一关闭。
+- 新增 `start:full:smoke` 和 `agentruntime:smoke`。
+- `.DS_Store` 已加入 `.gitignore`。
+
+### 未完成
+
+- Electron 仍是 mock shell，不是真实桌面窗口。
+- messagebus 仍是内存协议，不是跨进程 IPC/WebSocket。
+- agentruntime 仍是 mock 状态机，不启动真实 Claude Code PID Agent。
+- Claude Code CLI PID Agent 生命周期仍待 Phase 5 实现。
+
+### 下次优先任务
+
+1. 继续 Phase 4：让 agentruntime 通过 messagebus 接收 `command.submitted`。
+2. 建立真实 runtime 命令到 role flow 的最小链路。
+3. 后续 Phase 5 接入 Claude Code CLI PID Agent 封装。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+
+### 关键文件
+
+- `package.json`
+- `src/bootstrap.ts`
+- `src/setup/supervisor.ts`
+- `src/setup/fullSmoke.ts`
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/main.ts`
+- `src/messagebus/main.ts`
+- `src/electron/main.ts`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run setup:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run electron:smoke`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run start:full:smoke`：通过
+- `npm start`：通过，可 Ctrl+C 停止且无残留进程
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`7febca6cc283507bff1ff033ac99486bb652ec2c`
+- 开发前计划提交：`0c63777`
+- 开发前备份分支：`backup/pre-phase4-full-run-20260704-1019`
+- 当前 push 目标：`origin`
+- `upstream`：只读，不允许 push
+- 当前 push 状态：收尾提交后 push 到 `origin/main`
+
+### 风险提醒
+
+- 现在的“完整启动”是本地最小可运行骨架，不等于最终 GUI + Claude Code PID Agent 完整产品。
+- 不要把 `upstream` 当开发备份远端；用户指定备份和回滚只使用 `origin`。
+
 ## 2026-07-01 / Phase 3 / 接力记录
 
 ### 当前状态

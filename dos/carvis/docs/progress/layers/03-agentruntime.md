@@ -19,6 +19,19 @@
 - `npm run start:full:smoke` 能证明 agentruntime 入口被 setup 拉起。
 - agentruntime 不渲染 UI、不绕过 messagebus、不把角色工作文件写到 runtime 根目录。
 
+### 本次完成
+
+- 新增 `src/agentruntime/README.md`。
+- 新增 `src/agentruntime/runtime.ts`，建立最小 AgentRuntime 状态机。
+- 新增 `src/agentruntime/main.ts`，作为 agentruntime 长跑入口并周期发布 heartbeat。
+- 新增 `src/agentruntime/smoke.ts`，验证角色顺序、heartbeat 和 output ready。
+- 当前仍不启动真实 Claude Code PID Agent，后续 Phase 5 继续实现。
+
+### 验证结果
+
+- `npm run agentruntime:smoke`：通过。
+- `npm run start:full:smoke`：通过。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标

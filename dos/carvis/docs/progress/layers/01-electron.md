@@ -16,6 +16,17 @@
 - `npm run electron:smoke` 通过。
 - 完整启动 smoke 能看到 Electron mock 入口被 setup 拉起。
 
+### 本次完成
+
+- 新增 `src/electron/main.ts` 作为 Electron mock 长跑入口。
+- 新增 `electron:start` 脚本，供 setup spawn 模式拉起。
+- 完整启动时会显示五个 workplace panel：manager、writer、artist、researcher、engineer。
+
+### 验证结果
+
+- `npm run electron:smoke`：通过。
+- `npm run start:full:smoke`：通过。
+
 ## 2026-07-01 / Phase 3 / 开工计划
 
 ### 当前目标

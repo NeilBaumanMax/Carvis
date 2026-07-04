@@ -16,6 +16,17 @@
 - `npm run messagebus:smoke` 通过。
 - 完整启动 smoke 能看到 messagebus 入口被 setup 拉起。
 
+### 本次完成
+
+- 新增 `src/messagebus/main.ts` 作为 messagebus 长跑入口。
+- 完整启动时 messagebus 会启动内存协议占位进程并等待 shutdown。
+- 保持 messagebus 不执行任务、不读写 workplace。
+
+### 验证结果
+
+- `npm run messagebus:smoke`：通过。
+- `npm run start:full:smoke`：通过。
+
 ## 2026-07-01 / Phase 2 / 开工计划
 
 ### 当前目标

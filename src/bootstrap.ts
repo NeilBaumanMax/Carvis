@@ -1,5 +1,5 @@
 import { createDeepSeekClaudeCodeEnv } from "./agentruntime/claudecode/deepseekClaudeCodeEnv.js";
-import { loadSetupConfig, runSetupSupervisor } from "./setup/index.js";
+import { loadSetupConfig, runSetupSupervisor, shutdownStartedProcesses } from "./setup/index.js";
 
 export async function bootstrapCarvis(): Promise<void> {
   const claudeCodeEnv = createDeepSeekClaudeCodeEnv(process.env);
@@ -15,4 +15,27 @@ export async function bootstrapCarvis(): Promise<void> {
   if (!setupResult.ok) {
     throw new Error(`setup failed at ${setupResult.failed}`);
   }
+
+  if (setupConfig.mode === "spawn" && process.env.CARVIS_SETUP_HOLD_OPEN === "1") {
+    console.log("[carvis] Full startup is running. Press Ctrl+C to stop.");
+    await waitForSupervisorShutdown();
+    await shutdownStartedProcesses(setupResult);
+  }
+}
+
+async function waitForSupervisorShutdown(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const cleanup = (): void => {
+      process.off("SIGINT", onSignal);
+      process.off("SIGTERM", onSignal);
+      resolve();
+    };
+
+    const onSignal = (): void => {
+      cleanup();
+    };
+
+    process.once("SIGINT", onSignal);
+    process.once("SIGTERM", onSignal);
+  });
 }

@@ -1,3 +1,5 @@
+import type { ChildProcess } from "node:child_process";
+
 export type SetupComponentName = "messagebus" | "agentruntime" | "electron";
 
 export type SetupMode = "plan" | "spawn";
@@ -32,6 +34,7 @@ export interface SetupEvent {
 
 export interface ComponentStartResult {
   pid?: number;
+  childProcess?: ChildProcess;
 }
 
 export type ComponentStarter = (
@@ -43,5 +46,12 @@ export interface SetupRunResult {
   ok: boolean;
   events: SetupEvent[];
   started: SetupComponentName[];
+  startedProcesses: StartedComponentProcess[];
   failed?: SetupComponentName;
+}
+
+export interface StartedComponentProcess {
+  name: SetupComponentName;
+  pid: number;
+  childProcess: ChildProcess;
 }

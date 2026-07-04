@@ -1,5 +1,5 @@
 export { loadSetupConfig } from "./config.js";
-export { runSetupSupervisor, startComponent } from "./supervisor.js";
+export { runSetupSupervisor, shutdownStartedProcesses, startComponent } from "./supervisor.js";
 export type {
   ComponentStarter,
   ComponentStartResult,
@@ -9,4 +9,5 @@ export type {
   SetupEvent,
   SetupMode,
   SetupRunResult,
+  StartedComponentProcess,
 } from "./types.js";

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
 import type {
   ComponentStartResult,
   ComponentStarter,
@@ -6,6 +7,7 @@ import type {
   SetupConfig,
   SetupEvent,
   SetupRunResult,
+  StartedComponentProcess,
 } from "./types.js";
 
 export async function runSetupSupervisor(
@@ -14,6 +16,7 @@ export async function runSetupSupervisor(
 ): Promise<SetupRunResult> {
   const events: SetupEvent[] = [];
   const started: SetupRunResult["started"] = [];
+  const startedProcesses: StartedComponentProcess[] = [];
 
   record(events, {
     type: "setup.started",
@@ -30,6 +33,15 @@ export async function runSetupSupervisor(
     try {
       const result = await starter(component, config);
       started.push(component.name);
+
+      if (result.childProcess !== undefined && result.pid !== undefined) {
+        startedProcesses.push({
+          name: component.name,
+          pid: result.pid,
+          childProcess: result.childProcess,
+        });
+      }
+
       record(events, {
         type: "component.started",
         component: component.name,
@@ -53,6 +65,7 @@ export async function runSetupSupervisor(
           ok: false,
           events,
           started,
+          startedProcesses,
           failed: component.name,
         };
       }
@@ -68,6 +81,7 @@ export async function runSetupSupervisor(
     ok: true,
     events,
     started,
+    startedProcesses,
   };
 }
 
@@ -81,31 +95,88 @@ export async function startComponent(
 
   const child = spawn(component.command, [...component.args], {
     detached: false,
-    stdio: "ignore",
+    stdio: "inherit",
   });
 
   return await new Promise<ComponentStartResult>((resolve, reject) => {
+    let settled = false;
     const timeout = setTimeout(() => {
       cleanup();
       reject(new Error(`${component.name} startup timed out`));
     }, config.startupTimeoutMs);
 
     child.once("spawn", () => {
-      cleanup();
-      resolve({ pid: child.pid });
+      setTimeout(() => {
+        settled = true;
+        cleanup();
+        resolve({
+          pid: child.pid,
+          childProcess: child,
+        });
+      }, 250);
     });
 
     child.once("error", (error) => {
+      settled = true;
       cleanup();
       reject(error);
+    });
+
+    child.once("exit", (code, signal) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      reject(new Error(`${component.name} exited during startup with code ${String(code)} signal ${String(signal)}`));
     });
 
     function cleanup(): void {
       clearTimeout(timeout);
       child.removeAllListeners("spawn");
       child.removeAllListeners("error");
+      child.removeAllListeners("exit");
     }
   });
+}
+
+export async function shutdownStartedProcesses(
+  result: Pick<SetupRunResult, "startedProcesses">,
+  signal: NodeJS.Signals = "SIGTERM",
+): Promise<void> {
+  for (const startedProcess of [...result.startedProcesses].reverse()) {
+    const child = startedProcess.childProcess;
+
+    if (child.exitCode !== null || child.killed) {
+      continue;
+    }
+
+    child.kill(signal);
+    await waitForChildExit(child, 2_000);
+  }
+}
+
+async function waitForChildExit(
+  child: StartedComponentProcess["childProcess"],
+  timeoutMs: number,
+): Promise<void> {
+  if (child.exitCode !== null) {
+    return;
+  }
+
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      child.once("exit", () => {
+        resolve();
+      });
+    }),
+    delay(timeoutMs).then(() => {
+      if (child.exitCode === null && !child.killed) {
+        child.kill("SIGKILL");
+      }
+    }),
+  ]);
 }
 
 function record(

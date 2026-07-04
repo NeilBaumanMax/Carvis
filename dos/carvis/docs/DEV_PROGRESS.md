@@ -53,6 +53,28 @@
 - 优先使用 `git revert <phase4-full-run-commit>` 回滚本轮代码和文档提交。
 - 如仅需回滚未提交文件，删除本轮新增的 agentruntime/messagebus/electron 入口文件，并还原 `package.json`、`.gitignore` 和相关文档追加。
 
+### 本次完成
+
+- 新增 `npm start` 默认完整启动，内部执行 `npm run start:full`。
+- 保留 `npm run start:plan` 作为原 plan 模式入口。
+- 新增 `messagebus`、`agentruntime`、Electron mock 的本地长跑入口。
+- 新增 setup spawn 模式的子进程持有和统一 shutdown 能力。
+- 新增 `agentruntime:smoke`，验证最小角色顺序、heartbeat 和 output ready。
+- 新增 `start:full:smoke`，验证 setup 能实际拉起并关闭三类核心进程。
+- `npm start` 已实际运行成功，显示 messagebus、agentruntime、Electron mock 全部 ready。
+
+### 当前未完成
+
+- 当前 Electron 仍是 mock shell，不是真实窗口。
+- 当前 messagebus 仍是内存协议，不是跨进程 IPC/WebSocket。
+- 当前 agentruntime 仍是 mock 状态机，不启动真实 Claude Code PID Agent。
+
+### 下一步
+
+1. 继续 Phase 4：把 agentruntime 从 mock 状态机推进到可接收 `command.submitted` 的运行时。
+2. 后续 Phase 5：接入 Claude Code CLI PID Agent 封装。
+3. 后续实现真实 Electron renderer 窗口和跨进程 messagebus。
+
 ## 2026-07-01
 
 ## 2026-07-01 / Phase 3 / 开工计划

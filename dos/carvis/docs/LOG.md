@@ -1,5 +1,133 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 4 / 本地完整启动入口
+
+### 本轮计划回放
+
+- 处理当前项目无法完整运行的问题。
+- 补齐本地完整启动需要的最小可运行进程入口。
+- 让 setup spawn 模式能够实际拉起 `messagebus`、`agentruntime` 和 Electron mock 进程。
+- 新增面向本机运行的完整启动命令。
+
+### 开工检查
+
+- 已读取 `CODEX_MASTER_REQUIREMENTS.md`
+- 已读取 `docs/DEV_PROGRESS.md`
+- 已读取 `docs/LOG.md`
+- 已读取 `docs/GITHUB_ROLLBACK.md`
+- 已读取 `docs/TEST_METRICS.md`
+- 已读取 `docs/WORKFLOW.md`
+- 已读取 `docs/progress/layers/00-setup.md`
+- 已读取 `docs/progress/layers/01-electron.md`
+- 已读取 `docs/progress/layers/02-messagebus.md`
+- 已读取 `docs/progress/layers/03-agentruntime.md`
+- 已读取根目录 `对参考施工文档重构的要求 .txt`
+- 当前分支：`main`
+- 开发前基线提交：`7febca6cc283507bff1ff033ac99486bb652ec2c`
+- 开发前计划提交：`0c63777`
+- 开发前备份分支：`backup/pre-phase4-full-run-20260704-1019`
+- 远端备份状态：已 push 到 `origin`
+- `upstream` 状态：用户要求只读，本轮未 push、未创建分支、未修改
+
+### 本次修改
+
+- 将 `npm start` 改为默认完整本地启动。
+- 新增 `npm run start:plan` 保留原 plan 模式。
+- 新增 `npm run start:full`，执行 build 后以 spawn 模式启动三类核心进程并前台持有。
+- 新增 `npm run start:full:smoke`，验证三类核心进程可被实际拉起并关闭。
+- 新增 `npm run agentruntime:smoke`。
+- 新增 messagebus 长跑入口。
+- 新增 Electron mock 长跑入口。
+- 新增 agentruntime 最小状态机、heartbeat、长跑入口和 smoke test。
+- setup spawn 模式现在会保存子进程引用，并在前台完整启动退出时统一 shutdown。
+- `.gitignore` 新增 `.DS_Store`，避免 macOS 系统文件污染 git 状态。
+
+### 修改文件
+
+- `.gitignore`
+- `package.json`
+- `src/bootstrap.ts`
+- `src/setup/types.ts`
+- `src/setup/supervisor.ts`
+- `src/setup/index.ts`
+- `src/setup/smoke.ts`
+- `src/setup/fullSmoke.ts`
+- `src/shared/process/lifecycle.ts`
+- `src/messagebus/main.ts`
+- `src/electron/main.ts`
+- `src/agentruntime/README.md`
+- `src/agentruntime/types.ts`
+- `src/agentruntime/runtime.ts`
+- `src/agentruntime/index.ts`
+- `src/agentruntime/main.ts`
+- `src/agentruntime/smoke.ts`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+- `dos/carvis/docs/progress/layers/02-messagebus.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+
+### 验证结果
+
+- `npm run typecheck`：通过
+- `npm run setup:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run electron:smoke`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run start:full:smoke`：通过
+- `npm start`：通过，前台启动 messagebus、agentruntime、Electron mock，并可 Ctrl+C 停止
+- `ps -axo pid,command | rg 'dist/(messagebus|agentruntime|electron)/main|electron:start|Carvis'`：通过，停止后无残留 Carvis 子进程
+
+### 测试日志
+
+- 第 1 次：`npm run typecheck`，通过
+- 第 1 次：`npm run setup:smoke`，通过，输出 `[setup:smoke] ok`
+- 第 1 次：`npm run messagebus:smoke`，通过，输出 `[messagebus:smoke] ok`
+- 第 1 次：`npm run electron:smoke`，通过，输出 `[electron:smoke] ok`
+- 第 1 次：`npm run agentruntime:smoke`，通过，输出 `[agentruntime:smoke] ok`
+- 第 1 次：`npm run start:full:smoke`，通过，输出 messagebus、agentruntime、Electron mock ready，并统一 SIGTERM shutdown
+- 第 1 次：`npm start`，通过，输出 `Full startup is running. Press Ctrl+C to stop.`
+- 停止检查：Ctrl+C 后运行 `ps` 检查，无残留 Carvis 子进程
+
+### 测试指标判断
+
+- 本轮涉及层：`00-setup`、`01-electron`、`02-messagebus`、`03-agentruntime`
+- 应执行测试：`npm run typecheck`、`npm run setup:smoke`、`npm run messagebus:smoke`、`npm run electron:smoke`、`npm run agentruntime:smoke`、`npm run start:full:smoke`
+- 实际执行测试：`npm run typecheck`、`npm run setup:smoke`、`npm run messagebus:smoke`、`npm run electron:smoke`、`npm run agentruntime:smoke`、`npm run start:full:smoke`、`npm start`
+- 未执行项及原因：`npm test` 尚未建立；真实 Electron 窗口和真实 Claude Code PID Agent 尚未进入本轮实现范围
+
+### 文档漂移检查
+
+- `WORKFLOW.md` 的施工闭环已按本轮执行。
+- `TEST_METRICS.md` 的 Phase 4 最低测试已新增并执行 `agentruntime:smoke`。
+- 当前 `npm start` 默认行为已从 plan 模式改为完整本地启动，`start:plan` 保留原 plan 模式。
+- `CODEX_MASTER_REQUIREMENTS.md` 的层边界未被突破：Electron 不直接管理 PID，messagebus 不执行任务，agentruntime 负责 runtime 状态和 heartbeat。
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`7febca6cc283507bff1ff033ac99486bb652ec2c`
+- 开发前计划提交：`0c63777`
+- 开发前备份分支：`backup/pre-phase4-full-run-20260704-1019`
+- 本轮提交：本次收尾提交
+- push 目标：`origin`
+- push 状态：收尾提交后 push 到 `origin/main`
+- `upstream`：只读，未修改
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需回滚，优先使用 `git revert <phase4-full-run-commit>`
+- 回滚后复测：`npm run typecheck`、`npm run setup:smoke`、`npm run messagebus:smoke`、`npm run electron:smoke`、`npm run agentruntime:smoke`、`npm run start:full:smoke`
+
+### 下一步
+
+- 继续 Phase 4：让 agentruntime 通过真实 messagebus 接收 `command.submitted` 并推进运行状态。
+- Phase 5：接入 Claude Code CLI PID Agent 封装。
+- 后续实现真实 Electron renderer 窗口和跨进程 messagebus。
+
 ## 2026-07-01 / Phase 3 / Electron 可视化外壳
 
 ### 本轮计划回放

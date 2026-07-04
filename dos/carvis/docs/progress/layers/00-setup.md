@@ -16,6 +16,18 @@
 - `npm run setup:smoke` 通过。
 - `npm run start:full:smoke` 能证明三类核心进程可被实际拉起并关闭。
 
+### 本次完成
+
+- `setup` spawn 模式现在会保留已启动子进程引用。
+- `CARVIS_SETUP_HOLD_OPEN=1` 时，主进程会前台保持运行。
+- 收到退出信号后，setup 会反向关闭 electron、agentruntime、messagebus。
+- 新增 `start:full:smoke` 验证三类核心进程可被实际拉起并关闭。
+
+### 验证结果
+
+- `npm run setup:smoke`：通过。
+- `npm run start:full:smoke`：通过。
+
 ## 2026-07-01 / Phase 1 / 完成 setup 启动协议
 
 ### 当前目标
