@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carvis</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header id="runtime-bar">
+    <span class="bar-label">RUNTIME</span>
+    <span class="bar-stat">Active <strong id="stat-active">0</strong></span>
+    <span class="bar-stat">Idle <strong id="stat-idle">0</strong></span>
+    <span class="bar-stat">Retained <strong id="stat-retained">0</strong></span>
+    <span class="bar-stat">Queue <strong id="stat-queue">0</strong></span>
+  </header>
+
+  <main id="panels-grid"></main>
+
+  <section id="outputs-section">
+    <h3 class="section-title">Outputs</h3>
+    <div id="outputs-list" class="outputs-empty">No outputs yet.</div>
+  </section>
+
+  <footer id="command-bar">
+    <input
+      id="command-input"
+      type="text"
+      placeholder="Enter a command and press Enter..."
+      autofocus
+    />
+    <button id="command-submit">Submit</button>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

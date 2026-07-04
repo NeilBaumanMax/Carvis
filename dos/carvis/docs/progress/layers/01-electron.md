@@ -1,5 +1,55 @@
 # 01 Electron Progress
 
+## 2026-07-04 / Phase 3 / 真实 Electron UI
+
+### 当前目标
+
+- 从 mock shell 升级为真实 Electron 窗口 + HTML/CSS renderer。
+
+### 计划改动
+
+- 新增 `src/electron/main.ts`：Electron 主进程，创建 BrowserWindow、实例化 MessageBus + ElectronShell、通过 IPC 桥接 renderer。
+- 新增 `src/electron/preload.ts`：contextBridge 安全暴露 API。
+- 新增 `src/electron/renderer/index.html` + `style.css` + `app.js`：UI 渲染层。
+- 修改 `package.json`：加入 `"main"` 字段、electron 依赖、`electron:start` / `electron:dev` 脚本、build 自动复制静态资源。
+
+### 验收指标
+
+- BrowserWindow 可启动且加载 renderer 无错误。
+- 五隔间面板（manager 通栏 + 4 列）正确渲染。
+- Runtime 状态栏显示 active/idle/retained/queue 计数。
+- 输入框回车提交命令，通过 IPC 调 ElectronShell.submitCommand。
+- output.ready 后 Outputs 区展示产物列表和 Open 按钮。
+- 窄窗口下 grid 缩为 2 列，无溢出。
+
+### 本次完成
+
+- 新增 `src/electron/main.ts`
+- 新增 `src/electron/preload.ts`
+- 新增 `src/electron/renderer/index.html`
+- 新增 `src/electron/renderer/style.css`
+- 新增 `src/electron/renderer/app.js`
+- 修改 `package.json`：main / electron / electron:start / electron:dev / build 复制
+- 安装 electron@33.4.11（需手动修复 node_modules/electron/path.txt 和 dist 解压）
+
+### 当前状态
+
+- 已完成：Phase 3 真实 Electron UI（主进程 + renderer + IPC）
+- 进行中：无
+- 未完成：Electron UI 集成到 agentruntime 端到端链路（需 ANTHROPIC_AUTH_TOKEN）
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run electron:smoke`：通过
+- `npm test`：ALL 8 SMOKES PASSED
+- `npm run electron:start`：窗口可正常启动
+
+### 下一步
+
+- 配置 ANTHROPIC_AUTH_TOKEN 后联调 Electron → messagebus → agentruntime → claude 全链路。
+- MAC 签名公证（如需分发）。
+
 ## 2026-07-01 / Phase 3 / 开工计划
 
 ### 当前目标

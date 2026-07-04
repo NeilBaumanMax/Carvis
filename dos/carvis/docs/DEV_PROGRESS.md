@@ -555,3 +555,48 @@
 ### 备注
 
 本文件作为实时开发进度日志持续追加，不覆盖旧记录。
+
+---
+
+## 2026-07-04 / Phase 3 / 真实 Electron UI
+
+### 本轮目标
+
+- 将 Phase 3 从 mock shell 升级为真实 Electron 窗口 + HTML/CSS renderer。
+
+### 涉及层
+
+- `01-electron`（主进程 / preload / renderer）
+- `02-messagebus`
+- `package.json`
+
+### 完成项
+
+- 新增 `src/electron/main.ts`：Electron 主进程，创建 BrowserWindow，实例化 MessageBus + ElectronShell，通过 IPC 桥接 renderer。
+- 新增 `src/electron/preload.ts`：contextBridge 安全暴露 submitCommand / getState / onStateUpdated / openOutput。
+- 新增 `src/electron/renderer/index.html` + `style.css` + `app.js`：
+  - 五隔间面板（manager 通栏 + 4 列 grid），响应式窄窗口缩为 2 列。
+  - Runtime 状态栏实时显示 active/idle/retained/queue 计数。
+  - 输入框 Enter 提交命令，通过 IPC 调 ElectronShell.submitCommand。
+  - Outputs 区展示产物列表，每个条目带 Open 按钮。
+- 修改 `package.json`：
+  - 新增 `"main": "dist/electron/main.js"`
+  - 新增 `electron` devDependency
+  - 新增 `electron:start` / `electron:dev` 脚本
+  - `build` 自动复制 renderer 静态资源
+- 安装 electron@33.4.11（npm postinstall 不完整，需手动 unzip + path.txt）
+- `.gitignore` 新增 `keys.txt`
+- 更新 `dos/carvis/docs/progress/layers/01-electron.md`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm test`：ALL 8 SMOKES PASSED（零回归）
+- `npm run electron:smoke`：通过
+- `npm run electron:start`：窗口可正常启动，renderer 无 ERR_FILE_NOT_FOUND
+
+### 备注
+
+- Phase 3 现已从 mock shell 升级为真实 Electron 可视化外壳。
+- 全链路联调需配置 ANTHROPIC_AUTH_TOKEN 后方可进行。
+- 施工计划中 Phase 0-9 的后端部分（Phase 4-9）此前已完成，Phase 3 是唯一遗留缺口，现已闭合。

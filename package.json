@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "dist/electron/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp -r src/electron/renderer dist/electron/",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/main.js",
     "test": "npm run build && for s in setup messagebus electron agentruntime claudecode workplaces output e2e; do npm run \"${s}:smoke\" || exit 1; done && echo 'ALL 8 SMOKES PASSED'",
@@ -16,10 +17,13 @@
     "workplaces:smoke": "npm run build && node dist/agentruntime/workplaces/smoke.js",
     "output:smoke": "npm run build && node dist/agentruntime/output/smoke.js",
     "e2e:smoke": "npm run build && node dist/e2e/smoke.js",
-    "e2e:claude-smoke": "npm run build && node dist/e2e/claude-smoke.js"
+    "e2e:claude-smoke": "npm run build && node dist/e2e/claude-smoke.js",
+    "electron:start": "npm run build && electron dist/electron/main.js",
+    "electron:dev": "npm run build && electron dist/electron/main.js"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",
+    "electron": "^33.4.11",
     "typescript": "^5.8.3"
   }
 }
