@@ -1,5 +1,108 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 3+4 / Mac 可见 Electron 窗口
+
+### 本轮计划回放
+
+- 解决 `npm start` 后用户看不到前端窗口的问题。
+- 将 Electron mock shell 接成真实可见窗口。
+- 保持脚手架层边界，Electron 不直接管理 PID、不调用 Claude Code CLI。
+
+### 开工检查
+
+- 已读取 `CODEX_MASTER_REQUIREMENTS.md`
+- 已读取 `docs/DEV_PROGRESS.md`
+- 已读取 `docs/LOG.md`
+- 已读取 `docs/GITHUB_ROLLBACK.md`
+- 已读取 `docs/TEST_METRICS.md`
+- 已读取 `docs/WORKFLOW.md`
+- 已读取 `docs/progress/layers/00-setup.md`
+- 已读取 `docs/progress/layers/01-electron.md`
+- 当前分支：`main`
+- 开发前基线提交：`1e9ba54a62368079445def9783c8cf767fb1fc2b`
+- 开发前计划提交：`f6042e2`
+- 开发前备份分支：`backup/pre-visible-electron-20260704-1029`
+- 远端备份状态：已 push 到 `origin`
+- `upstream` 状态：用户要求只读，本轮未 push、未创建分支、未修改
+
+### 本次修改
+
+- 添加 Electron 依赖和 lockfile。
+- 新增 `src/electron/windowMain.cjs` 作为真实 Electron main process。
+- 将 `electron:start` 改为 `electron src/electron/windowMain.cjs`。
+- 新增 `electron:mock` 保留原终端 mock shell。
+- `start:full:smoke` 使用 `CARVIS_ELECTRON_MODE=mock`，避免自动测试弹窗卡住。
+- `npm start` 现在能启动真实可见 Electron 窗口。
+
+### 修改文件
+
+- `package.json`
+- `package-lock.json`
+- `src/electron/README.md`
+- `src/electron/windowMain.cjs`
+- `src/setup/config.ts`
+- `src/setup/fullSmoke.ts`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+
+### 验证结果
+
+- `npm run typecheck`：通过
+- `npm run setup:smoke`：通过
+- `npm run electron:smoke`：通过
+- `npm run start:full:smoke`：通过
+- `npx electron src/electron/windowMain.cjs`：通过，Electron main 日志显示窗口 ready-to-show 且 html loaded
+- `npm start`：通过，完整启动 messagebus、agentruntime 和真实 Electron 窗口
+
+### 测试日志
+
+- 第 1 次：`npx electron dist/electron/windowMain.js`，失败，无主进程日志且无窗口；判断为 Electron ESM main 入口执行不稳定
+- 失败修复：改用 `src/electron/windowMain.cjs` CommonJS main process
+- 第 2 次：`npx electron src/electron/windowMain.cjs`，通过，输出 `[electron-window] ready to show` 和 `[electron-window] html loaded`
+- 第 1 次：`npm run typecheck`，通过
+- 第 1 次：`npm run setup:smoke`，通过
+- 第 1 次：`npm run electron:smoke`，通过
+- 第 1 次：`npm run start:full:smoke`，通过
+- 第 1 次：`npm start`，通过，真实窗口入口执行并显示窗口日志
+
+### 测试指标判断
+
+- 本轮涉及层：`01-electron`、`00-setup`
+- 应执行测试：`npm run typecheck`、`npm run electron:smoke`、`npm run setup:smoke`、`npm run start:full:smoke`、`npm start`
+- 实际执行测试：`npm run typecheck`、`npm run electron:smoke`、`npm run setup:smoke`、`npm run start:full:smoke`、`npx electron src/electron/windowMain.cjs`、`npm start`
+- 未执行项及原因：`npm test` 尚未建立；真实跨进程 UI messagebus 集成不在本轮范围
+
+### 文档漂移检查
+
+- `src/electron/README.md` 已更新，说明当前存在真实 Electron 窗口和 mock shell 两套入口。
+- `DEV_PROGRESS.md`、`HANDOFF.md` 和涉及层进度已更新。
+- `CODEX_MASTER_REQUIREMENTS.md` 层边界未被突破。
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`1e9ba54a62368079445def9783c8cf767fb1fc2b`
+- 开发前计划提交：`f6042e2`
+- 开发前备份分支：`backup/pre-visible-electron-20260704-1029`
+- 本轮提交：本次收尾提交
+- push 目标：`origin`
+- push 状态：收尾提交后 push 到 `origin/main`
+- `upstream`：只读，未修改
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需回滚，优先使用 `git revert <visible-electron-commit>`
+- 回滚后复测：`npm run typecheck`、`npm run electron:smoke`、`npm run setup:smoke`、`npm run start:full:smoke`
+
+### 下一步
+
+- 将 Electron 窗口输入框接入真实 messagebus。
+- 让 agentruntime 订阅 `command.submitted` 并驱动运行时状态。
+
 ## 2026-07-04 / Phase 4 / 本地完整启动入口
 
 ### 本轮计划回放

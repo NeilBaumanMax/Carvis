@@ -60,6 +60,74 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-04 / Phase 3+4 / 接力记录
+
+### 当前状态
+
+- `npm start` 现在会在 Mac 上直接打开真实 Electron 窗口。
+- 窗口显示 Carvis、五个 workplace 面板、runtime 指标和底部输入框。
+- `electron:mock` 保留原终端 mock shell，给自动 smoke test 使用。
+
+### 本轮完成
+
+- 添加 Electron 依赖。
+- 新增 `src/electron/windowMain.cjs`。
+- `electron:start` 改为真实窗口入口。
+- `start:full:smoke` 使用 mock 模式，避免测试打开窗口。
+- 真实 Electron ESM 入口尝试失败后，改为 CommonJS main process 并验证通过。
+
+### 未完成
+
+- Electron 输入框当前是本地 demo 状态流，尚未接入真实跨进程 messagebus。
+- agentruntime 尚未接收真实 UI 命令。
+- Claude Code PID Agent 仍未接入。
+
+### 下次优先任务
+
+1. 把 Electron 窗口输入框接入 messagebus `command.submitted`。
+2. 让 agentruntime 订阅 command 并广播 heartbeat/agent events。
+3. 后续进入 Claude Code CLI PID Agent 封装。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+
+### 关键文件
+
+- `package.json`
+- `src/electron/windowMain.cjs`
+- `src/electron/README.md`
+- `src/setup/config.ts`
+- `src/setup/fullSmoke.ts`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run setup:smoke`：通过
+- `npm run electron:smoke`：通过
+- `npm run start:full:smoke`：通过
+- `npm start`：通过，打开真实 Electron 窗口
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`1e9ba54a62368079445def9783c8cf767fb1fc2b`
+- 开发前计划提交：`f6042e2`
+- 开发前备份分支：`backup/pre-visible-electron-20260704-1029`
+- 当前 push 目标：`origin`
+- `upstream`：只读，不允许 push
+- 当前 push 状态：收尾提交后 push 到 `origin/main`
+
+### 风险提醒
+
+- 当前可见窗口是 Mac 本地 Electron 应用外壳，还不是最终完整智能 Agent 产品。
+- 不要删除 `electron:mock`，当前自动完整启动 smoke 依赖它避免测试被 GUI 阻塞。
+
 ## 2026-07-04 / Phase 4 / 接力记录
 
 ### 当前状态

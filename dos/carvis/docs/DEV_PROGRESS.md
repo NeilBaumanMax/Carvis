@@ -46,6 +46,27 @@
 - 优先使用 `git revert <visible-electron-commit>` 回滚本轮代码和文档提交。
 - 如仅需回滚未提交文件，移除 Electron 依赖和本轮新增窗口入口，并恢复 `electron:start` 到 mock shell。
 
+### 本次完成
+
+- 添加 Electron 本机依赖。
+- 新增 `src/electron/windowMain.cjs` 作为真实 Electron main process。
+- `npm start` 现在会打开可见 Carvis 窗口。
+- 窗口包含 manager、writer、artist、researcher、engineer 五个 workplace 面板。
+- 窗口底部包含输入框，按回车会在本地 demo 状态中推进角色工作流。
+- `electron:mock` 保留原终端 mock shell，供 `start:full:smoke` 稳定测试使用。
+
+### 当前未完成
+
+- 当前窗口里的命令流仍是本地 demo，尚未接到跨进程 messagebus。
+- Electron renderer 还没有拆成独立前端工程。
+- Claude Code PID Agent 仍未接入。
+
+### 下一步
+
+1. 把 Electron 窗口输入框接到真实 messagebus `command.submitted`。
+2. 让 agentruntime 订阅命令并驱动角色状态。
+3. 后续接入 Claude Code CLI PID Agent。
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 本轮目标

@@ -18,6 +18,20 @@
 - 窗口显示五个 workplace 面板。
 - Electron 仍不直接管理 PID、不调用 Claude Code CLI。
 
+### 本次完成
+
+- 添加 Electron 依赖。
+- 新增真实 Electron main process：`src/electron/windowMain.cjs`。
+- `electron:start` 现在启动真实 Electron 窗口。
+- `electron:mock` 保留终端 mock shell，用于 smoke test。
+- 窗口显示五个 workplace 面板和输入框。
+
+### 验证结果
+
+- `npx electron src/electron/windowMain.cjs`：通过，窗口创建并显示。
+- `npm start`：通过，完整启动 messagebus、agentruntime 和真实 Electron 窗口。
+- `npm run electron:smoke`：通过。
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 当前目标

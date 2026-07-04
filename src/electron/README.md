@@ -2,7 +2,7 @@
 
 `src/electron` owns the local visual shell contract for Carvis.
 
-Current Phase 3 scope is a TypeScript mock shell, not a real Electron window. It fixes the state model and messagebus behavior that the future renderer will use.
+Current Phase 3+4 scope includes a real Electron window for local macOS startup plus a TypeScript mock shell for protocol smoke tests.
 
 ## Responsibilities
 
@@ -27,3 +27,5 @@ Current Phase 3 scope is a TypeScript mock shell, not a real Electron window. It
 - command submission publishes `command.submitted` to `agentruntime`;
 - `runtime.heartbeat` updates runtime display state;
 - `output.ready` creates a visible output entry.
+
+`npm start` launches the real Electron window through `electron:start`. The visible window currently renders the five workplace panels and a local command input demo while the mock shell remains available through `electron:mock`.

@@ -13,11 +13,13 @@
     "setup:smoke": "npm run build && node dist/setup/smoke.js",
     "messagebus:smoke": "npm run build && node dist/messagebus/smoke.js",
     "agentruntime:smoke": "npm run build && node dist/agentruntime/smoke.js",
-    "electron:start": "node dist/electron/main.js",
+    "electron:start": "electron src/electron/windowMain.cjs",
+    "electron:mock": "node dist/electron/main.js",
     "electron:smoke": "npm run build && node dist/electron/smoke.js"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",
+    "electron": "^43.0.0",
     "typescript": "^5.8.3"
   }
 }

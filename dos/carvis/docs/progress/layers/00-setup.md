@@ -16,6 +16,18 @@
 - `npm run setup:smoke` 通过。
 - `npm start` 后 setup 仍按 `messagebus -> agentruntime -> electron` 启动，并出现窗口。
 
+### 本次完成
+
+- setup 启动顺序保持不变。
+- `electron:start` 已从终端 mock shell 改成真实 Electron 窗口。
+- `start:full:smoke` 通过 `CARVIS_ELECTRON_MODE=mock` 保持稳定自动测试。
+
+### 验证结果
+
+- `npm run setup:smoke`：通过。
+- `npm run start:full:smoke`：通过。
+- `npm start`：通过，启动真实 Electron 窗口。
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 当前目标

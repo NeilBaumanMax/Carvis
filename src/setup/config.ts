@@ -1,32 +1,34 @@
 import type { SetupComponentConfig, SetupConfig, SetupMode } from "./types.js";
 
-const defaultComponents: readonly SetupComponentConfig[] = [
-  {
-    name: "messagebus",
-    command: "node",
-    args: ["dist/messagebus/main.js"],
-    required: true,
-  },
-  {
-    name: "agentruntime",
-    command: "node",
-    args: ["dist/agentruntime/main.js"],
-    required: true,
-  },
-  {
-    name: "electron",
-    command: "npm",
-    args: ["run", "electron:start"],
-    required: true,
-  },
-];
-
 export function loadSetupConfig(env: NodeJS.ProcessEnv): SetupConfig {
   return {
     mode: readMode(env.CARVIS_SETUP_MODE),
     startupTimeoutMs: readPositiveInt(env.CARVIS_SETUP_TIMEOUT_MS, 15_000),
-    components: defaultComponents,
+    components: createDefaultComponents(env),
   };
+}
+
+function createDefaultComponents(env: NodeJS.ProcessEnv): readonly SetupComponentConfig[] {
+  return [
+    {
+      name: "messagebus",
+      command: "node",
+      args: ["dist/messagebus/main.js"],
+      required: true,
+    },
+    {
+      name: "agentruntime",
+      command: "node",
+      args: ["dist/agentruntime/main.js"],
+      required: true,
+    },
+    {
+      name: "electron",
+      command: "npm",
+      args: ["run", env.CARVIS_ELECTRON_MODE === "mock" ? "electron:mock" : "electron:start"],
+      required: true,
+    },
+  ];
 }
 
 function readMode(value: string | undefined): SetupMode {

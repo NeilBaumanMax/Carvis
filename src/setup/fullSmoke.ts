@@ -3,6 +3,7 @@ import type { SetupComponentName } from "./types.js";
 
 const config = loadSetupConfig({
   ...process.env,
+  CARVIS_ELECTRON_MODE: "mock",
   CARVIS_SETUP_MODE: "spawn",
   CARVIS_SETUP_TIMEOUT_MS: "5000",
 });
