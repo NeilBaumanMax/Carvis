@@ -1,5 +1,7 @@
 export { loadSetupConfig } from "./config.js";
 export { runSetupSupervisor, startComponent } from "./supervisor.js";
+export { readKeysFile, applyKeysToEnv } from "./keys.js";
+export type { KeyStore } from "./keys.js";
 export type {
   ComponentStarter,
   ComponentStartResult,
