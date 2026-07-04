@@ -60,6 +60,64 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-04 / launchd manual-only / 接力记录
+
+### 当前状态
+
+- `macos/Carvis.app` 可像普通软件一样打开 Carvis。
+- launchd 配置明确禁止开机自启：`RunAtLoad=false`、`KeepAlive=false`。
+- 用户可在 `secrets/deepseek-api-key.txt` 填 DeepSeek API key，该文件已被 git 忽略。
+
+### 本轮完成
+
+- 新增 macOS App 启动器。
+- 新增 `scripts/macos/open-carvis.sh`、`status-carvis.sh`、`stop-carvis.sh`。
+- 新增 launchd 手动管理脚本。
+- DeepSeek token 支持从本地 txt 文件读取。
+
+### 未完成
+
+- 未复制 App 到 `/Applications`。
+- 未安装 launchd 到 `~/Library/LaunchAgents`。
+- Electron 输入框仍未接真实 messagebus。
+
+### 下次优先任务
+
+1. 用户填入 `secrets/deepseek-api-key.txt`。
+2. 运行真实 Claude Code smoke。
+3. 接通 Electron 输入框到 messagebus。
+
+### 关键文件
+
+- `macos/Carvis.app`
+- `scripts/macos/open-carvis.sh`
+- `scripts/macos/stop-carvis.sh`
+- `scripts/launchd/install.sh`
+- `launchd/com.carvis.plist`
+- `secrets/deepseek-api-key.example.txt`
+- `src/agentruntime/claudecode/deepseekClaudeCodeEnv.ts`
+
+### 测试基线
+
+- `plutil -lint launchd/com.carvis.plist macos/Carvis.app/Contents/Info.plist`：通过
+- `bash -n scripts/launchd/*.sh scripts/macos/*.sh macos/Carvis.app/Contents/MacOS/Carvis`：通过
+- `npm run typecheck`：通过
+- `open macos/Carvis.app`：通过
+- `scripts/macos/stop-carvis.sh`：通过
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`05735f5843bc8a75af0a808cae97dad989deebf1`
+- 开发前备份分支：`backup/pre-launchd-manual-only-20260704-1135`
+- 当前 push 目标：`origin`
+- `upstream`：只读，不允许 push
+
+### 风险提醒
+
+- 不要提交 `secrets/deepseek-api-key.txt`。
+- launchd plist 不允许改回 `RunAtLoad=true` 或 `KeepAlive=true`，除非用户明确改变“不允许开机自启动”的要求。
+
 ## 2026-07-04 / Phase 5-7 / 接力记录
 
 ### 当前状态

@@ -42,6 +42,27 @@
 - 优先使用 `git revert <launchd-manual-commit>` 回滚本轮提交。
 - 如仅需回滚未提交文件，恢复 `launchd/com.carvis.plist` 并删除 `scripts/launchd`。
 
+### 本次完成
+
+- `launchd/com.carvis.plist` 已改为 `RunAtLoad=false`、`KeepAlive=false`，禁止开机自启和自动重启。
+- 新增 `scripts/launchd` 手动 install/start/stop/status/uninstall 脚本。
+- 新增 `macos/Carvis.app`，可像普通软件一样双击打开工程。
+- 新增 `scripts/macos` 手动 open/status/stop 脚本。
+- 新增 `secrets/deepseek-api-key.txt` 本地填写文件，并加入 `.gitignore`。
+- 新增 `secrets/deepseek-api-key.example.txt` 作为可提交模板。
+- DeepSeek 环境加载会在缺少 `ANTHROPIC_AUTH_TOKEN` 时读取本地 `secrets/deepseek-api-key.txt`。
+
+### 当前未完成
+
+- 还没有把 app bundle 复制到 `/Applications`。
+- launchd 脚本已提供，但未实际安装到 `~/Library/LaunchAgents`。
+
+### 下一步
+
+1. 用户把 DeepSeek API key 填入 `secrets/deepseek-api-key.txt`。
+2. 用户可双击 `macos/Carvis.app` 打开 Carvis。
+3. 如需要手动 launchd 管理，可运行 `scripts/launchd/install.sh` 和 `scripts/launchd/start.sh`。
+
 ## 2026-07-04 / Phase 5-7 / 开工计划
 
 ### 本轮目标

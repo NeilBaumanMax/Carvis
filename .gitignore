@@ -5,3 +5,4 @@ dist/
 logs/
 output/
 .DS_Store
+secrets/deepseek-api-key.txt

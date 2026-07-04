@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 export interface DeepSeekClaudeCodeEnv {
   ANTHROPIC_BASE_URL: string;
   ANTHROPIC_AUTH_TOKEN?: string;
@@ -14,7 +17,7 @@ export function createDeepSeekClaudeCodeEnv(
 ): DeepSeekClaudeCodeEnv {
   return {
     ANTHROPIC_BASE_URL: env.ANTHROPIC_BASE_URL ?? "https://api.deepseek.com/anthropic",
-    ANTHROPIC_AUTH_TOKEN: env.ANTHROPIC_AUTH_TOKEN,
+    ANTHROPIC_AUTH_TOKEN: env.ANTHROPIC_AUTH_TOKEN ?? readDeepSeekTokenFile(),
     ANTHROPIC_MODEL: env.ANTHROPIC_MODEL ?? "deepseek-v4-pro[1m]",
     ANTHROPIC_DEFAULT_OPUS_MODEL:
       env.ANTHROPIC_DEFAULT_OPUS_MODEL ?? "deepseek-v4-pro[1m]",
@@ -35,4 +38,20 @@ export function mergeClaudeCodeEnv(
     ...env,
     ...createDeepSeekClaudeCodeEnv(env),
   };
+}
+
+function readDeepSeekTokenFile(): string | undefined {
+  const tokenPath = join(process.cwd(), "secrets", "deepseek-api-key.txt");
+
+  if (!existsSync(tokenPath)) {
+    return undefined;
+  }
+
+  const token = readFileSync(tokenPath, "utf8").trim();
+
+  if (token.length === 0 || token.startsWith("REPLACE_WITH_")) {
+    return undefined;
+  }
+
+  return token;
 }

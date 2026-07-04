@@ -18,6 +18,20 @@
 - shell 脚本通过 `bash -n`。
 - 不存在开机自动启动配置。
 
+### 本次完成
+
+- `RunAtLoad=false`。
+- `KeepAlive=false`。
+- 新增 launchd 手动管理脚本。
+- 新增 macOS app bundle 启动器。
+
+### 验证结果
+
+- `plutil -lint launchd/com.carvis.plist macos/Carvis.app/Contents/Info.plist`：通过。
+- `bash -n scripts/launchd/*.sh scripts/macos/*.sh macos/Carvis.app/Contents/MacOS/Carvis`：通过。
+- `open macos/Carvis.app`：通过，可启动 Carvis。
+- `scripts/macos/stop-carvis.sh`：通过，可停止 Carvis。
+
 ## 2026-07-04 / macOS launchd / 开工计划
 
 ### 当前目标

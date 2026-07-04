@@ -1,5 +1,83 @@
 # Carvis Construction Log
 
+## 2026-07-04 / launchd manual-only / Mac App 启动器
+
+### 本轮计划回放
+
+- 完善 macOS launchd 安装与手动管理流程。
+- 明确禁止开机自启动。
+- 提供像普通软件一样打开 Carvis 的 macOS App 启动器。
+- 提供本地 txt 文件给用户填写 DeepSeek API key。
+
+### 本次修改
+
+- `launchd/com.carvis.plist` 改为 `RunAtLoad=false`、`KeepAlive=false`。
+- 新增 `scripts/launchd` 手动管理脚本。
+- 新增 `macos/Carvis.app` 应用启动器。
+- 新增 `scripts/macos` 打开、状态、停止脚本。
+- 新增 `secrets/deepseek-api-key.example.txt`。
+- 新增本地忽略文件 `secrets/deepseek-api-key.txt`。
+- `deepseekClaudeCodeEnv.ts` 支持从本地 txt 文件读取 token。
+
+### 修改文件
+
+- `.gitignore`
+- `launchd/com.carvis.plist`
+- `macos/Carvis.app/Contents/Info.plist`
+- `macos/Carvis.app/Contents/MacOS/Carvis`
+- `scripts/launchd/*.sh`
+- `scripts/launchd/README.md`
+- `scripts/macos/*.sh`
+- `scripts/macos/README.md`
+- `secrets/deepseek-api-key.example.txt`
+- `src/agentruntime/claudecode/deepseekClaudeCodeEnv.ts`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+
+### 验证结果
+
+- `plutil -lint launchd/com.carvis.plist macos/Carvis.app/Contents/Info.plist`：通过
+- `bash -n scripts/launchd/*.sh scripts/macos/*.sh macos/Carvis.app/Contents/MacOS/Carvis`：通过
+- `npm run typecheck`：通过
+- `open macos/Carvis.app && sleep 15 && scripts/macos/status-carvis.sh`：通过
+- `scripts/macos/stop-carvis.sh`：通过
+
+### 测试日志
+
+- 第 1 次：`open macos/Carvis.app && sleep 8 && scripts/macos/status-carvis.sh`，状态检查过早，报告未运行
+- 复测调整：等待 15 秒后检查
+- 第 2 次：`open macos/Carvis.app && sleep 15 && scripts/macos/status-carvis.sh`，通过，输出 Carvis running pid
+- 第 1 次：`scripts/macos/stop-carvis.sh`，通过，停止后台 Carvis
+
+### 测试指标判断
+
+- 本轮涉及层：`00-setup`、macOS launcher、launchd
+- 应执行测试：`plutil -lint`、`bash -n`、`npm run typecheck`、App 启动/停止验证
+- 实际执行测试：全部执行
+- 未执行项及原因：未安装 launchd 到 `~/Library/LaunchAgents`，因为用户明确不允许开机自启动，本轮仅提供手动安装和手动启动脚本
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`05735f5843bc8a75af0a808cae97dad989deebf1`
+- 开发前备份分支：`backup/pre-launchd-manual-only-20260704-1135`
+- 本轮提交：本次收尾提交
+- push 目标：`origin`
+- `upstream`：只读，未修改
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需回滚，优先使用 `git revert <launchd-manual-commit>`
+- 回滚后复测：`npm run typecheck`
+
+### 下一步
+
+- 用户填入 `secrets/deepseek-api-key.txt`。
+- 后续接通 Electron 输入框到真实 messagebus。
+
 ## 2026-07-04 / Phase 5-7 / macOS launchd 与真实 Agent 封装
 
 ### 本轮计划回放
