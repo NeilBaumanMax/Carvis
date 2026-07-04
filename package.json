@@ -10,7 +10,8 @@
     "setup:smoke": "npm run build && node dist/setup/smoke.js",
     "messagebus:smoke": "npm run build && node dist/messagebus/smoke.js",
     "electron:smoke": "npm run build && node dist/electron/smoke.js",
-    "agentruntime:smoke": "npm run build && node dist/agentruntime/smoke.js"
+    "agentruntime:smoke": "npm run build && node dist/agentruntime/smoke.js",
+    "claudecode:smoke": "npm run build && node dist/agentruntime/claudecode/smoke.js"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",

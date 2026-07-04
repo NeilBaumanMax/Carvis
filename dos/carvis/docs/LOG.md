@@ -1,5 +1,46 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 5 / Claude Code CLI PID 封装
+
+### 本轮计划回放
+
+- 完成 `src/agentruntime/claudecode` Claude Code CLI PID 封装。
+- 实现 CLI 子进程启动、角色 prompt/skills 注入、stdout/stderr/exit code 捕获。
+- 支持保活和统一关闭。
+- 建立 `claudecode:smoke`。
+
+### 施工记录
+
+- 创建 `src/agentruntime/claudecode/spawn.ts`：`spawnClaudeCode()` 封装 `child_process.spawn`，提供按行 stdout/stderr 捕获、exit code、timeout、kill 信号、stdin 写入。
+- 创建 `src/agentruntime/claudecode/agent.ts`：`createClaudeCodeAgent()` 将 spawn 进程包装为 PID Agent，自动路由 stdout/stderr 到 messagebus，退出时发布 `agent.done` / `agent.error`。`defaultRolePrompts()` 提供 5 个角色的默认 systemPrompt + userPrompt。
+- 创建 `src/agentruntime/claudecode/manager.ts`：`createAgentManager()` 管理 Agent 生命周期，支持启动指定角色 Agent 和统一 SIGTERM 关闭。
+- 创建 `src/agentruntime/claudecode/index.ts`：barrel export。
+- 更新 `src/agentruntime/claudecode/README.md`：架构图、模块说明、冒烟测试覆盖。
+- 更新 `src/agentruntime/index.ts`：导出 claudecode 模块。
+
+### 测试日志
+
+- `npm run typecheck`：通过
+- `npm run claudecode:smoke`：通过（7 项：stdout 捕获、stderr 捕获、非零 exit code、timeout、stdin 写入、kill 信号、token 检查）
+- `npm run agentruntime:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### 失败/返工
+
+- 无
+
+### 文档漂移修正
+
+- 更新 `src/agentruntime/claudecode/README.md`（新增架构、模块说明、smoke 覆盖）
+- 更新 `src/agentruntime/index.ts`（新增 claudecode 导出）
+- 更新 `dos/carvis/docs/DEV_PROGRESS.md`
+- 更新 `dos/carvis/docs/LOG.md`
+- 更新 `dos/carvis/docs/HANDOFF.md`
+- 更新 `dos/carvis/docs/progress/layers/04-claudecode.md`
+
+---
+
 ## 2026-07-04 / Phase 4 / agentruntime 调度核心
 
 ### 本轮计划回放

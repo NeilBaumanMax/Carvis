@@ -2,6 +2,78 @@
 
 ## 2026-07-04
 
+## 2026-07-04 / Phase 5 / 开工计划
+
+### 本轮目标
+
+- 完成 Phase 5：`src/agentruntime/claudecode` Claude Code CLI PID 封装。
+- 实现 CLI 子进程启动（`child_process.spawn`）、角色 prompt/skills 注入、stdout/stderr/exit code 捕获。
+- 支持保活和统一关闭。
+- 按 DeepSeek 官方 Anthropic 兼容环境变量注入（已有 `deepseekClaudeCodeEnv.ts`）。
+- 建立 `claudecode:smoke`，验证启停、I/O 捕获、token 缺失报错、非零 exit code 归类、timeout 归类。
+
+### 涉及层
+
+- `04-claudecode`
+- `03-agentruntime`（将 scheduler mock 调用改为真实 CLI 子进程）
+- `docs`
+
+### 计划修改/新增
+
+- `src/agentruntime/claudecode/spawn.ts`（子进程启动/管理）
+- `src/agentruntime/claudecode/agent.ts`（PID Agent 封装）
+- `src/agentruntime/claudecode/manager.ts`（Agent 生命周期管理）
+- `src/agentruntime/claudecode/index.ts`（barrel export）
+- `src/agentruntime/claudecode/smoke.ts`（smoke test）
+- `src/agentruntime/claudecode/README.md`（更新文档）
+- `package.json`（新增 claudecode:smoke 脚本）
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run claudecode:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`32bf89c2`
+- 备份分支：`backup/pre-phase5-claudecode-20260704-1645`
+- 远端状态：已 push
+
+### 回滚预案
+
+- 优先使用 `git revert <phase5-commit>` 回滚本轮代码和文档提交。
+- 如仅需回滚未提交文件，删除本轮新增的 `src/agentruntime/claudecode/*`（保留已有 `deepseekClaudeCodeEnv.ts`），并还原 `package.json` 和本轮文档追加。
+
+### 本次完成
+
+- Phase 5 Claude Code CLI PID 封装已完成。
+- 新增 `src/agentruntime/claudecode/spawn.ts`：`spawnClaudeCode()` 封装 `child_process.spawn`，支持按行 stdout/stderr 捕获、exit code、timeout、kill 信号、stdin 写入。
+- 新增 `src/agentruntime/claudecode/agent.ts`：`createClaudeCodeAgent()` 将子进程包装为 PID Agent，自动路由 I/O 到 messagebus，退出时发布 `agent.done`（exit 0）或 `agent.error`（exit != 0）。`defaultRolePrompts()` 提供 5 角色默认 prompt。
+- 新增 `src/agentruntime/claudecode/manager.ts`：`createAgentManager()` 管理 Agent 启动和统一 SIGTERM 关闭。
+- 新增 `src/agentruntime/claudecode/index.ts`：barrel export。
+- 新增 `src/agentruntime/claudecode/smoke.ts`：7 项冒烟测试（stdout/stderr 捕获、非零 exit code、timeout、stdin、kill、token 检查）。
+- `package.json` 新增 `claudecode:smoke` 脚本。
+- 更新 `src/agentruntime/claudecode/README.md`（架构、模块说明、smoke 覆盖）。
+- 更新 `src/agentruntime/index.ts`（导出 claudecode 模块）。
+- `npm run typecheck`、`npm run claudecode:smoke`、`npm run agentruntime:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke` 均通过。
+
+### 当前未完成
+
+- scheduler 仍使用 mock Agent 执行，尚未接入真实 Claude Code CLI 子进程（属 Phase 5+ 集成）
+- workplaces 物理目录管理尚未实现（属 Phase 6）
+- agentruntime 侧 MCP 桥接尚未实现
+
+### 下一步
+
+1. Phase 6：workplaces 隔间 — 为每个角色建立独立 workplace 目录，固定 input/plan/log/result 文件结构。
+
+---
+
 ## 2026-07-04 / Phase 4 / 开工计划
 
 ### 本轮目标

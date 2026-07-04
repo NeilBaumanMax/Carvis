@@ -60,6 +60,76 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-04 / Phase 5 / 接力记录
+
+### 当前状态
+
+- Phase 5 Claude Code CLI PID 封装已完成。
+- `src/agentruntime/claudecode` 现在有 spawn（子进程封装）、agent（PID Agent 包装）、manager（生命周期管理）、smoke（7 项测试）。
+- `spawnClaudeCode()` 支持按行 stdout/stderr 捕获、exit code、timeout、kill 信号、stdin 写入。
+- `createClaudeCodeAgent()` 自动路由 I/O 到 messagebus，退出时发布 `agent.done` / `agent.error`。
+- `createAgentManager()` 支持启动角色 Agent 和统一 SIGTERM 关闭。
+
+### 本轮完成
+
+- 新增 `src/agentruntime/claudecode/spawn.ts`、`agent.ts`、`manager.ts`、`index.ts`、`smoke.ts`。
+- 更新 `src/agentruntime/claudecode/README.md`、`src/agentruntime/index.ts`、`package.json`。
+- `package.json` 新增 `claudecode:smoke` 脚本。
+- 所有 smoke（typecheck / claudecode / agentruntime / messagebus / setup）均通过。
+
+### 未完成
+
+- scheduler 仍使用 mock Agent 执行，尚未接入真实 Claude Code CLI 子进程。
+- workplaces 物理目录管理（Phase 6）。
+- agentruntime 侧 MCP 桥接。
+
+### 下次优先任务
+
+1. Phase 6：workplaces 隔间 — 为每个角色建立独立 workplace 目录，固定 input/plan/log/result 文件结构。
+2. 让 agentruntime 在角色分配时自动创建 workplace。
+3. 限制每个角色只能写自身 workplace，engineer 可读所有前置 workplace。
+4. 建立 `workplaces:smoke`。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+
+### 关键文件
+
+- `src/agentruntime/claudecode/spawn.ts`（子进程启动核心）
+- `src/agentruntime/claudecode/agent.ts`（PID Agent 封装）
+- `src/agentruntime/claudecode/manager.ts`（生命周期管理）
+- `src/agentruntime/claudecode/smoke.ts`（7 项冒烟测试）
+- `src/agentruntime/claudecode/deepseekClaudeCodeEnv.ts`（环境变量适配）
+- `src/agentruntime/scheduler.ts`（调度核心，仍为 mock 执行）
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run claudecode:smoke`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 基线提交：`32bf89c2`
+- 备份分支：`backup/pre-phase5-claudecode-20260704-1645`
+- push 状态：收尾回写提交后 push 到 `main`
+
+### 风险提醒
+
+- 当前 scheduler 的 Agent 执行仍是 mock 的，Phase 6/7 需要将 `executeSequential`/`executeParallel` 中的 mock 调用替换为真实的 `createClaudeCodeAgent` 调用。
+- `ANTHROPIC_AUTH_TOKEN` 必须通过环境变量注入，不能写入仓库。
+- 缺少 token 时 `isClaudeCodeAvailable()` 返回 false，scheduler 集成时应检查此状态并给出配置错误提示。
+- smoke 测试使用 `echo`/`node -e` 作为 mock 命令，不依赖真实 `claude` CLI 存在。
+
 ## 2026-07-04 / Phase 4 / 接力记录
 
 ### 当前状态
