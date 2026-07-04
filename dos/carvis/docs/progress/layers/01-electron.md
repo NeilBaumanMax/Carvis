@@ -1,5 +1,21 @@
 # 01 Electron Progress
 
+## 2026-07-04 / Phase 4 / 开工计划
+
+### 当前目标
+
+- 补齐 Electron mock 的本地长跑入口，让完整启动命令能实际拉起前端展示进程占位。
+
+### 计划改动
+
+- 新增或调整 Electron mock 进程入口。
+- 保持 Electron 不直接管理 PID、不绕过 messagebus、不读写 workplace。
+
+### 验收指标
+
+- `npm run electron:smoke` 通过。
+- 完整启动 smoke 能看到 Electron mock 入口被 setup 拉起。
+
 ## 2026-07-01 / Phase 3 / 开工计划
 
 ### 当前目标

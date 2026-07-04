@@ -1,5 +1,58 @@
 # Carvis Development Progress
 
+## 2026-07-04 / Phase 4 / 开工计划
+
+### 本轮目标
+
+- 处理当前项目无法完整运行的问题，补齐本地完整启动需要的最小可运行进程入口。
+- 让 `setup` 的 spawn 模式能够实际拉起 `messagebus`、`agentruntime` 和 Electron mock 进程。
+- 新增一个面向本机运行的完整启动命令，避免用户只能看到 plan 模式。
+
+### 涉及层
+
+- `00-setup`
+- `01-electron`
+- `02-messagebus`
+- `03-agentruntime`
+- `docs`
+
+### 计划修改
+
+- `package.json`
+- `.gitignore`
+- `src/setup/*`
+- `src/messagebus/*`
+- `src/agentruntime/*`
+- `src/electron/*`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/00-setup.md`
+- `dos/carvis/docs/progress/layers/01-electron.md`
+- `dos/carvis/docs/progress/layers/02-messagebus.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run setup:smoke`
+- `npm run messagebus:smoke`
+- `npm run electron:smoke`
+- `npm run agentruntime:smoke`
+- `npm run start:full:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`7febca6cc283507bff1ff033ac99486bb652ec2c`
+- 备份分支：`backup/pre-phase4-full-run-20260704-1019`
+- 远端状态：待 push 到 `origin`，不使用 `upstream`
+
+### 回滚预案
+
+- 优先使用 `git revert <phase4-full-run-commit>` 回滚本轮代码和文档提交。
+- 如仅需回滚未提交文件，删除本轮新增的 agentruntime/messagebus/electron 入口文件，并还原 `package.json`、`.gitignore` 和相关文档追加。
+
 ## 2026-07-01
 
 ## 2026-07-01 / Phase 3 / 开工计划

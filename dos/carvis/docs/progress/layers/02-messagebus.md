@@ -1,5 +1,21 @@
 # 02 MessageBus Progress
 
+## 2026-07-04 / Phase 4 / 开工计划
+
+### 当前目标
+
+- 补齐 messagebus 本地长跑入口，让完整启动命令能实际拉起消息总线进程占位。
+
+### 计划改动
+
+- 新增或调整 messagebus 进程入口。
+- 保持 messagebus 只负责事件协议和进程存活，不执行任务、不读写 workplace。
+
+### 验收指标
+
+- `npm run messagebus:smoke` 通过。
+- 完整启动 smoke 能看到 messagebus 入口被 setup 拉起。
+
 ## 2026-07-01 / Phase 2 / 开工计划
 
 ### 当前目标

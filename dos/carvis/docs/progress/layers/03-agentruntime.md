@@ -1,5 +1,24 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-04 / Phase 4 / 开工计划
+
+### 当前目标
+
+- 实现 agentruntime 最小可运行骨架，使完整启动命令能实际拉起 runtime 进程。
+- 建立最小 heartbeat/状态机 smoke，为后续多 Agent 调度核心继续开发。
+
+### 计划改动
+
+- 新增 `src/agentruntime/README.md`。
+- 新增 agentruntime 类型、runtime 骨架、入口和 smoke test。
+- 先用 mock 状态机固定角色顺序和 heartbeat 字段，不启动真实 Claude Code PID。
+
+### 验收指标
+
+- `npm run agentruntime:smoke` 通过。
+- `npm run start:full:smoke` 能证明 agentruntime 入口被 setup 拉起。
+- agentruntime 不渲染 UI、不绕过 messagebus、不把角色工作文件写到 runtime 根目录。
+
 ## 2026-07-01 / Phase 0 / 初始化
 
 ### 当前目标

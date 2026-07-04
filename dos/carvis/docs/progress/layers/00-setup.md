@@ -1,5 +1,21 @@
 # 00 Setup Progress
 
+## 2026-07-04 / Phase 4 / 开工计划
+
+### 当前目标
+
+- 让 setup 的 spawn 模式能用于本机完整启动，而不是只显示 plan 模式。
+
+### 计划改动
+
+- 增加完整启动脚本入口，明确 `CARVIS_SETUP_MODE=spawn` 的运行方式。
+- 如有必要，调整 setup 对短命子进程启动失败的识别，避免不存在入口时仍显示启动成功。
+
+### 验收指标
+
+- `npm run setup:smoke` 通过。
+- `npm run start:full:smoke` 能证明三类核心进程可被实际拉起并关闭。
+
 ## 2026-07-01 / Phase 1 / 完成 setup 启动协议
 
 ### 当前目标
