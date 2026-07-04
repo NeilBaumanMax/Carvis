@@ -1,5 +1,56 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 7 / output 汇总与预览
+
+### 本轮计划回放
+
+- 聚合全部角色 workplace 产物到 `output/` 目录
+- 生成 `manifest.json`（元信息清单）+ `report.md`（最终报告）
+- messagebus 广播 `output.ready`（附 outputPath + manifestPath）
+- scheduler 的 `output_ready` 从 mock 替换为真实文件写入
+- 建立 `output:smoke`
+
+### 执行记录
+
+#### 代码新增/变更
+
+- `src/agentruntime/output/manager.ts`：OutputManager
+  - `generateOutput(runId, wm)`：聚合 5 角色 result.md → 写入 manifest.json + report.md
+  - `readOutput()`：反序列化 manifest.json
+  - `OutputManifest` 结构：runId / createdAt / roles 元信息 / files 清单
+- `src/agentruntime/output/index.ts`：barrel export
+- `src/agentruntime/output/smoke.ts`：6 项检查
+- `src/agentruntime/messagebus/client.ts`：新增 `publishOutputReady(outputPath, manifestPath, runId)`，广播 `OutputReadyPayload`
+- `src/agentruntime/scheduler.ts`：
+  - 导入 `createWorkplaceManager` / `createOutputManager`
+  - 工厂函数内初始化 `wm` / `om` 实例
+  - `output_ready` 阶段：`wm.initAll()` → `om.generateOutput()` → `busClient.publishOutputReady()`
+- `package.json`：新增 `output:smoke`
+
+#### 测试
+
+- `npm run typecheck`：通过
+- `npm run output:smoke`：6/6 通过
+  - manifest.json 结构校验（runId / roles / files）
+  - report.md 含 5 个角色章节
+  - output 目录精确 2 文件
+  - readOutput 往返一致性
+- `npm run agentruntime:smoke`：通过（scheduler 集成无回归）
+
+#### 文档
+
+- `DEV_PROGRESS.md`：Phase 7 计划
+- `LOG.md`：本轮记录
+- `HANDOFF.md`：接力更新
+- `dos/carvis/docs/progress/layers/07-output.md`：层级文档
+
+### Git 状态
+
+- 基线提交：`6319ef2`
+- 备份分支：`backup/pre-phase7-output-20260704-1720`（已 push）
+
+---
+
 ## 2026-07-04 / Phase 6 / workplaces 隔间
 
 ### 本轮计划回放

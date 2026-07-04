@@ -2,6 +2,48 @@
 
 ## 2026-07-04
 
+## 2026-07-04 / Phase 7 / 开工计划
+
+### 本轮目标
+
+- 完成 Phase 7：`src/agentruntime/output` 产物汇总与预览模块。
+- 聚合全部角色 workplace 产物到 `output/` 目录。
+- 生成 `manifest.json`（元信息清单），写入 `report.md`（最终报告）。
+- 通过 messagebus 广播 `output.ready` 事件（附 outputPath + manifestPath）。
+- scheduler 的 `output_ready` 阶段从 mock 替换为真实文件写入。
+- 建立 `output:smoke`。
+
+### 涉及层
+
+- `07-output`
+- `03-agentruntime`（scheduler 集成 + busClient 扩展）
+- `docs`
+
+### 计划新增/变更
+
+- `src/agentruntime/output/manager.ts`（OutputManager：聚合结果、写 manifest.json、写 report.md）
+- `src/agentruntime/output/index.ts`（barrel export）
+- `src/agentruntime/output/smoke.ts`（smoke test）
+- `src/agentruntime/messagebus/client.ts`（新增 publishOutputReady）
+- `src/agentruntime/scheduler.ts`（output_ready 阶段接入 OutputManager）
+- `package.json`（新增 output:smoke）
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/07-output.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run output:smoke`
+
+### GitHub 备份计划
+
+- 基线提交：`6319ef2`
+- 备份分支：`backup/pre-phase7-output-20260704-1720`（已 push）
+
+---
+
 ## 2026-07-04 / Phase 6 / 开工计划
 
 ### 本轮目标

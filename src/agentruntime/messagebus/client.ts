@@ -2,6 +2,7 @@ import type { MessageBus, MessageBusSubscription } from "../../messagebus/index.
 import type {
   CommandSubmittedPayload,
   AgentOutputPayload,
+  OutputReadyPayload,
   RuntimeHeartbeatPayload,
 } from "../../shared/types/events.js";
 import type { PoolSnapshot } from "../types.js";
@@ -15,6 +16,7 @@ export interface RuntimeBusClient {
     agentId: string,
     runId?: string,
   ): Promise<void>;
+  publishOutputReady(outputPath: string, manifestPath: string, runId?: string): Promise<void>;
 }
 
 export function createRuntimeBusClient(
@@ -71,6 +73,19 @@ export function createRuntimeBusClient(
         runId: runId ?? runIdProvider(),
         agentId,
         payload: {},
+      });
+    },
+
+    async publishOutputReady(outputPath, manifestPath, runId) {
+      await bus.publish<OutputReadyPayload>({
+        type: "output.ready",
+        source: "agentruntime",
+        target: "electron",
+        runId: runId ?? runIdProvider(),
+        payload: {
+          outputPath,
+          manifestPath,
+        },
       });
     },
   };

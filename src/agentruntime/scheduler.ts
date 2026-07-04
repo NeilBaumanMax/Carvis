@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 
 import type { AgentRole } from "../shared/types/agent.js";
 import type { RunPhase } from "../shared/types/run.js";
@@ -6,6 +7,8 @@ import type { RuntimeBusClient } from "./messagebus/client.js";
 import type { AgentPool } from "./pool.js";
 import type { RuntimeConfig, SchedulerState, TaskItem } from "./types.js";
 import { ROLE_FLOW } from "./types.js";
+import { createWorkplaceManager } from "./workplaces/manager.js";
+import { createOutputManager } from "./output/manager.js";
 
 export interface TaskScheduler {
   submitTask(commandText: string, requestId?: string): TaskItem;
@@ -24,6 +27,9 @@ export function createTaskScheduler(
   let phase: RunPhase = "created";
   let startedAt: string | undefined;
   const roleCompletion = new Map<AgentRole, boolean>();
+
+  const wm = createWorkplaceManager(config.workplaceRoot);
+  const om = createOutputManager(config.outputDir);
 
   function now(): string {
     return new Date().toISOString();
@@ -181,14 +187,19 @@ export function createTaskScheduler(
       }
 
       if (phase === "output_ready") {
+        // Initialize workplaces and generate final output
+        await wm.initAll();
+
+        const manifest = await om.generateOutput(currentRunId!, wm);
+        const manifestPath = join(om.outputPath, "manifest.json");
+
         await busClient.publishAgentOutput(
           "system",
-          `output ready at ${config.outputDir}`,
+          `output ready at ${om.outputPath} (${manifest.files.length} files)`,
           "system",
         );
 
-        // Broadcast output.ready
-        await busClient.publishAgentEvent("output.ready", "system", currentRunId);
+        await busClient.publishOutputReady(om.outputPath, manifestPath, currentRunId);
 
         phase = "retaining_agents";
         pool.queueDepth = Math.max(0, queue.length - 1);

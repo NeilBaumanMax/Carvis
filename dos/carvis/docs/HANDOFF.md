@@ -60,6 +60,75 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-04 / Phase 7 / 接力记录
+
+### 当前状态
+
+- Phase 7 output 汇总与预览已完成。
+- `src/agentruntime/output/manager.ts` 提供 OutputManager：
+  - `generateOutput(runId, wm)` 聚合全部角色 result.md → 写 `manifest.json` + `report.md`
+  - `readOutput()` 反序列化 manifest
+- `src/agentruntime/messagebus/client.ts` 新增 `publishOutputReady(outputPath, manifestPath, runId)`，广播 `OutputReadyPayload`
+- scheduler 的 `output_ready` 阶段已从 mock 替换为真实文件生成：`wm.initAll()` → `om.generateOutput()` → `busClient.publishOutputReady()`
+
+### 本轮完成
+
+- 新增 `src/agentruntime/output/manager.ts`、`index.ts`、`smoke.ts`
+- 修改 `src/agentruntime/messagebus/client.ts`、`src/agentruntime/scheduler.ts`、`package.json`
+- `package.json` 新增 `output:smoke` 脚本
+- smoke 6/6 通过 + agentruntime:smoke 无回归
+
+### 未完成
+
+- scheduler 仍使用 mock Agent 执行，尚未接入真实 Claude Code CLI 子进程。
+- Electron 端尚未订阅 `output.ready` 事件并渲染产物预览。
+
+### 下次优先任务
+
+1. Phase 8：集成验收 — 串联完整链路（用户命令 → 5 角色执行 → output 产物），建 `e2e:smoke`。
+2. 将 scheduler mock Agent 执行替换为真实 `createClaudeCodeAgent`。
+3. Electron 端订阅 `output.ready` 事件并渲染 `report.md` 预览。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/07-output.md`
+
+### 关键文件
+
+- `src/agentruntime/output/manager.ts`（OutputManager 核心）
+- `src/agentruntime/scheduler.ts`（已集成 OutputManager）
+- `src/agentruntime/messagebus/client.ts`（已集成 publishOutputReady）
+- `src/agentruntime/workplaces/manager.ts`（WorkplaceManager，被 OutputManager 消费）
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run output:smoke`：通过（6/6）
+- `npm run workplaces:smoke`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run claudecode:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+
+### GitHub 状态
+
+- 基线提交：`6319ef2`
+- 备份分支：`backup/pre-phase7-output-20260704-1720`
+- push 状态：收尾回写提交后 push 到 `main`
+
+### 风险提醒
+
+- scheduler 仍为 mock Agent 执行，Phase 8 必须接入真实 CLI。
+- `output/` 目录每次运行会覆盖，未做历史归档。
+- Electron 端 `output.ready` 事件订阅尚未实现，前端无法展示产物。
+
+---
+
 ## 2026-07-04 / Phase 6 / 接力记录
 
 ### 当前状态
