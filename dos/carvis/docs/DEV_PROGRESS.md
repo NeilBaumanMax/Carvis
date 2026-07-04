@@ -1,5 +1,84 @@
 # Carvis Development Progress
 
+## 2026-07-04
+
+## 2026-07-04 / Phase 4 / 开工计划
+
+### 本轮目标
+
+- 完成 Phase 4：`src/agentruntime` 调度核心的最小状态机。
+- 实现任务队列、PID Agent 池、心跳计时器、监督日志。
+- 固定角色编排状态机：总管先启动 → 文书/美术/调研并行 → 技术等待前置 → 统一 shutdown。
+- PID Agent 完成子任务后进入 `retained`，全部任务结束后统一关闭。
+- 通过 messagebus 发布 `runtime.heartbeat`（含 active/idle/retained PID 数量和 queueDepth）。
+- 建立 `agentruntime:smoke`，验证角色流程顺序、并发、shutdown 无残留。
+
+### 涉及层
+
+- `03-agentruntime`
+- `02-messagebus`（runtime 侧 messagebus client）
+- `shared types`
+- `docs`
+
+### 计划修改
+
+- `src/agentruntime/README.md`
+- `src/agentruntime/index.ts`
+- `src/agentruntime/types.ts`
+- `src/agentruntime/pool.ts`（PID Agent 池）
+- `src/agentruntime/scheduler.ts`（调度状态机）
+- `src/agentruntime/heartbeat.ts`（心跳计时器）
+- `src/agentruntime/messagebus/client.ts`（runtime 侧 messagebus client）
+- `src/agentruntime/smoke.ts`
+- `src/shared/types/events.ts`（补充 agentruntime 事件 payload）
+- `package.json`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+
+### 测试计划
+
+- `npm run typecheck`
+- `npm run agentruntime:smoke`
+- `npm run messagebus:smoke`
+- `npm run setup:smoke`
+
+### GitHub 备份计划
+
+- 当前分支：`main`
+- 基线提交：`2942a3bd90b298857004ab3ef236a45bdd3fc9c3`
+- 备份分支：`backup/pre-phase4-agentruntime-20260704-1615`
+- 远端状态：已 push
+
+### 回滚预案
+
+- 优先使用 `git revert <phase4-commit>` 回滚本轮代码和文档提交。
+- 如仅需回滚未提交文件，删除本轮新增的 `src/agentruntime/*` 文件，并还原 `package.json`、`src/shared/types/events.ts` 和本轮文档追加。
+
+### 本次完成
+
+- Phase 4 agentruntime 调度核心已完成。
+- 新增 `src/agentruntime` 类型、AgentPool、TaskScheduler、HeartbeatTimer、RuntimeBusClient。
+- TaskScheduler 驱动 RunPhase 状态机：created → manager_planning → parallel_roles_working → engineer_building → output_ready → retaining_agents → shutdown。
+- 角色编排：总管先启动 → 文书/美术/调研并行 → 技术等待前置完成后启动。
+- AgentPool 管理 PID Agent 生命周期：idle → starting → ready → assigned → working → done → retained → shutdown。
+- HeartbeatTimer 周期性发布 `runtime.heartbeat`（含 active/idle/retained PID 数量和 queueDepth）。
+- RuntimeBusClient 通过 messagebus 订阅命令、发布 agent 事件和 output。
+- `npm run typecheck`、`npm run agentruntime:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke`、`npm run electron:smoke` 均通过。
+
+### 当前未完成
+
+- 真实 Claude Code CLI PID 启动尚未接入（属 Phase 5）
+- agentruntime 侧 MCP 桥接尚未实现（属 Phase 5+）
+- workplaces 物理目录管理尚未实现（属 Phase 6）
+
+### 下一步
+
+1. Phase 5：Claude Code CLI PID 封装，接入真实 DeepSeek 端点，建立 `claudecode:smoke`。
+
+---
+
 ## 2026-07-01
 
 ## 2026-07-01 / Phase 3 / 开工计划

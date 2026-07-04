@@ -1,5 +1,111 @@
 # Carvis Construction Log
 
+## 2026-07-04 / Phase 4 / agentruntime 调度核心
+
+### 本轮计划回放
+
+- 完成 `src/agentruntime` 调度核心最小状态机。
+- 实现任务队列、PID Agent 池、心跳计时器、监督日志。
+- 固定角色编排：总管 → 文书/美术/调研（并行）→ 技术。
+- PID Agent done 后 retained，全部结束后统一 shutdown。
+- 通过 messagebus 发布 `runtime.heartbeat`。
+- 建立 `agentruntime:smoke`。
+
+### 开工检查
+
+- 已读取 `CODEX_MASTER_REQUIREMENTS.md`
+- 已读取 `docs/DEV_PROGRESS.md`
+- 已读取 `docs/LOG.md`
+- 已读取 `docs/GITHUB_ROLLBACK.md`
+- 已读取 `docs/TEST_METRICS.md`
+- 已读取 `docs/WORKFLOW.md`
+- 已读取 `docs/CONSTRUCTION_PLAN.md`
+- 已读取 `docs/ARCHITECTURE.md`
+- 已读取 `docs/progress/layers/03-agentruntime.md`
+- 已读取根目录 `对参考施工文档重构的要求 .txt`
+- 当前分支：`main`
+- 开发前基线提交：`2942a3bd90b298857004ab3ef236a45bdd3fc9c3`
+- 开发前备份分支：`backup/pre-phase4-agentruntime-20260704-1615`
+- 远端备份状态：已 push
+
+### 本次修改
+
+- 新增 `src/agentruntime/types.ts`：RuntimeConfig、TaskItem、PoolSnapshot、SchedulerState、ROLE_FLOW、状态转换校验。
+- 新增 `src/agentruntime/pool.ts`：AgentPool（创建、状态追踪、snapshot、统一 shutdown）。
+- 新增 `src/agentruntime/scheduler.ts`：TaskScheduler（RunPhase 状态机，驱动角色编排流程）。
+- 新增 `src/agentruntime/heartbeat.ts`：HeartbeatTimer（周期性发布 runtime.heartbeat）。
+- 新增 `src/agentruntime/messagebus/client.ts`：RuntimeBusClient（订阅命令、发布心跳/agent 事件/output）。
+- 新增 `src/agentruntime/index.ts`：公开导出。
+- 新增 `src/agentruntime/README.md`：职责边界文档。
+- 新增 `src/agentruntime/smoke.ts`：覆盖角色流程、并发推进、shutdown 验证、心跳验证。
+- `package.json` 新增 `agentruntime:smoke` 脚本。
+
+### 修改文件
+
+- `package.json`
+- `src/agentruntime/types.ts`
+- `src/agentruntime/pool.ts`
+- `src/agentruntime/scheduler.ts`
+- `src/agentruntime/heartbeat.ts`
+- `src/agentruntime/messagebus/client.ts`
+- `src/agentruntime/index.ts`
+- `src/agentruntime/README.md`
+- `src/agentruntime/smoke.ts`
+- `dos/carvis/docs/DEV_PROGRESS.md`
+- `dos/carvis/docs/LOG.md`
+- `dos/carvis/docs/HANDOFF.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+
+### 验证结果
+
+- `npm run typecheck`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+- `npm run electron:smoke`：通过
+
+### 测试日志
+
+- 第 1 次：`npm run typecheck`，通过
+- 第 1 次：`npm run agentruntime:smoke`，失败，心跳因同步执行未触发（heartbeat 间隔 50ms，advance 同步完成）
+- 失败修复：在 heartbeat 断言前增加 `await setTimeout(100)` 等待心跳积累
+- 第 2 次：`npm run agentruntime:smoke`，通过，输出 `[agentruntime:smoke] ok`
+- 第 1 次：`npm run setup:smoke`，通过
+- 第 1 次：`npm run messagebus:smoke`，通过
+- 第 1 次：`npm run electron:smoke`，通过
+
+### 测试指标判断
+
+- 本轮涉及层：`03-agentruntime`、`02-messagebus`（runtime client）、`shared types`
+- 应执行测试：`npm run typecheck`、`npm run agentruntime:smoke`
+- 实际执行测试：`npm run typecheck`、`npm run agentruntime:smoke`、`npm run messagebus:smoke`、`npm run setup:smoke`、`npm run electron:smoke`
+- 未执行项及原因：`npm test` 尚未建立；真实 Claude Code CLI 尚未接入（属 Phase 5）
+
+### 文档漂移检查
+
+- `CONSTRUCTION_PLAN.md` 的 Phase 4 目标与实际实现一致：状态机、PID 池、心跳、角色编排均已覆盖。
+- `TEST_METRICS.md` 的 Phase 4 最低测试（typecheck + agentruntime:smoke）已满足。
+- `CODEX_MASTER_REQUIREMENTS.md` 的 agentruntime 边界未被突破：调度、心跳、角色编排均在 runtime 内。
+- `ARCHITECTURE.md` 的角色编排顺序与实际 ROLE_FLOW 一致。
+- 无需修改架构边界文档。
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前备份分支：`backup/pre-phase4-agentruntime-20260704-1615`
+- 本轮提交：收尾回写提交
+- push 状态：收尾回写提交后 push 到 `main`
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需回滚，优先使用 `git revert <phase4-commit>`
+- 回滚后复测：`npm run typecheck`、`npm run agentruntime:smoke`
+
+### 下一步
+
+- Phase 5：Claude Code CLI PID 封装，接入真实 DeepSeek 端点，建立 `claudecode:smoke`。
+
 ## 2026-07-01 / Phase 3 / Electron 可视化外壳
 
 ### 本轮计划回放

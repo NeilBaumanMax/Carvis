@@ -60,6 +60,78 @@
 - 必须写清楚哪些脚本或能力还没有建立。
 - 必须写清楚 GitHub 是否已经上传。
 
+## 2026-07-04 / Phase 4 / 接力记录
+
+### 当前状态
+
+- Phase 4 agentruntime 调度核心已完成。
+- `src/agentruntime` 现在有完整的类型定义、AgentPool、TaskScheduler、HeartbeatTimer、RuntimeBusClient。
+- 角色编排流程：总管先启动 → 文书/美术/调研并行 → 技术等待前置完成后启动。
+- PID Agent 生命周期：idle → starting → ready → assigned → working → done → retained → shutdown。
+- HeartbeatTimer 周期性发布 `runtime.heartbeat` 到 Electron。
+- RuntimeBusClient 封装了 agentruntime 侧的所有消息总线操作。
+
+### 本轮完成
+
+- 新增 `src/agentruntime/types.ts`、`pool.ts`、`scheduler.ts`、`heartbeat.ts`、`messagebus/client.ts`、`index.ts`、`README.md`、`smoke.ts`。
+- `package.json` 新增 `agentruntime:smoke` 脚本。
+- 所有现有 smoke（setup / messagebus / electron / agentruntime）均通过。
+
+### 未完成
+
+- 真实 Claude Code CLI PID 启动（Phase 5）
+- `src/agentruntime/claudecode` 子层只有环境变量适配，无真实进程封装
+- agentruntime 侧 MCP 桥接（预留目录，无代码）
+- workplaces 物理目录管理（Phase 6）
+
+### 下次优先任务
+
+1. Phase 5：实现 `src/agentruntime/claudecode` 的 Claude Code CLI PID 封装。
+2. 封装 CLI 进程启动、角色 prompt/skills 注入、stdout/stderr 捕获、exit code 处理。
+3. 将 mock Agent 执行替换为真实 CLI 子进程调用。
+4. 建立 `claudecode:smoke`（验证启停、I/O 捕获、token 缺失报错）。
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/CONSTRUCTION_PLAN.md`
+- `dos/carvis/docs/TEST_METRICS.md`
+- `dos/carvis/docs/progress/layers/03-agentruntime.md`
+- `dos/carvis/docs/progress/layers/04-claudecode.md`
+
+### 关键文件
+
+- `src/agentruntime/scheduler.ts`（调度状态机核心）
+- `src/agentruntime/pool.ts`（Agent 池管理）
+- `src/agentruntime/heartbeat.ts`（心跳计时器）
+- `src/agentruntime/messagebus/client.ts`（runtime 侧消息适配）
+- `src/agentruntime/claudecode/deepseekClaudeCodeEnv.ts`（已有环境变量适配）
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run agentruntime:smoke`：通过
+- `npm run messagebus:smoke`：通过
+- `npm run setup:smoke`：通过
+- `npm run electron:smoke`：通过
+
+### GitHub 状态
+
+- 当前分支：`main`
+- 开发前基线提交：`2942a3bd90b298857004ab3ef236a45bdd3fc9c3`
+- 开发前备份分支：`backup/pre-phase4-agentruntime-20260704-1615`
+- 本轮主体提交：收尾回写提交
+- push 状态：收尾回写提交后 push 到 `main`
+
+### 风险提醒
+
+- 当前 agentruntime 的 Agent 执行是 mock 的（无真实子进程），Phase 5 需要将 scheduler 中的 mock 调用替换为真实 CLI 子进程。
+- heartbeat 默认间隔 1 秒，生产环境可能需调整 `CARVIS_HEARTBEAT_MS`。
+- scheduler 的 `advance()` 目前是手动推进，后续需改为事件驱动自动推进。
+- 不要让 electron 绕过 messagebus 直接调度 agentruntime。
+
 ## 2026-07-01 / Phase 3 / 接力记录
 
 ### 当前状态
