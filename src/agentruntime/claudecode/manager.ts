@@ -3,6 +3,7 @@ import type { RuntimeBusClient } from "../messagebus/client.js";
 import type { RuntimeConfig } from "../types.js";
 import type { ClaudeCodeAgentConfig, ClaudeCodeAgent } from "./agent.js";
 import { createClaudeCodeAgent } from "./agent.js";
+import { resolveClaudePath } from "./spawn.js";
 
 export interface AgentManager {
   startAgent(
@@ -32,7 +33,7 @@ export function createAgentManager(
       agentId,
       runId,
       spawnConfig: {
-        command: "claude",
+        command: resolveClaudePath(),
         args: ["-p", ...(extraArgs ?? [])],
         cwd: `${config.workplaceRoot}/${role}`,
         timeoutMs: config.shutdownTimeoutMs,

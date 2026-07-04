@@ -1,6 +1,20 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { DeepSeekClaudeCodeEnv } from "./deepseekClaudeCodeEnv.js";
 import { mergeClaudeCodeEnv } from "./deepseekClaudeCodeEnv.js";
+
+export function resolveClaudePath(): string {
+  // 1. Check local install (project node_modules)
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const localClaude = resolve(__dirname, "..", "..", "..", "node_modules", ".bin", "claude");
+  if (existsSync(localClaude)) {
+    return localClaude;
+  }
+  // 2. Fall back to PATH
+  return "claude";
+}
 
 export interface ClaudeCodeProcess {
   readonly pid: number | undefined;

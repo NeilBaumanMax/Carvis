@@ -25,5 +25,8 @@
     "@types/node": "^20.19.0",
     "electron": "^33.4.11",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^2.1.201"
   }
 }
