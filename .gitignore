@@ -9,3 +9,4 @@ logs/
 .env.qwen
 .env.qwen-omni
 .venv-scrapling/
+keys.txt
