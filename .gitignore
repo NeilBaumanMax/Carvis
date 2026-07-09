@@ -10,3 +10,5 @@ logs/
 .env.qwen-omni
 .venv-scrapling/
 keys.txt
+scripts/.pids/
+scripts/logs/
