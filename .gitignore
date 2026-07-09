@@ -3,6 +3,6 @@ dist/
 .env
 .env.*
 logs/
-output/
-workplaces/
+/output/
+/workplaces/
 keys.txt
