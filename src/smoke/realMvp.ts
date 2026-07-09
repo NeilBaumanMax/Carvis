@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -14,6 +13,7 @@ import {
 import { createElectronShell } from "../electron/index.js";
 import { createMessageBus } from "../messagebus/index.js";
 import { readOutputManifest, writeOutput } from "../output/index.js";
+import { applyKeysFromFile } from "../shared/keys.js";
 
 // Apply keys from keys.txt to environment before checking
 applyKeysFromFile();
@@ -110,38 +110,6 @@ try {
     console.log(`[mvp:real-smoke] artifacts kept at ${smokeRoot}`);
   } else {
     await rm(smokeRoot, { recursive: true, force: true });
-  }
-}
-
-function applyKeysFromFile(): void {
-  const keysPath = join(process.cwd(), "keys.txt");
-  if (!existsSync(keysPath)) {
-    return;
-  }
-
-  const content = readFileSync(keysPath, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.length === 0 || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    if (key.length > 0 && value.length > 0 && process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
-
-  const token = process.env.ANTHROPIC_AUTH_TOKEN ?? process.env.DEEPSEEK_API_KEY;
-  if (token) {
-    const masked = token.slice(0, 10) + "...";
-    console.log(`[mvp:real-smoke] loaded API key from keys.txt: ${masked}`);
   }
 }
 

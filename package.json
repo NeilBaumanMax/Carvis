@@ -34,7 +34,7 @@
     "e2e:smoke": "npm run build && node dist/smoke/e2e.js",
     "ipc:smoke": "npm run build && node dist/smoke/ipc.js",
     "ipc:reconnect-smoke": "npm run build && node dist/smoke/ipcReconnect.js",
-    "mvp:real-smoke": "npm run build && node dist/smoke/realMvp.js"
+    "mvp:real-smoke": "CARVIS_REAL_MVP_SMOKE=1 npm run build && CARVIS_REAL_MVP_SMOKE=1 node dist/smoke/realMvp.js"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",

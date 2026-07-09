@@ -1,9 +1,13 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { applyKeysFromFile } from "../shared/keys.js";
 import { createRemoteMessageBus } from "../messagebus/index.js";
 import { writeOutput } from "../output/index.js";
 import { runComponentMain } from "../shared/componentMain.js";
+
+// Load API keys from keys.txt before reading env vars
+applyKeysFromFile();
 import type { AgentRole } from "../shared/types/agent.js";
 import type { AgentOutputPayload } from "../shared/types/events.js";
 import { createAgentRuntime } from "./index.js";
