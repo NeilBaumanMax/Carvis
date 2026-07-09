@@ -1,5 +1,17 @@
 # 03 AgentRuntime Progress
 
+## 2026-07-09 / macOS 部署 / 当前状态
+
+- macOS 分支 `macos-deploy`，基于 `backup/mvp-nixos-20260702-020835`
+- AgentRuntime 在 macOS 上运行正常（mock + real 双模式）
+- DeepSeek + Qwen API key 通过 `keys.txt` 注入，`src/shared/keys.ts` 启动时加载
+- Mock 模式三进程完整链路验证通过
+- 真实模式 `mvp:real-smoke` 通过（5 角色真实 AI 调用）
+- 15 smokes 全部通过
+- systemd provider worker 机制保留但未在 macOS 使用
+
+---
+
 ## 2026-07-03 / NixOS readback and drift fix / 开工计划
 
 ### 当前目标

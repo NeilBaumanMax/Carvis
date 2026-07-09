@@ -1,5 +1,13 @@
 # 06 Workplaces Progress
 
+## 2026-07-09 / macOS 部署 / 当前状态
+
+- `workplaces:smoke` 通过，5 角色 workplace 创建和隔离验证正常
+- 三进程完整链路成功写入 `workplaces/runs/` 和 `output/`
+- mock 模式下各角色 result.md 正常生成
+
+---
+
 ## 2026-07-03 / NixOS readback / 当前状态
 
 ### 当前事实

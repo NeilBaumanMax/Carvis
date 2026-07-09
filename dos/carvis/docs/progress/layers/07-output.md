@@ -1,5 +1,13 @@
 # 07 Output Progress
 
+## 2026-07-09 / macOS 部署 / 当前状态
+
+- `output:smoke` 通过
+- 三进程完整链路生成完整的 `manifest.json` + `report.md`（5 角色结果）
+- output 目录路径：`output/runs/<timestamp-request>/`
+
+---
+
 ## 2026-07-03 / NixOS readback and drift fix / 开工计划
 
 ### 当前目标

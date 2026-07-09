@@ -1,5 +1,14 @@
 # 01 Electron Progress
 
+## 2026-07-09 / macOS 部署 / 当前状态
+
+- React+Vite carvisui 像素风办公前端可在 macOS 构建
+- `electron:smoke`, `electron:ui-smoke`, `electron:browser-smoke` 均通过
+- 三进程链路中 electron CLI 成功提交命令并接收 heartbeat + output
+- `electron` 二进制未安装在 macOS（backup 分支移除了 devDependencies 中的 electron）
+
+---
+
 ## 2026-07-03 / Install carvisui as production Electron renderer / 开工计划
 
 ### 当前目标

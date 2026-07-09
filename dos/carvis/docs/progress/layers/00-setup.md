@@ -1,5 +1,13 @@
 # 00 Setup Progress
 
+## 2026-07-09 / macOS 部署 / 当前状态
+
+- systemd 服务和 NixOS 启动脚本已移除（保留在 backup 分支）
+- macOS 上采用手动三进程启动方式
+- `src/setup` 模块精简为 config + supervisor + types
+
+---
+
 ## 2026-07-03 / NixOS readback / 当前状态
 
 ### 当前事实

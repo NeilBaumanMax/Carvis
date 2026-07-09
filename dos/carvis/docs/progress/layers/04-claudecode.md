@@ -1,5 +1,15 @@
 # 04 ClaudeCode Progress
 
+## 2026-07-09 / macOS 部署 / 当前状态
+
+- `@anthropic-ai/claude-agent-sdk@0.3.205` 替代 CLI spawn 方式
+- warm SDK 方式（`warmSdk.ts` + `warmSdkRoleRunner.ts`）在 macOS 上可用
+- `claudecode:smoke` 通过（dry 模式）
+- `mvp:real-smoke` 通过（5 角色真实 DeepSeek 调用）
+- CLI 方式（`command.ts` + `roleRunner.ts`）保留但未在 macOS 测试
+
+---
+
 ## 2026-07-03 / NixOS readback / 当前状态
 
 ### 当前事实
