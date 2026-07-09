@@ -19,8 +19,12 @@ macOS 本机，分支 macos-deploy
   -> electron (browser 模式或 Electron 窗口)
 ```
 
-启动方式：三进程依次手动启动，或通过 scripts 启动。
-API Key 通过项目根目录 keys.txt 注入。
+启动方式：一键启动 `./scripts/start.sh`，停止 `./scripts/stop.sh`。
+  - 启动顺序: messagebus → agentruntime → electron (BrowserWindow)
+  - 日志目录: scripts/logs/ (不进 Git)
+  - PID 文件: scripts/.pids/ (不进 Git)
+  - 自启动已移除: 旧 LaunchAgent plist (com.carvis.*) 已从 ~/Library/LaunchAgents/ 删除
+API Key 通过项目根目录 keys.txt 注入 (不进 Git)。
 NixOS/systemd 版本保留在 backup/mvp-nixos-* 历史分支。
 
 当前任务流：

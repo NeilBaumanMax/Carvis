@@ -8,7 +8,77 @@
 
 ---
 
-## 2026-07-09 / macOS 部署迁移 / 接力记录
+## 2026-07-09 / 一键启动脚本 + 移除自启动 / 接力记录
+
+### 当前状态
+
+- 分支 `macos-deploy`（基线 `1d090af` from `backup/mvp-nixos-20260702-020835`）
+- 15 个 smoke 测试全部通过（typecheck + build + 15 smokes）
+- NixOS/systemd/NAS 组件已移除
+- `@anthropic-ai/claude-agent-sdk@0.3.205` 已安装（macOS arm64 原生）
+- React+Vite carvisui 前端可正常构建
+- 一键启停脚本已就位：`scripts/start.sh` / `scripts/stop.sh`
+
+### 本轮完成
+
+- 移除 3 个 macOS LaunchAgent plist 文件（`com.carvis.electron.plist`, `com.carvis.messagebus.plist`, `com.carvis.agentruntime.plist`），彻底禁用自启动
+- 创建 `scripts/start.sh`：一键启动（build → messagebus → agentruntime → electron）
+- 创建 `scripts/stop.sh`：优雅停止（PID 文件 + 进程名兜底清理）
+- `.gitignore` 更新：排除 `scripts/.pids/` 和 `scripts/logs/`
+- 文档漂移修正：CODEX_START_HERE, ARCHITECTURE, DEV_PROGRESS, HANDOFF, LOG, 00-setup
+
+### 未完成
+
+- 真实 Agent 验证（需 DeepSeek API Key 创建 `keys.txt`）
+- 验证 `scripts/start.sh` 端到端工作（需 Electron 窗口确认）
+- `macos-deploy` 分支尚未 push 到 GitHub
+
+### 下次优先任务
+
+1. 运行 `CARVIS_REAL_MVP_SMOKE=1 npm run mvp:real-smoke` 验证 5 角色真实链路
+2. 执行 `./scripts/start.sh` 验证 Electron 前端窗口正常打开
+3. push `macos-deploy` 到 GitHub
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/ARCHITECTURE.md`
+
+### 关键文件
+
+- `scripts/start.sh`（一键启动脚本）
+- `scripts/stop.sh`（停止脚本）
+- `src/agentruntime/main.ts`（2167 行真实运行时入口）
+- `src/agentruntime/runtime.ts`（AgentRuntime 类）
+- `src/agentruntime/provider/`（DeepSeek/Qwen provider 层）
+- `src/electron/runBrowserMain.js`（Electron 启动入口）
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm run build`：通过
+- `npm test`：15 SMOKES ALL PASSED
+- `mvp:real-smoke`：待运行（需 API Key）
+
+### GitHub 状态
+
+- 当前分支：`macos-deploy`
+- 远端仓库：`https://github.com/NeilBaumanMax/Carvis.git`
+- push 状态：待 push
+- 备份分支：`backup/pre-oneclick-scripts-20260709-1817`（已创建本地，待 push）
+
+### 风险提醒
+
+- `@anthropic-ai/claude-agent-sdk` 的 warm SDK 在 macOS 上尚未端到端验证
+- 若 `mvp:real-smoke` 失败，先 `curl` 测试 DeepSeek API 连通性
+- 三进程启动需确保 `CARVIS_MESSAGEBUS_PORT` 不被防火墙拦截
+- GitHub push 使用 `neilbauman666` 凭证，对 `NeilBaumanMax/Carvis` 仓库需确认权限
+- 项目实际路径 `/Users/neil/Documents/Project/Carvis` 与旧 LaunchAgent 路径 `/Users/neil/Agent/Carvis` 不同
+
+---
+
+## 2026-07-09 / macOS 部署迁移 / 接力记录 (上一次)
 
 ### 当前状态
 
@@ -36,40 +106,12 @@
 1. 配置 `keys.txt`（`DEEPSEEK_API_KEY=sk-xxx`）
 2. 运行 `CARVIS_REAL_MVP_SMOKE=1 npm run mvp:real-smoke` 验证 5 角色真实链路
 3. 启动三进程：messagebus → agentruntime → electron
-4. push `macos-deploy` 到 GitHub
-
-### 必读文档
-
-- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
-- `dos/carvis/docs/WORKFLOW.md`
-- `dos/carvis/docs/ARCHITECTURE.md`
-
-### 关键文件
-
-- `src/agentruntime/main.ts`（2167 行真实运行时入口）
-- `src/agentruntime/runtime.ts`（AgentRuntime 类）
-- `src/agentruntime/provider/`（DeepSeek/Qwen provider 层）
-- `src/agentruntime/claudecode/warmSdk.ts`（Claude Agent SDK 温启动）
-- `src/smoke/realMvp.ts`（真实 MVP smoke，需 `CARVIS_REAL_MVP_SMOKE=1`）
-- `package.json`
 
 ### 测试基线
 
 - `npm run typecheck`：通过
 - `npm test`：15 SMOKES ALL PASSED
 - `mvp:real-smoke`：待运行（需 API Key）
-
-### GitHub 状态
-
-- 当前分支：`macos-deploy`
-- 远端仓库：`https://github.com/NeilBaumanMax/Carvis.git`
-- push 状态：待 push
-
-### 风险提醒
-
-- `@anthropic-ai/claude-agent-sdk` 的 warm SDK 在 macOS 上尚未端到端验证
-- 若 `mvp:real-smoke` 失败，先 `curl` 测试 DeepSeek API 连通性
-- 三进程启动需确保 `CARVIS_MESSAGEBUS_PORT` 不被防火墙拦截
 
 ---
 

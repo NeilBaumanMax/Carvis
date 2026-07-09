@@ -1,6 +1,17 @@
 # 00 Setup Progress
 
-## 2026-07-09 / macOS 部署 / 当前状态
+## 2026-07-09 / 一键启动脚本 / 当前状态
+
+- systemd 服务和 NixOS 启动脚本已移除（保留在 backup 分支）
+- macOS LaunchAgent 自启动已移除（3 个 plist 文件已删除，保留在 `backup/macos-deploy-20260709-1356` 分支）
+- 手动启动方式：`./scripts/start.sh`（一键三进程启动），`./scripts/stop.sh`（停止）
+- 启动顺序：messagebus (TCP 45931) → agentruntime → electron (BrowserWindow)
+- 环境变量和 API Key：`start.sh` 自动从 `keys.txt` 加载（不进 Git）
+- `src/setup` 模块精简为 config + supervisor + types
+
+---
+
+## 2026-07-09 / macOS 部署 / 历史状态
 
 - systemd 服务和 NixOS 启动脚本已移除（保留在 backup 分支）
 - macOS 上采用手动三进程启动方式

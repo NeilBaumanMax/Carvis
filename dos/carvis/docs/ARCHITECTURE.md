@@ -23,11 +23,12 @@ electron <-> messagebus <-> agentruntime
 
 截至 2026-07-09，macOS 本机部署，分支 `macos-deploy`。
 
-- 启动方式：三进程依次启动 — messagebus → agentruntime → electron
+- 启动方式：一键 `./scripts/start.sh`（messagebus → agentruntime → electron），停止 `./scripts/stop.sh`
 - `agentruntime` 使用项目根目录 `keys.txt` 注入 API Key（已在 .gitignore）
-- 消息总线使用 TCP socket（`CARVIS_MESSAGEBUS_PORT` 环境变量），默认 `127.0.0.1` 动态端口
+- 消息总线使用 TCP socket（`CARVIS_MESSAGEBUS_PORT` 环境变量），默认端口 `45931`
 - systemd 服务和 NixOS 特化组件已移除（保留在 `backup/mvp-nixos-*` 分支）
 - NAS 远程控制模块已移除（保留在 backup 分支）
+- macOS LaunchAgent 自启动已移除（保留在 `backup/macos-deploy-20260709-1356` 分支）
 
 ## 核心链路
 

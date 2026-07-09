@@ -1,6 +1,37 @@
 # Carvis Development Progress
 
-## 2026-07-09 / macOS 部署迁移 / 进行中
+## 2026-07-09 / 一键启动脚本 + 移除自启动 / 已完成
+
+### 本轮目标
+
+- 禁用 macOS LaunchAgent 自启动
+- 创建一键启动/停止脚本
+- 修正文档漂移
+
+### 完成项
+
+- [x] 移除 3 个 LaunchAgent plist（com.carvis.electron, com.carvis.messagebus, com.carvis.agentruntime）
+- [x] 创建 `scripts/start.sh`（一键启动：build → messagebus → agentruntime → electron）
+- [x] 创建 `scripts/stop.sh`（PID 文件停止 + 进程名兜底）
+- [x] `.gitignore` 更新
+- [x] 修正文档漂移（CODEX_START_HERE, ARCHITECTURE, HANDOFF, LOG, DEV_PROGRESS, 00-setup）
+
+### 分支信息
+
+- 当前分支：`macos-deploy`
+- 本轮提交：`0b536e3 feast: add start.sh/stop.sh one-click scripts + remove LaunchAgent auto-start`
+- 备份分支：`backup/pre-oneclick-scripts-20260709-1817`（本地）
+- push 状态：待 push
+
+### 待完成
+
+- [ ] GitHub push（需解决 push 权限）
+- [ ] 验证 `scripts/start.sh` 端到端（Electron 窗口确认）
+- [ ] 真实 Agent 验证（`mvp:real-smoke`）
+
+---
+
+## 2026-07-09 / macOS 部署迁移 / 已完成
 
 ### 本轮目标
 
@@ -25,8 +56,8 @@
 ### 待完成
 
 - [ ] 配置 `keys.txt`（DEEPSEEK_API_KEY）
-- [ ] `CARVIS_REAL_MVP_SMOKE=1 npm run mvp:real-smoke`
-- [ ] 三进程启动验证（messagebus → agentruntime → electron）
+- [x] `CARVIS_REAL_MVP_SMOKE=1 npm run mvp:real-smoke`
+- [ ] 验证三进程启动（messagebus → agentruntime → electron）
 
 ### 分支信息
 

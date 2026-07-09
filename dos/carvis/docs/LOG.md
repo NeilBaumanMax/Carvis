@@ -1,5 +1,58 @@
 # Carvis Construction Log
 
+## 2026-07-09 / 一键启动脚本 + 移除自启动 / 施工记录
+
+### 本轮计划回放
+
+- 发现项目通过 3 个 macOS LaunchAgent plist 自启动（登录时自动拉起 + KeepAlive 自动重启）
+- 用户要求禁用自启动，改为手动一键脚本
+- 创建 scripts/start.sh 和 scripts/stop.sh
+- GitHub 备份
+- 修正文档漂移
+
+### 实施记录
+
+#### 变更摘要
+
+- 移除 3 个 LaunchAgent plist 文件：
+  - `~/Library/LaunchAgents/com.carvis.electron.plist`
+  - `~/Library/LaunchAgents/com.carvis.messagebus.plist`
+  - `~/Library/LaunchAgents/com.carvis.agentruntime.plist`
+- 创建 `scripts/start.sh`：一键启动（build → messagebus → agentruntime → electron）
+- 创建 `scripts/stop.sh`：PID 文件停止 + 进程名兜底清理
+- `.gitignore` 新增 `scripts/.pids/` 和 `scripts/logs/`
+- 文档漂移修正：CODEX_START_HERE, ARCHITECTURE, HANDOFF, DEV_PROGRESS, LOG, 00-setup
+
+#### 发现的问题
+
+- plist 文件中 WorkingDirectory 指向 `/Users/neil/Agent/Carvis`，但项目实际在 `/Users/neil/Documents/Project/Carvis`
+- plist 文件包含明文 API Key（DEEPSEEK_API_KEY, DASHSCOPE_API_KEY），已随文件删除
+- 文档中无任何 LaunchAgent 自启动的记录
+
+#### 测试结果
+
+- `npm run typecheck`：通过
+- `npm run build`：通过
+
+### 遗留项与下一步
+
+- 验证 `scripts/start.sh` 端到端工作（需 Electron 窗口确认）
+- GitHub push（需解决 push 权限问题）
+
+### GitHub 状态
+
+- 当前分支：`macos-deploy`
+- 本轮提交：`0b536e3 feat: add start.sh/stop.sh one-click scripts + remove LaunchAgent auto-start`
+- 备份分支：`backup/pre-oneclick-scripts-20260709-1817`（本地）
+- push 状态：待 push（`neilbauman666` 凭证对 `NeilBaumanMax/Carvis` 无 push 权限）
+
+### 回滚判断
+
+- 是否需要回滚：否
+- 如需恢复自启动：备份分支 `backup/macos-deploy-20260709-1356` 保留原 plist 文件
+
+---
+
 ## 2026-07-09 / macOS 部署迁移 / 施工记录
 
 ### 本轮计划回放
