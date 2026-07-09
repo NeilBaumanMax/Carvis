@@ -44,7 +44,7 @@ const runtime = createAgentRuntime(bus, {
       : readNonNegativeInteger(process.env.CARVIS_REAL_PROVIDER_MAX_ATTEMPTS, 2),
   pidOutputValidator: isRealProviderMode() ? validateRealProviderOutput : undefined,
   engineerRunsAfterFailedReview:
-    isRealProviderMode() && process.env.CARVIS_ENGINEER_RUNS_AFTER_FAILED_REVIEW !== "0",
+    isRealProviderMode() ? process.env.CARVIS_ENGINEER_RUNS_AFTER_FAILED_REVIEW !== "0" : true,
   pidTaskInputBuilder: isRealProviderMode()
     ? async ({ run, agent, commandText, attempt, previousPidOutput, retryReason }) => {
         const runSpeedMode = getRunSpeedMode(run.speedMode);
