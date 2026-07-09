@@ -3,21 +3,22 @@
 > 本文件是 `carvis` 项目的最高优先级施工指令。  
 > 后续任何 Codex 接手时，必须先读本文件，再决定开发动作。
 
-## 0. 当前状态覆盖说明（2026-07-03）
+## 0. 当前状态覆盖说明（2026-07-09）
 
 本文件下方保留了早期目标和阶段规则；当前实现已经进入可运行 MVP 后的文档漂移修正与质量加固阶段。若早期段落与本节冲突，以本节和当前代码为准。
 
-当前生产事实：
+当前部署事实：
 
-- NixOS 远端运行目录：`~/carvis-remote-smoke`。
-- 三个 user service active：`carvis-messagebus.service`、`carvis-agentruntime.service`、`carvis-electron.service`。
-- `carvis-agentruntime.service` 使用 `EnvironmentFile=/home/howtion/.config/carvis/agentruntime.env` 注入 secret。
+- 部署目标：macOS，分支 `macos-deploy`（基线 `backup/mvp-nixos-20260702-020835`）。
+- NixOS 远端版本保留在 `backup/mvp-nixos-*` 历史分支中。
+- 启动方式：三进程依次启动 — messagebus（TCP socket）→ agentruntime → electron。
+- API Key 通过项目根目录 `keys.txt` 注入（已在 .gitignore）。
 - `agentruntime` 当前 production flow：`created -> parallel_roles_working -> engineer_building -> output_ready -> retaining_agents`。
 - `manager`、`writer`、`artist`、`researcher` 并行工作；`engineer` 最后审计合并并生成最终 HTML。
-- `manager_planning` / `manager_reviewing` 仍保留在共享类型和历史辅助代码中，但不是当前常驻 production flow。
-- 当前 provider routing：manager/writer/engineer 走 DeepSeek Claude Code CLI；artist/researcher 走 Qwen OpenAI-compatible；artist 可通过本地 artist-image MCP wrapper 生成图片资产。
-- 常驻 retained PID 是每个角色一个 `providerWorker`，DeepSeek Claude Code 本体仍由 worker 内部按任务调用 CLI print。
+- 当前 provider routing：manager/writer/engineer 走 DeepSeek OpenAI-compatible；artist/researcher 走 Qwen OpenAI-compatible；artist 可通过本地 artist-image MCP wrapper 生成图片资产。
+- Claude Code 调用方式：`@anthropic-ai/claude-agent-sdk` warm SDK（替代 CLI spawn）。
 - 正式 workplace 路径：`workplaces/runs/<timestamp-request>/<role>/`。
+- systemd 服务、NAS 模块已在 macOS 部署中移除。
 - 正式 output 路径：`output/runs/<timestamp-request>/`。
 - 每个角色可写 `usage.json` 记录 provider/model/usage。
 

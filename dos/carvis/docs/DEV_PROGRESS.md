@@ -1,6 +1,43 @@
 # Carvis Development Progress
 
-## 2026-07-03 / NAS WiFi startup hardening and copy drift fix / 记录
+## 2026-07-09 / macOS 部署迁移 / 进行中
+
+### 本轮目标
+
+- 基于 `backup/mvp-nixos-20260702-020835` 创建 `macos-deploy` 分支
+- 移除 NixOS/Linux 特有组件（systemd 服务、NAS 模块、steam-run 脚本）
+- 在 macOS 上完成依赖安装和编译验证
+- 通过全量 smoke 测试（15 个测试全部通过）
+- 待完成：真实 Agent 端到端验证（需配置 DeepSeek API Key）
+- 待完成：完整三进程系统启动验证
+
+### 完成项
+
+- [x] 创建 `macos-deploy` 分支（基线：`1d090af release: bump carvis to 1.1`）
+- [x] 删除 `src/setup/systemd*`、`nas/`、`scripts/run-nixos-mvp-smoke.sh` 等 NixOS 组件
+- [x] `package.json` 移除 systemd/spawn-smoke 相关 scripts，保留 `mvp:real-smoke`
+- [x] macOS 依赖安装：`@anthropic-ai/claude-agent-sdk@0.3.205`, react, vite 等
+- [x] `npm run typecheck`（main + ui）通过
+- [x] `npm run build`（main + ui）通过
+- [x] `npm test`（15 smokes）全部通过
+- [x] 修正文档漂移：ARCHITECTURE.md, DEV_PROGRESS.md, LOG.md, HANDOFF.md, TEST_METRICS.md
+
+### 待完成
+
+- [ ] 配置 `keys.txt`（DEEPSEEK_API_KEY）
+- [ ] `CARVIS_REAL_MVP_SMOKE=1 npm run mvp:real-smoke`
+- [ ] 三进程启动验证（messagebus → agentruntime → electron）
+
+### 分支信息
+
+- 当前分支：`macos-deploy`
+- 基线提交：`1d090af`（backup/mvp-nixos-20260702-020835）
+- 远端仓库：`https://github.com/NeilBaumanMax/Carvis.git`
+- 待 push
+
+---
+
+
 
 ### 本轮目标
 

@@ -6,27 +6,77 @@
 
 每次测试通过并完成文档漂移修正后，必须更新本文件。没有更新接力文档，不允许把本轮施工标记为完整完成。
 
+---
+
+## 2026-07-09 / macOS 部署迁移 / 接力记录
+
+### 当前状态
+
+- 分支 `macos-deploy`（基线 `1d090af` from `backup/mvp-nixos-20260702-020835`）
+- 15 个 smoke 测试全部通过（typecheck + build + 15 smokes）
+- NixOS/systemd/NAS 组件已移除
+- `@anthropic-ai/claude-agent-sdk@0.3.205` 已安装（macOS arm64 原生）
+- React+Vite carvisui 前端可正常构建
+
+### 本轮完成
+
+- 基于 backup 分支创建 `macos-deploy` 并完成 macOS 适配
+- 移除所有 NixOS/Linux 特有组件
+- 依赖安装 + 编译通过
+- 文档漂移修正（ARCHITECTURE, DEV_PROGRESS, LOG, HANDOFF, TEST_METRICS）
+
+### 未完成
+
+- 真实 Agent 验证（需 DeepSeek API Key 创建 `keys.txt`）
+- 三进程启动验证
+- `macos-deploy` 分支尚未 push 到 GitHub
+
+### 下次优先任务
+
+1. 配置 `keys.txt`（`DEEPSEEK_API_KEY=sk-xxx`）
+2. 运行 `CARVIS_REAL_MVP_SMOKE=1 npm run mvp:real-smoke` 验证 5 角色真实链路
+3. 启动三进程：messagebus → agentruntime → electron
+4. push `macos-deploy` 到 GitHub
+
+### 必读文档
+
+- `dos/carvis/CODEX_MASTER_REQUIREMENTS.md`
+- `dos/carvis/docs/WORKFLOW.md`
+- `dos/carvis/docs/ARCHITECTURE.md`
+
+### 关键文件
+
+- `src/agentruntime/main.ts`（2167 行真实运行时入口）
+- `src/agentruntime/runtime.ts`（AgentRuntime 类）
+- `src/agentruntime/provider/`（DeepSeek/Qwen provider 层）
+- `src/agentruntime/claudecode/warmSdk.ts`（Claude Agent SDK 温启动）
+- `src/smoke/realMvp.ts`（真实 MVP smoke，需 `CARVIS_REAL_MVP_SMOKE=1`）
+- `package.json`
+
+### 测试基线
+
+- `npm run typecheck`：通过
+- `npm test`：15 SMOKES ALL PASSED
+- `mvp:real-smoke`：待运行（需 API Key）
+
+### GitHub 状态
+
+- 当前分支：`macos-deploy`
+- 远端仓库：`https://github.com/NeilBaumanMax/Carvis.git`
+- push 状态：待 push
+
+### 风险提醒
+
+- `@anthropic-ai/claude-agent-sdk` 的 warm SDK 在 macOS 上尚未端到端验证
+- 若 `mvp:real-smoke` 失败，先 `curl` 测试 DeepSeek API 连通性
+- 三进程启动需确保 `CARVIS_MESSAGEBUS_PORT` 不被防火墙拦截
+
+---
+
 ## 每轮必须更新的内容
 
 ```text
 ## <date> / <phase> / 接力记录
-
-### 当前状态
-
-- <what works now>
-
-### 本轮完成
-
-- <completed item>
-
-### 未完成
-
-- <pending item>
-
-### 下次优先任务
-
-1. <next task>
-2. <next task>
 
 ### 必读文档
 

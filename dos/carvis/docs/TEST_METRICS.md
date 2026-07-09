@@ -25,12 +25,25 @@ npm test
 ```text
 npm run setup:smoke
 npm run messagebus:smoke
-npm run agentruntime:smoke
 npm run electron:smoke
+npm run electron:ui-smoke
+npm run electron:browser-smoke
+npm run agentruntime:smoke
+npm run pidagent:smoke
+npm run runtime-pidagent:smoke
+npm run workplaces:smoke
+npm run output:smoke
 npm run claudecode:smoke
+npm run e2e:smoke
+npm run ipc:smoke
+npm run ipc:reconnect-smoke
 ```
 
-尚未创建脚本时，不得假装通过；日志必须写明“脚本未建立”。
+mvp:real-smoke 需要 `CARVIS_REAL_MVP_SMOKE=1` 和有效 API Key 才能运行。
+
+systemd 相关测试（`setup:spawn-smoke`, `setup:systemd-smoke`, `setup:systemd-install-smoke`）已在 macOS 迁移中移除。
+
+尚未创建脚本时，不得假装通过；日志必须写明”脚本未建立”。
 
 ## Phase 0 文档与边界
 
@@ -42,7 +55,7 @@ npm run claudecode:smoke
 - GitHub 回滚策略存在
 - 测试指标文档存在
 - 分层进度日志存在
-- 文档中明确 TypeScript、NixOS、Electron、messagebus、agentruntime、Claude Code CLI、DeepSeek 边界
+- 文档中明确 TypeScript、macOS/Linux、Electron、messagebus、agentruntime、Claude Code SDK、DeepSeek 边界
 
 验证方式：
 

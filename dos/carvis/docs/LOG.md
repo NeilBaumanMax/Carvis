@@ -1,6 +1,78 @@
 # Carvis Construction Log
 
-## 2026-07-03 / NAS remote control and Electron HTTP API
+## 2026-07-09 / macOS 部署迁移 / 施工记录
+
+### 本轮计划回放
+
+- 基于 `backup/mvp-nixos-20260702-020835` 分支在 macOS 上部署 Carvis
+- 移除 NixOS/systemd/NAS 特有组件
+- macOS 适配（SDK 二进制路径、消息总线 TCP）
+- 编译验证 + 全量 smoke 测试
+- 文档漂移修正
+
+### 实施记录
+
+#### 变更摘要
+
+- 创建 `macos-deploy` 分支（基线 `1d090af`）
+- 删除文件：`src/setup/systemd.ts`, `systemdInstall.ts`, `systemdSmoke.ts`, `systemdInstallSmoke.ts`, `spawnSmoke.ts`
+- 删除目录：`nas/`
+- 删除脚本：`scripts/run-nixos-mvp-smoke.sh`, `scripts/probe-nixos-ssh.sh`
+- 修改 `package.json`：移除 `setup:spawn-smoke`, `setup:systemd-smoke`, `setup:systemd-install-smoke`, `setup:systemd-install` 脚本
+- 依赖安装：`@anthropic-ai/claude-agent-sdk@0.3.205`, react 19.2.7, vite 8.1.3 等 127 packages
+- 文档修正：ARCHITECTURE.md, DEV_PROGRESS.md, LOG.md, HANDOFF.md, TEST_METRICS.md
+
+#### 测试结果
+
+| Suite | 结果 |
+|---|---|
+| typecheck (main + ui) | ok |
+| build (main + ui) | ok |
+| setup:smoke | ok |
+| messagebus:smoke | ok |
+| electron:smoke | ok |
+| electron:ui-smoke | ok |
+| electron:browser-smoke | ok |
+| agentruntime:smoke | ok |
+| pidagent:smoke | ok |
+| runtime-pidagent:smoke | ok |
+| workplaces:smoke | ok |
+| output:smoke | ok |
+| claudecode:smoke | ok (dry) |
+| e2e:smoke | ok |
+| ipc:smoke | ok (TCP messagebus + agentruntime 真实通信) |
+| ipc:reconnect-smoke | ok |
+
+`npm test`：15 SMOKES ALL PASSED，零回归。
+
+### 遗留项与下一步
+
+- 真实 Agent 验证（`mvp:real-smoke`）需配置 `DEEPSEEK_API_KEY`
+- 三进程完整系统启动验证
+- push `macos-deploy` 分支到 GitHub
+- 确认 `@anthropic-ai/claude-agent-sdk` warm SDK 在 macOS 上正常启动
+
+### GitHub 状态
+
+- 当前分支：`macos-deploy`
+- 远端仓库：`https://github.com/NeilBaumanMax/Carvis.git`
+- push 状态：待 push（真实 Agent 验证通过后再 push）
+
+### 回滚判断
+
+- 是否需要回滚：否
+- `macos-deploy` 为一独立分支，不影响 `main`
+- 如需回滚到原 NixOS 版本：`git checkout backup/mvp-nixos-20260702-020835`
+
+### 下一步
+
+1. 用户提供 DeepSeek API Key → 创建 `keys.txt` → 运行 `CARVIS_REAL_MVP_SMOKE=1 npm run mvp:real-smoke`
+2. 三进程启动验证
+3. push 到 GitHub
+
+---
+
+
 
 > 历史记录：本节记录 NAS 初次接入结果。当前 WiFi 入口、系统 Go、防火墙和 NAS 启动自修复状态以文末 `NAS WiFi startup hardening and documentation drift fix` 为准。
 

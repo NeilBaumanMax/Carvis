@@ -10,13 +10,9 @@
     "typecheck": "npm run typecheck:main && npm run typecheck:ui",
     "typecheck:main": "tsc -p tsconfig.json --noEmit",
     "typecheck:ui": "tsc -p src/electron/carvisui/tsconfig.json",
-    "test": "npm run typecheck && npm run setup:smoke && npm run setup:spawn-smoke && npm run setup:systemd-smoke && npm run setup:systemd-install-smoke && npm run messagebus:smoke && npm run electron:smoke && npm run electron:ui-smoke && npm run electron:browser-smoke && npm run agentruntime:smoke && npm run pidagent:smoke && npm run runtime-pidagent:smoke && npm run workplaces:smoke && npm run output:smoke && npm run claudecode:smoke && npm run e2e:smoke && npm run ipc:smoke && npm run ipc:reconnect-smoke",
+    "test": "npm run typecheck && npm run setup:smoke && npm run messagebus:smoke && npm run electron:smoke && npm run electron:ui-smoke && npm run electron:browser-smoke && npm run agentruntime:smoke && npm run pidagent:smoke && npm run runtime-pidagent:smoke && npm run workplaces:smoke && npm run output:smoke && npm run claudecode:smoke && npm run e2e:smoke && npm run ipc:smoke && npm run ipc:reconnect-smoke",
     "start": "node dist/main.js",
     "setup:smoke": "npm run build && node dist/setup/smoke.js",
-    "setup:spawn-smoke": "npm run build && node dist/setup/spawnSmoke.js",
-    "setup:systemd-smoke": "npm run build && node dist/setup/systemdSmoke.js",
-    "setup:systemd-install": "npm run build && node dist/setup/systemdInstall.js",
-    "setup:systemd-install-smoke": "npm run build && node dist/setup/systemdInstallSmoke.js",
     "messagebus:start": "node dist/messagebus/main.js",
     "agentruntime:start": "node dist/agentruntime/main.js",
     "electron:start": "node dist/electron/main.js",
@@ -52,5 +48,8 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.197"
+  },
+  "allowScripts": {
+    "@anthropic-ai/claude-agent-sdk@0.3.205": true
   }
 }

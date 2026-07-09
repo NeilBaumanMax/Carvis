@@ -1,23 +1,27 @@
 # CODEX START HERE: Carvis 多 Agent 可视化系统施工说明
 
 > 本文件是新的 Codex / Coding Agent 接手 `carvis` 时必须先读的入口文档。  
-> 目标是在 NixOS 上建设一个多进程调配多个 Claude Code Agent 的可视化协同工作系统。
+> 目标：多进程调配多个 AI Agent 的可视化协同工作系统。当前部署目标为 macOS。
 
 ---
 
-## 0. 当前接力状态（2026-07-03）
+## 0. 当前接力状态（2026-07-09）
 
-本入口文档的早期 phase 描述仍保留历史施工背景。当前项目已经不是“只做施工文档脚手架”的阶段，而是可运行 MVP 后的漂移修正和质量加固阶段。
+本入口文档的早期 phase 描述仍保留历史施工背景。当前项目已经不是”只做施工文档脚手架”的阶段，而是可运行 MVP 后的 macOS 部署和漂移修正阶段。
 
 当前应按以下事实接手：
 
 ```text
-NixOS user services
-  -> carvis-messagebus.service active
-  -> carvis-agentruntime.service active
+macOS 本机，分支 macos-deploy
+  -> messagebus (TCP socket, CARVIS_MESSAGEBUS_PORT)
+  -> agentruntime (dist/agentruntime/main.js)
       -> 5 retained providerWorker processes
-  -> carvis-electron.service active
+  -> electron (browser 模式或 Electron 窗口)
 ```
+
+启动方式：三进程依次手动启动，或通过 scripts 启动。
+API Key 通过项目根目录 keys.txt 注入。
+NixOS/systemd 版本保留在 backup/mvp-nixos-* 历史分支。
 
 当前任务流：
 

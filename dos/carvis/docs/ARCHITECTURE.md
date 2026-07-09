@@ -2,34 +2,32 @@
 
 ## 总览
 
-Carvis 是一个用 TypeScript 编写、运行在 NixOS 上的本地多进程多 Agent 协同系统。
+Carvis 是一个用 TypeScript 编写的本地多进程多 Agent 协同系统。当前部署目标为 macOS，支持 DeepSeek/Qwen provider。
 
 ```text
-NixOS
-  -> setup
-      -> messagebus
+macOS / Linux
+  -> messagebus (TCP socket)
       -> agentruntime
-      -> electron
+          -> retained providerWorker pool
+             -> DeepSeek OpenAI-compatible text
+             -> Qwen OpenAI-compatible text
+             -> artist-image MCP wrapper
+          -> workplaces/runs/<run>/*
+          -> output/runs/<run>/*
+      -> electron (browser mode 或 Electron 窗口)
 
 electron <-> messagebus <-> agentruntime
-                              -> retained providerWorker pool
-                                 -> DeepSeek Claude Code CLI
-                                 -> Qwen OpenAI-compatible text
-                                 -> artist-image MCP wrapper
-                              -> workplaces/runs/<run>/*
-                              -> output/runs/<run>/*
 ```
 
-## 当前生产形态
+## 当前部署形态
 
-截至 2026-07-03 SSH readback，NixOS 远端运行目录是 `~/carvis-remote-smoke`。
+截至 2026-07-09，macOS 本机部署，分支 `macos-deploy`。
 
-- `carvis-messagebus.service`：active，运行 `dist/messagebus/main.js`。
-- `carvis-agentruntime.service`：active，运行 `dist/agentruntime/main.js`，并保留 5 个 `providerWorker` PID。
-- `carvis-electron.service`：active，运行 `dist/electron/runBrowserMain.js`，通过 NixOS Electron 41.7.2 runtime 启动窗口。
-- `agentruntime` 使用本地 `~/.config/carvis/agentruntime.env` 注入 secret，仓库不保存 API Key。
-- 每次任务写入 `workplaces/runs/<timestamp-request>/` 和 `output/runs/<timestamp-request>/`。
-- 每个角色的 provider/model/usage 写入对应 `usage.json`。
+- 启动方式：三进程依次启动 — messagebus → agentruntime → electron
+- `agentruntime` 使用项目根目录 `keys.txt` 注入 API Key（已在 .gitignore）
+- 消息总线使用 TCP socket（`CARVIS_MESSAGEBUS_PORT` 环境变量），默认 `127.0.0.1` 动态端口
+- systemd 服务和 NixOS 特化组件已移除（保留在 `backup/mvp-nixos-*` 分支）
+- NAS 远程控制模块已移除（保留在 backup 分支）
 
 ## 核心链路
 

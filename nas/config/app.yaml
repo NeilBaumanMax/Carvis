@@ -1,4 +1,0 @@
-name: carvis-nas
-listen_host: 0.0.0.0
-listen_port: 8765
-client_dir: apps/client
