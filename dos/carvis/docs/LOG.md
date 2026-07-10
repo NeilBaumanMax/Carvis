@@ -1,5 +1,44 @@
 # Carvis Construction Log
 
+## 2026-07-10 / 启动脚本修复 + API 调用验证 / 施工记录
+
+### 问题
+
+- 旧 `start.sh` 使用 `set -euo pipefail` + `&` 后台进程，脚本退出时子进程收到 SIGHUP 被杀
+- 实际表现：messagebus、agentruntime 启动后约 1 分钟被 SIGTERM 杀死，只剩 Electron 空壳
+- Electron 下发的命令无法到达 agentruntime，API 不会被调用
+
+### 修复
+
+- `start.sh` 重写：
+  - 移除 `set -euo pipefail`
+  - 后台进程改用 `nohup` + `disown` 确保进程存活
+  - 增加进程存活检测（`lsof` / `pgrep`），避免重复启动
+  - 增加 dist 更新时间检查，跳过不必要的构建
+  - 统一环境变量设置到 `setup_env()` 函数
+- 通过 messagebus 直接发送测试命令验证：
+  - manager 成功调用 DeepSeek v4-pro[1m] API
+  - writer/artist/researcher 并行调用 API 成功
+  - engineer 生成最终产物成功
+  - 5 个角色全部输出 `PROVIDER: deepseek-claudecode` 真实内容
+
+### 测试结果
+
+- `npm run typecheck`：通过
+- `npm run build`：通过
+- 真实 API 调用验证：通过（DeepSeek v4-pro[1m]）
+
+### GitHub 状态
+
+- 当前分支：`macos-deploy`
+- 待提交：`scripts/start.sh` 修复
+
+### 回滚判断
+
+- 是否需要回滚：否
+
+---
+
 ## 2026-07-09 / 一键启动脚本 + 移除自启动 / 施工记录
 
 ### 本轮计划回放
